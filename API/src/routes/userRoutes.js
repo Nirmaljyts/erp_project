@@ -1,0 +1,72 @@
+import { Router } from "express";
+import {
+  listUsers,
+  getUserById,
+  createUser,
+  updateUser,
+  deleteUser,
+  listManagers,
+  listAvailableEmployees
+} from "../controllers/userController.js";
+
+import { authRequired, requireRole } from "../middleware/auth.js";
+
+const router = Router();
+
+// LIST (paginated)
+router.get(
+  "/",
+  authRequired,
+  requireRole("ADMIN", "HR", "MANAGER"),
+  listUsers
+);
+
+// GET SINGLE USER
+router.get(
+  "/managers",
+  authRequired,
+  requireRole("ADMIN", "HR", "MANAGER"),
+  listManagers
+);
+
+// CREATE USER
+router.post(
+  "/",
+  authRequired,
+  requireRole("ADMIN", "HR"),
+  createUser
+);
+
+// UPDATE USER
+router.put(
+  "//:id",
+  authRequired,
+  requireRole("ADMIN", "HR"),
+  updateUser
+);
+
+// DELETE USER
+router.delete(
+  "//:id",
+  authRequired,
+  requireRole("ADMIN"),
+  deleteUser
+);
+
+// GET ALL MANAGERS
+router.get(
+  "/managers",
+  authRequired,
+  requireRole("ADMIN", "HR", "MANAGER"),
+  listManagers
+);
+
+// GET EMPLOYEES NOT ASSIGNED TO ACTIVE PROJECTS
+router.get(
+  "/employees",
+  authRequired,
+  requireRole("ADMIN", "HR", "MANAGER"),
+  listAvailableEmployees
+);
+
+export default router;
