@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { listHolidays, createHoliday } from "../controllers/holidayController.js";
+import {
+  listHolidays,
+  createHoliday,
+} from "../controllers/holidayController.js";
 import { authRequired, requireRole } from "../middleware/auth.js";
 
 const router = Router();

@@ -6,12 +6,12 @@ import {
   assignUsersService,
   removeEmployeeFromProjectService,
   updateProjectStatusService,
-  deleteProjectService
+  deleteProjectService,
 } from "../services/projectService.js";
 
 export async function listProjects(req, res) {
   try {
-    const result = await getAllProjects(req.query);
+    const result = await getAllProjects(req.query, req.user);
     res.json(result);
   } catch (err) {
     res.status(500).json({ message: "Failed to list projects" });
@@ -30,19 +30,23 @@ export async function getProject(req, res) {
 
 export async function createProject(req, res) {
   try {
-    const project = await createNewProject(req.body);
+    const project = await createNewProject(req.body, req.user);
     res.json({ message: "Project created", project });
-  } catch {
-    res.status(500).json({ message: "Failed to create project" });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: err.message || "Failed to create project" });
   }
 }
 
 export async function updateProject(req, res) {
   try {
-    await updateExistingProject(req.params.id, req.body);
+    await updateExistingProject(req.params.id, req.body, req.user);
     res.json({ message: "Project updated" });
-  } catch {
-    res.status(500).json({ message: "Failed to update project" });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ message: err.message || "Failed to update project" });
   }
 }
 
@@ -52,13 +56,15 @@ export async function deleteProject(req, res) {
     return res.json({ message: "Project deleted successfully" });
   } catch (err) {
     console.error("DELETE PROJECT ERROR:", err);
-    return res.status(500).json({ message: err.message || "Failed to delete project" });
+    return res
+      .status(500)
+      .json({ message: err.message || "Failed to delete project" });
   }
 }
 
 export async function assignUsersToProject(req, res) {
   try {
-    const result = await assignUsersService(req.params.id, req.body);
+    const result = await assignUsersService(req.params.id, req.body, req.user);
     res.json({ message: "Assignments updated", result });
   } catch (err) {
     res.status(400).json({ message: err.message });
@@ -82,12 +88,7 @@ export async function updateProjectStatus(req, res) {
     const { id } = req.params;
     const { status } = req.body;
 
-    const validStatuses = [
-      "ACTIVE",
-      "ON_HOLD",
-      "COMPLETED",
-      "CANCELLED",
-    ];
+    const validStatuses = ["ACTIVE", "ON_HOLD", "COMPLETED", "CANCELLED"];
 
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: "Invalid status value" });

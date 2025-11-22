@@ -34,7 +34,7 @@ export default function ProfilePopover() {
       reverseButtons: true,
       confirmButtonColor: "#d33",
       confirmButtonText: "Confirm",
-      cancelButtonText: "No",
+      cancelButtonText: "Cancel",
       cancelButtonColor: "#1b335a",
     }).then((result) => {
       if (result.isConfirmed) {

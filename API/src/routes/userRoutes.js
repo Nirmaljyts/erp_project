@@ -6,7 +6,7 @@ import {
   updateUser,
   deleteUser,
   listManagers,
-  listAvailableEmployees
+  listAvailableEmployees,
 } from "../controllers/userController.js";
 
 import { authRequired, requireRole } from "../middleware/auth.js";
@@ -17,41 +17,18 @@ const router = Router();
 router.get(
   "/",
   authRequired,
-  requireRole("ADMIN", "HR", "MANAGER"),
+  requireRole("ADMIN", "HR", "MANAGER", "EMPLOYEE"),
   listUsers
 );
 
-// GET SINGLE USER
-router.get(
-  "/managers",
-  authRequired,
-  requireRole("ADMIN", "HR", "MANAGER"),
-  listManagers
-);
-
 // CREATE USER
-router.post(
-  "/",
-  authRequired,
-  requireRole("ADMIN", "HR"),
-  createUser
-);
+router.post("/", authRequired, requireRole("ADMIN", "HR"), createUser);
 
 // UPDATE USER
-router.put(
-  "//:id",
-  authRequired,
-  requireRole("ADMIN", "HR"),
-  updateUser
-);
+router.put("/:id", authRequired, requireRole("ADMIN", "HR"), updateUser);
 
 // DELETE USER
-router.delete(
-  "//:id",
-  authRequired,
-  requireRole("ADMIN"),
-  deleteUser
-);
+router.delete("/:id", authRequired, requireRole("ADMIN", "HR"), deleteUser);
 
 // GET ALL MANAGERS
 router.get(

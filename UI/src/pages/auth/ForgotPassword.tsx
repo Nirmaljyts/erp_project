@@ -1,7 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { requestResetOtp } from "../services/authService";
-import forgotPassword from "../assets/forgot_password.png";
+import { requestResetOtp } from "../../services/authService";
+import forgotPassword from "../../assets/forgot_password.png";
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,9 +32,8 @@ export default function ForgotPassword() {
 
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-white">
-      
       {/* LEFT SIDE IMAGE */}
-      <div className="hidden lg:flex items-center justify-center bg-gray-100">
+      <div className="hidden lg:flex items-center justify-center bg-[#2f4f82]">
         <img
           src={forgotPassword}
           className="w-3/4 max-w-lg"
@@ -45,17 +44,16 @@ export default function ForgotPassword() {
       {/* RIGHT SIDE */}
       <div className="flex items-center justify-center p-8">
         <div className="w-full max-w-md">
-          
           <h1 className="text-3xl font-bold text-gray-900 mb-6 text-center">
             Forgot Password
           </h1>
 
           <p className="text-gray-600 text-center mb-6 text-sm">
-            Enter your email. We’ll send you a 6-digit OTP to reset your password.
+            Enter your email. We’ll send you a 6-digit OTP to reset your
+            password.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            
             {/* Email */}
             <div>
               <label className="block text-sm text-gray-700 mb-1">Email</label>
@@ -104,7 +102,6 @@ export default function ForgotPassword() {
               Back to Login
             </button>
           </p>
-
         </div>
       </div>
     </div>

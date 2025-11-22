@@ -1,0 +1,515 @@
+import { useEffect, useState } from "react";
+import { Edit2, Trash2, X, Plus, EyeOff, Eye } from "lucide-react";
+import Swal from "sweetalert2";
+import {
+  getUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+} from "../services/userServices";
+import Pagination from "../components/Pagination";
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store";
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: "ADMIN" | "HR" | "MANAGER" | "EMPLOYEE";
+  isActive: boolean;
+}
+
+export default function UsersPage() {
+  const [users, setUsers] = useState<User[]>([]);
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
+  const [loading, setLoading] = useState(true);
+
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+
+  // form fields
+  const [formName, setFormName] = useState("");
+  const [formEmail, setFormEmail] = useState("");
+  const [formRole, setFormRole] = useState<
+    "ADMIN" | "HR" | "MANAGER" | "EMPLOYEE"
+  >("EMPLOYEE");
+  const [formActive, setFormActive] = useState(true);
+  const [formPassword, setFormPassword] = useState("");
+
+  // validation errors
+  const [nameError, setNameError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [showPass, setShowPass] = useState(false);
+
+  const [sortBy, setSortBy] = useState("name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  const user = useSelector((state: RootState) => state?.auth?.user);
+  const currentRole = user?.role;
+
+  // ---------------- FETCH USERS ----------------
+  async function loadUsers(page = 1) {
+    const limit = 15;
+    try {
+      setLoading(true);
+      const res = await getUsers(page, limit, sortBy, sortOrder);
+      setUsers(res.data);
+      setPagination({
+        page: res.pagination.page,
+        totalPages: res.pagination.totalPages,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadUsers(1);
+  }, [sortBy, sortOrder]);
+
+  function toggleSort(column: string) {
+    if (sortBy === column) {
+      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(column);
+      setSortOrder("asc");
+    }
+  }
+
+  // ---------------- VALIDATION HELPERS ----------------
+  function validateName(name: string) {
+    return name.trim().length >= 3;
+  }
+
+  function validateEmail(email: string) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email.trim());
+  }
+
+  function validatePassword(password: string) {
+    // Only required on create, optional on edit
+    return password.length >= 6;
+  }
+
+  // ---------------- MODAL OPEN/CLOSE ----------------
+  const openCreate = () => {
+    setEditingUser(null);
+    setFormName("");
+    setFormEmail("");
+    setFormRole("EMPLOYEE");
+    setFormActive(true);
+    setFormPassword("");
+    setNameError("");
+    setEmailError("");
+    setPasswordError("");
+    setShowUserModal(true);
+  };
+
+  const openEdit = (u: User) => {
+    setEditingUser(u);
+    setFormName(u.name);
+    setFormEmail(u.email);
+    setFormRole(u.role);
+    setFormActive(u.isActive);
+    setFormPassword("");
+    setNameError("");
+    setEmailError("");
+    setPasswordError("");
+    setShowUserModal(true);
+  };
+
+  const closeUserModal = () => {
+    setShowUserModal(false);
+    setNameError("");
+    setEmailError("");
+    setPasswordError("");
+  };
+
+  // ---------------- SUBMIT HANDLER ----------------
+  async function handleUserSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    let valid = true;
+    const cleanName = formName.trim();
+    const cleanEmail = formEmail.trim();
+    const cleanPassword = formPassword.trim();
+
+    if (!validateName(cleanName)) {
+      setNameError("Name must be at least 3 characters");
+      valid = false;
+    } else {
+      setNameError("");
+    }
+
+    if (!validateEmail(cleanEmail)) {
+      setEmailError("Enter a valid email address");
+      valid = false;
+    } else {
+      setEmailError("");
+    }
+
+    // password required only when creating a new user
+    if (!editingUser) {
+      if (!validatePassword(cleanPassword)) {
+        setPasswordError("Password must be at least 6 characters");
+        valid = false;
+      } else {
+        setPasswordError("");
+      }
+    } else {
+      // editing: password optional; if provided, validate
+      if (cleanPassword && !validatePassword(cleanPassword)) {
+        setPasswordError("Password must be at least 6 characters");
+        valid = false;
+      } else {
+        setPasswordError("");
+      }
+    }
+
+    if (!valid) return;
+
+    const payload: any = {
+      name: cleanName,
+      email: cleanEmail,
+      role: formRole,
+      isActive: formActive,
+    };
+
+    if (!editingUser || cleanPassword) {
+      payload.password = cleanPassword;
+    }
+
+    try {
+      if (editingUser) {
+        await updateUser(editingUser.id, payload);
+      } else {
+        await createUser(payload);
+      }
+
+      closeUserModal();
+      loadUsers(pagination.page);
+    } catch (err) {
+      console.error(err);
+      Swal.fire("Error", "Failed to save user. Please try again.", "error");
+    }
+  }
+
+  // ---------------- DELETE USER ----------------
+  async function handleDelete(id: number) {
+    const result = await Swal.fire({
+      title: "Delete User?",
+      text: "This action cannot be reversed.",
+      icon: "warning",
+      showCancelButton: true,
+      reverseButtons: true,
+      confirmButtonColor: "#d33",
+      confirmButtonText: "Delete",
+      cancelButtonColor: "#1b335a",
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await deleteUser(id);
+      await loadUsers(pagination.page);
+
+      Swal.fire({
+        icon: "success",
+        title: "User deleted",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || "Failed to delete user. Try again.";
+
+      Swal.fire({
+        icon: "error",
+        title: "Deletion Failed",
+        text: message,
+      });
+    }
+  }
+
+  // ---------------- PAGINATION ----------------
+  const handlePaginate = (page: number) => {
+    if (page > 0 && page <= pagination.totalPages) {
+      loadUsers(page);
+    }
+  };
+
+  // ---------------- UI ----------------
+  return (
+    <div className="max-h-auto">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-semibold">Users</h1>
+
+        {(user?.role === "ADMIN" || user?.role === "HR") && (
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
+          >
+            <Plus size={18} />
+            Add User
+          </button>
+        )}
+      </div>
+
+      {loading ? (
+        <div className="loader-overlay">
+          <div className="loader-all"></div>
+        </div>
+      ) : (
+        <>
+          {/* TABLE */}
+          <div className="overflow-x-auto border border-[var(--border)] rounded-2xl bg-[var(--card)]">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
+                    #
+                  </th>
+                  <th
+                    onClick={() => toggleSort("name")}
+                    className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide cursor-pointer hover:opacity-80"
+                  >
+                    Name{" "}
+                    {sortBy === "name" && (sortOrder === "asc" ? "▲" : "▼")}
+                  </th>
+
+                  <th
+                    onClick={() => toggleSort("email")}
+                    className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide cursor-pointer hover:opacity-80"
+                  >
+                    Email{" "}
+                    {sortBy === "email" && (sortOrder === "asc" ? "▲" : "▼")}
+                  </th>
+
+                  <th
+                    onClick={() => toggleSort("role")}
+                    className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide cursor-pointer hover:opacity-80"
+                  >
+                    Role{" "}
+                    {sortBy === "role" && (sortOrder === "asc" ? "▲" : "▼")}
+                  </th>
+
+                  <th
+                    onClick={() => toggleSort("isActive")}
+                    className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide cursor-pointer hover:opacity-80"
+                  >
+                    Status{" "}
+                    {sortBy === "isActive" && (sortOrder === "asc" ? "▲" : "▼")}
+                  </th>
+                  {(currentRole === "ADMIN" || currentRole === "HR") && (
+                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide">
+                      Actions
+                    </th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {users.length === 0 ? (
+                  <tr className="border-t-2">
+                    <td
+                      colSpan={5}
+                      className="px-4 py-6 text-center text-gray-500"
+                    >
+                      No Data
+                    </td>
+                  </tr>
+                ) : (
+                  users.map((user, index) => (
+                    <tr
+                      key={user.id}
+                      className="border-t border-[var(--border)]"
+                    >
+                      <td className="px-4 py-2 text-sm">{index + 1}</td>
+                      <td className="px-4 py-2 text-sm">{user.name}</td>
+                      <td className="px-4 py-2 text-sm">{user.email}</td>
+                      <td className="px-4 py-2 text-sm">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                          {user.role}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-sm">
+                        {user.isActive ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                            Active
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                            Inactive
+                          </span>
+                        )}
+                      </td>
+                      {(currentRole === "ADMIN" || currentRole === "HR") && (
+                        <td className="px-4 py-2 text-sm text-right">
+                          <div className="flex justify-end gap-3">
+                            <button
+                              type="button"
+                              onClick={() => openEdit(user)}
+                              className="text-gray-500 hover:text-gray-700"
+                            >
+                              <Edit2 size={18} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDelete(user.id)}
+                              className="text-red-500 hover:text-red-600"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            onPageChange={handlePaginate}
+          />
+        </>
+      )}
+
+      {/* ------------ CREATE / EDIT USER MODAL ------------ */}
+      {showUserModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <form
+            onSubmit={handleUserSubmit}
+            className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 w-full max-w-lg relative max-h-[90vh] overflow-y-auto"
+          >
+            <button
+              type="button"
+              onClick={closeUserModal}
+              className="absolute right-4 top-4"
+            >
+              <X size={22} className="text-[var(--text)]" />
+            </button>
+
+            <h2 className="text-xl font-semibold mb-6 text-[var(--text)]">
+              {editingUser ? "Edit User" : "Add User"}
+            </h2>
+
+            <div className="space-y-3">
+              {/* Name */}
+              <div>
+                <input
+                  value={formName}
+                  onChange={(e) => {
+                    setFormName(e.target.value);
+                    if (nameError) setNameError("");
+                  }}
+                  placeholder="Full Name"
+                  className={`w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
+                    nameError ? "border-red-500" : "border-[var(--border)]"
+                  }`}
+                />
+                {nameError && (
+                  <p className="text-red-500 text-xs mt-1">{nameError}</p>
+                )}
+              </div>
+
+              {/* Email */}
+              <div>
+                <input
+                  type="email"
+                  value={formEmail}
+                  onChange={(e) => {
+                    setFormEmail(e.target.value);
+                    if (emailError) setEmailError("");
+                  }}
+                  placeholder="Email"
+                  className={`w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
+                    emailError ? "border-red-500" : "border-[var(--border)]"
+                  }`}
+                />
+                {emailError && (
+                  <p className="text-red-500 text-xs mt-1">{emailError}</p>
+                )}
+              </div>
+
+              {/* Password */}
+              {!editingUser && (
+                <div className="relative">
+                  <input
+                    type={showPass ? "text" : "password"}
+                    value={formPassword}
+                    onChange={(e) => {
+                      setFormPassword(e.target.value);
+                      if (passwordError) setPasswordError("");
+                    }}
+                    placeholder={
+                      editingUser ? "New Password (optional)" : "Password"
+                    }
+                    className={`w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
+                      passwordError
+                        ? "border-red-500"
+                        : "border-[var(--border)]"
+                    }`}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setShowPass(!showPass)}
+                    className="absolute right-3 top-2.5 text-gray-500"
+                  >
+                    {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+
+                  {passwordError && (
+                    <p className="text-red-500 text-xs mt-1">{passwordError}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Role */}
+              <div>
+                <label className="block text-sm mb-1 text-[var(--text)]">
+                  Role
+                </label>
+                <select
+                  value={formRole}
+                  onChange={(e) => setFormRole(e.target.value as User["role"])}
+                  className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
+                >
+                  <option value="ADMIN">Admin</option>
+                  <option value="HR">HR</option>
+                  <option value="MANAGER">Manager</option>
+                  <option value="EMPLOYEE">Employee</option>
+                </select>
+              </div>
+
+              {/* Active toggle */}
+              <div className="flex items-center gap-2">
+                <input
+                  id="user-active"
+                  type="checkbox"
+                  checked={formActive}
+                  onChange={(e) => setFormActive(e.target.checked)}
+                  className="cursor-pointer"
+                />
+                <label htmlFor="user-active" className="text-sm cursor-pointer">
+                  Active
+                </label>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="mt-6 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
+            >
+              {editingUser ? "Update User" : "Create User"}
+            </button>
+          </form>
+        </div>
+      )}
+    </div>
+  );
+}

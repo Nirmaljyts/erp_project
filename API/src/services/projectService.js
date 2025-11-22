@@ -3,7 +3,7 @@ import prisma from "../utils/prisma.js";
 // -----------------------------------
 // LIST PROJECTS
 // -----------------------------------
-export async function getAllProjects(query) {
+export async function getAllProjects(query, user) {
   const {
     search = "",
     page = 1,
@@ -12,11 +12,34 @@ export async function getAllProjects(query) {
     order = "asc",
   } = query;
 
-  const skip = (page - 1) * limit;
+  const skip = (Number(page) - 1) * Number(limit);
 
-  const where = search
+  const whereSearch = search
     ? { name: { contains: search, mode: "insensitive" } }
     : {};
+
+  let where = { ...whereSearch };
+
+  // Role-based filters
+  if (user.role === "ADMIN" || user.role === "HR") {
+    // See all projects → no role filter
+  } else if (user.role === "MANAGER") {
+    where.OR = [
+      { managerId: user.id },
+      {
+        employees: {
+          some: { employeeId: user.id },
+        },
+      },
+    ];
+  } else if (user.role === "EMPLOYEE") {
+    where = {
+      ...whereSearch,
+      employees: {
+        some: { employeeId: user.id },
+      },
+    };
+  }
 
   const data = await prisma.project.findMany({
     where,
@@ -58,17 +81,18 @@ export function getProjectById(id) {
 // -----------------------------------
 // CREATE PROJECT
 // -----------------------------------
-export function createNewProject(data) {
-  const { name, description, status, managerId, employees = [] } = data;
-
+export function createNewProject(data, user) {
+  if (user.role === "MANAGER") {
+    data.managerId = user.id; // force their own ID
+  }
   return prisma.project.create({
     data: {
-      name,
-      description,
-      status,
-      managerId: managerId || null,
+      name: data.name,
+      description: data.description,
+      status: data.status,
+      managerId: data.managerId,
       employees: {
-        create: employees.map((id) => ({ employeeId: id })),
+        create: data.employees.map((id) => ({ employeeId: id })),
       },
     },
   });
@@ -77,19 +101,21 @@ export function createNewProject(data) {
 // -----------------------------------
 // UPDATE PROJECT
 // -----------------------------------
-export function updateExistingProject(id, data) {
-  const { name, description, status, managerId, employees = [] } = data;
+export function updateExistingProject(id, data, user) {
+  if (user.role === "MANAGER") {
+    data.managerId = user.id;
+  }
 
   return prisma.project.update({
     where: { id: Number(id) },
     data: {
-      name,
-      description,
-      status,
-      managerId: managerId || null,
+      name: data.name,
+      description: data.description,
+      status: data.status,
+      managerId: data.managerId,
       employees: {
         deleteMany: {},
-        create: employees.map((eId) => ({ employeeId: eId })),
+        create: data.employees.map((eId) => ({ employeeId: eId })),
       },
     },
   });
@@ -103,18 +129,18 @@ export async function deleteProjectService(id) {
 
   // 1. Remove employee assignments
   await prisma.projectEmployee.deleteMany({
-    where: { projectId }
+    where: { projectId },
   });
 
   // 2. Remove manager association
   await prisma.project.update({
     where: { id: projectId },
-    data: { managerId: null }
+    data: { managerId: null },
   });
 
   // 3. Delete project
   return prisma.project.delete({
-    where: { id: projectId }
+    where: { id: projectId },
   });
 }
 
@@ -125,22 +151,27 @@ async function validateEmployeeAssignment(employeeId, projectId) {
   const existing = await prisma.projectEmployee.findFirst({
     where: {
       employeeId: Number(employeeId),
-      projectId: Number(projectId)
-    }
+      projectId: Number(projectId),
+    },
   });
 
   if (existing) return true; // already assigned here → OK
-  
+
   return true; // allow multiple active project assignments
 }
 
 // -----------------------------------
 // ASSIGN USERS
 // -----------------------------------
-export async function assignUsersService(projectId, data) {
+export async function assignUsersService(projectId, data, user) {
   const { managerId, employees = [] } = data;
 
   if (!managerId) throw new Error("Manager is required");
+
+  // ❌ Manager cannot assign another manager
+  if (user.role === "MANAGER" && managerId !== user.id) {
+    throw new Error("Managers can only assign projects to employees");
+  }
 
   for (const empId of employees) {
     await validateEmployeeAssignment(empId, projectId);
@@ -155,10 +186,7 @@ export async function assignUsersService(projectId, data) {
         create: employees.map((eId) => ({ employeeId: eId })),
       },
     },
-    include: {
-      manager: true,
-      employees: { include: { employee: true } },
-    },
+    include: { manager: true, employees: { include: { employee: true } } },
   });
 }
 

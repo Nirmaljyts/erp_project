@@ -15,7 +15,9 @@ export async function sendOtpEmail(to, code) {
     from: `"ERP System" <${process.env.SMTP_USER}>`,
     to,
     subject: "Your OTP Code",
-    text: `Your OTP code is ${code}. It will expire in ${process.env.OTP_EXPIRY_MINUTES || 5} minutes.`,
+    text: `Your OTP code is ${code}. It will expire in ${
+      process.env.OTP_EXPIRY_MINUTES || 5
+    } minutes.`,
   });
 
   console.log("OTP email sent:", info.messageId);

@@ -31,6 +31,10 @@ export default function ClientsPage() {
   const [formEmail, setFormEmail] = useState("");
   const [formPhone, setFormPhone] = useState("");
 
+  const [nameError, setNameError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+
   // ---------------- FETCH CLIENTS ----------------
   async function loadClients(page = 1) {
     try {
@@ -88,6 +92,81 @@ export default function ClientsPage() {
     setFormEmail(c.email);
     setFormPhone(c.phone);
     setShowClientModal(true);
+  };
+
+  function validateName(name: string) {
+    return name.trim().length >= 3;
+  }
+
+  function validateEmail(email: string) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  function validatePhone(phone: string) {
+    const phoneRegex = /^[0-9]{10,15}$/; // only digits, length between 10-15
+    return phoneRegex.test(phone);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    let isValid = true;
+
+    const cleanName = formName.trim();
+    const cleanEmail = formEmail.trim();
+    const cleanPhone = formPhone.trim();
+
+    if (!validateName(cleanName)) {
+      setNameError("Client name must be at least 3 characters");
+      isValid = false;
+    } else {
+      setNameError("");
+    }
+
+    if (!validateEmail(cleanEmail)) {
+      setEmailError("Enter a valid email address");
+      isValid = false;
+    } else {
+      setEmailError("");
+    }
+
+    if (!validatePhone(cleanPhone)) {
+      setPhoneError("Enter a valid phone number (10–15 digits)");
+      isValid = false;
+    } else {
+      setPhoneError("");
+    }
+
+    if (!isValid) return;
+
+    const payload = {
+      name: cleanName,
+      contactedBy: formContactedBy.trim(),
+      email: cleanEmail,
+      phone: cleanPhone,
+    };
+
+    try {
+      if (editingClient) {
+        await updateClient(editingClient.id, payload);
+      } else {
+        await createClient(payload);
+      }
+
+      closeModal();
+      loadClients(pagination.page);
+    } catch (error) {
+      console.error(error);
+      Swal.fire("Error", "Something went wrong. Try again later.", "error");
+    }
+  }
+
+  const closeModal = () => {
+    setNameError("");
+    setEmailError("");
+    setPhoneError("");
+    setShowClientModal(false);
   };
 
   // ---------------- PAGINATION ----------------
@@ -159,9 +238,7 @@ export default function ClientsPage() {
           </div>
 
           {clients.length === 0 && (
-            <div className="text-center text-gray-500 py-10">
-              No clients found
-            </div>
+            <div className="text-center text-gray-500 py-10">No Data</div>
           )}
 
           <Pagination
@@ -175,9 +252,13 @@ export default function ClientsPage() {
       {/* ------------ CREATE / EDIT MODAL ------------ */}
       {showClientModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 w-full max-w-2xl relative">
+          <form
+            onSubmit={handleSubmit}
+            className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 w-full max-w-2xl relative"
+          >
             <button
-              onClick={() => setShowClientModal(false)}
+              type="button"
+              onClick={closeModal}
               className="absolute right-4 top-4"
             >
               <X size={22} className="text-[var(--text)]" />
@@ -188,13 +269,21 @@ export default function ClientsPage() {
             </h2>
 
             {/* FORM INPUTS */}
-            <div className="space-y-4">
+            <div className="space-y-2">
               <input
                 value={formName}
-                onChange={(e) => setFormName(e.target.value)}
+                onChange={(e) => {
+                  setFormName(e.target.value);
+                  if (nameError) setNameError("");
+                }}
                 placeholder="Client Name"
-                className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
+                className={`w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
+                  nameError ? "border-red-500" : "border-[var(--border)]"
+                }`}
               />
+              {nameError && (
+                <p className="text-red-500 text-sm m-0">{nameError}</p>
+              )}
 
               <input
                 value={formContactedBy}
@@ -204,44 +293,47 @@ export default function ClientsPage() {
               />
 
               <input
+                type="email"
                 value={formEmail}
-                onChange={(e) => setFormEmail(e.target.value)}
+                onChange={(e) => {
+                  setFormEmail(e.target.value);
+                  if (emailError) setEmailError("");
+                }}
                 placeholder="Email"
-                className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
+                className={`w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
+                  emailError ? "border-red-500" : "border-[var(--border)]"
+                }`}
               />
+              {emailError && (
+                <p className="text-red-500 text-sm">{emailError}</p>
+              )}
 
               <input
+                type="text"
                 value={formPhone}
-                onChange={(e) => setFormPhone(e.target.value)}
-                placeholder="Number"
-                className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
+                onChange={(e) => {
+                  setFormPhone(e.target.value);
+                  if (phoneError) setPhoneError("");
+                }}
+                placeholder="Phone Number"
+                className={`w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
+                  phoneError ? "border-red-500" : "border-[var(--border)]"
+                }`}
               />
+
+              {phoneError && (
+                <p className="text-red-500 text-sm m-0 p-0">{phoneError}</p>
+              )}
             </div>
 
             {/* SUBMIT BUTTON */}
             <button
-              onClick={async () => {
-                const payload = {
-                  name: formName,
-                  contactedBy: formContactedBy,
-                  email: formEmail,
-                  number: formPhone,
-                };
-
-                if (editingClient) {
-                  await updateClient(editingClient.id, payload);
-                } else {
-                  await createClient(payload);
-                }
-
-                setShowClientModal(false);
-                loadClients(pagination.page);
-              }}
+              type="submit"
               className="mt-6 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
             >
               {editingClient ? "Update" : "Create"}
             </button>
-          </div>
+          </form>
         </div>
       )}
     </div>

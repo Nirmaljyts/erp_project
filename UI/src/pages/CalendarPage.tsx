@@ -9,9 +9,7 @@ interface Holiday {
 }
 
 export default function CalendarPage() {
-  const [currentYear, setCurrentYear] = useState(
-    new Date().getFullYear()
-  );
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [holidays, setHolidays] = useState<Holiday[]>([]);
 
   useEffect(() => {
@@ -61,9 +59,7 @@ export default function CalendarPage() {
                   {new Date(h.date).toLocaleDateString()}
                 </td>
                 <td className="px-4 py-2">{h.name}</td>
-                <td className="px-4 py-2">
-                  {h.isOptional ? "Yes" : "No"}
-                </td>
+                <td className="px-4 py-2">{h.isOptional ? "Yes" : "No"}</td>
               </tr>
             ))}
             {holidays.length === 0 && (

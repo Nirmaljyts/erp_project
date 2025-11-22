@@ -32,8 +32,8 @@ export async function createClient(req, res) {
     console.error("CREATE CLIENT ERROR:", err);
     res.status(500).json({
       message: "Failed to create client",
-      error: err.message,            // TEMP
-      meta: err.meta || null         // TEMP
+      error: err.message, // TEMP
+      meta: err.meta || null, // TEMP
     });
   }
 }

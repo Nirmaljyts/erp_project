@@ -2,7 +2,7 @@ import prisma from "../utils/prisma.js";
 import bcrypt from "bcryptjs";
 
 // --------------------------
-// LIST USERS (Paginated)
+// LIST USERS
 // --------------------------
 export async function fetchUsersService(query) {
   const {
@@ -15,14 +15,15 @@ export async function fetchUsersService(query) {
 
   const skip = (Number(page) - 1) * Number(limit);
 
-  const where = search
-    ? {
-        OR: [
-          { name: { contains: search, mode: "insensitive" } },
-          { email: { contains: search, mode: "insensitive" } },
-        ],
-      }
-    : {};
+  const where = {
+    // role: { not: "ADMIN" },
+    ...(search && {
+      OR: [
+        { name: { contains: search, mode: "insensitive" } },
+        { email: { contains: search, mode: "insensitive" } },
+      ],
+    }),
+  };
 
   const data = await prisma.user.findMany({
     where,
@@ -136,18 +137,60 @@ export async function updateUserService(id, data) {
 // --------------------------
 // DELETE USER
 // --------------------------
-export async function deleteUserService(id) {
+export async function deleteUserService(id, currentUser) {
   const userId = Number(id);
 
-  // Remove employee assignments
+  // Prevent invalid request
+  if (!userId) {
+    throw new Error("Invalid user ID");
+  }
+
+  const userToDelete = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, isActive: true },
+  });
+
+  if (!userToDelete) {
+    throw new Error("User not found");
+  }
+
+  const actingRole = currentUser.role;
+  const targetRole = userToDelete.role;
+
+  // Rule 4: Managers & Employees cannot delete anyone
+  if (actingRole !== "ADMIN" && actingRole !== "HR") {
+    throw new Error("You are not allowed to delete users");
+  }
+
+  // Rule 3: Cannot delete yourself
+  if (currentUser.id === userId) {
+    throw new Error("You cannot delete your own account");
+  }
+
+  // Rule 2 + 5: Admin deletion restrictions
+  if (targetRole === "ADMIN") {
+    if (actingRole !== "ADMIN") {
+      throw new Error("Only Admins can delete admins");
+    }
+
+    const activeAdmins = await prisma.user.count({
+      where: { role: "ADMIN", isActive: true },
+    });
+
+    if (activeAdmins <= 1) {
+      throw new Error("Cannot delete the last active Admin");
+    }
+  }
+
+  // Remove user from projects
   await prisma.projectEmployee.deleteMany({
     where: { employeeId: userId },
   });
 
-  // Remove manager assignments
+  // Remove manager assignment
   await prisma.project.updateMany({
     where: { managerId: userId },
-    data: { managerId: null }, // or throw error instead
+    data: { managerId: null },
   });
 
   // Delete user
@@ -157,7 +200,25 @@ export async function deleteUserService(id) {
 }
 
 // ONLY MANAGERS
-export async function getManagersService() {
+export async function getManagersService(user) {
+  // Manager → only himself
+  if (user.role === "MANAGER") {
+    return prisma.user.findMany({
+      where: {
+        id: user.id,
+        role: "MANAGER",
+        isActive: true,
+      },
+      select: { id: true, name: true },
+    });
+  }
+
+  // Employee → no access to managers
+  if (user.role === "EMPLOYEE") {
+    return [];
+  }
+
+  // Admin or HR → see all active managers
   return prisma.user.findMany({
     where: {
       role: "MANAGER",
@@ -180,22 +241,22 @@ export async function getAvailableEmployeesService(currentProjectId) {
         projects: {
           none: {
             project: {
-              status: { in: ["ACTIVE", "ON_HOLD"] }
-            }
-          }
-        }
+              status: { in: ["ACTIVE", "ON_HOLD"] },
+            },
+          },
+        },
       },
-      select: { id: true, name: true }
+      select: { id: true, name: true },
     });
   }
 
   // Editing existing project → allow assigned employees + available ones
   const assignedToThisProject = await prisma.projectEmployee.findMany({
     where: { projectId },
-    include: { employee: true }
+    include: { employee: true },
   });
 
-  const assignedEmployeeIds = assignedToThisProject.map(e => e.employeeId);
+  const assignedEmployeeIds = assignedToThisProject.map((e) => e.employeeId);
 
   const availableEmployees = await prisma.user.findMany({
     where: {
@@ -205,20 +266,19 @@ export async function getAvailableEmployeesService(currentProjectId) {
         none: {
           project: {
             id: { not: projectId },
-            status: { in: ["ACTIVE", "ON_HOLD"] }
-          }
-        }
-      }
+            status: { in: ["ACTIVE", "ON_HOLD"] },
+          },
+        },
+      },
     },
-    select: { id: true, name: true }
+    select: { id: true, name: true },
   });
 
   return [
-    ...assignedToThisProject.map(e => ({
+    ...assignedToThisProject.map((e) => ({
       id: e.employee.id,
       name: e.employee.name,
     })),
-    ...availableEmployees.filter(e => !assignedEmployeeIds.includes(e.id)),
+    ...availableEmployees.filter((e) => !assignedEmployeeIds.includes(e.id)),
   ];
 }
-

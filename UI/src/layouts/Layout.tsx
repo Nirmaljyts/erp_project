@@ -15,6 +15,11 @@ export default function Layout() {
     localStorage.theme = theme;
   }, [theme]);
 
+  const headerNavigation = () => {
+    setSidebarOpen(false);
+    navigate("/");
+  };
+
   const handleLogout = () => {
     Swal.fire({
       title: "Logout?",
@@ -24,7 +29,7 @@ export default function Layout() {
       reverseButtons: true,
       confirmButtonColor: "#d33",
       confirmButtonText: "Confirm",
-      cancelButtonText: "No",
+      cancelButtonText: "Cancel",
       cancelButtonColor: "#1b335a",
     }).then((result) => {
       if (result.isConfirmed) {
@@ -61,7 +66,7 @@ export default function Layout() {
           <div className="flex items-center justify-between mb-6 hover:cursor-pointer">
             <h1
               className="text-xl font-bold tracking-tight"
-              onClick={() => navigate("/")}
+              onClick={headerNavigation}
             >
               ERP COMPANY
             </h1>
@@ -89,9 +94,9 @@ export default function Layout() {
         {/* Navvigation Bar */}
         <header
           className="
-            h-12 bg-[var(--card)] border-b border-[var(--border)]
+            h-14 bg-[var(--card)] border-b border-[var(--border)]
             flex items-center justify-between lg:justify-end
-            px-4 lg:px-6 gap-4
+            px-2 lg:px-4 gap-4
           "
         >
           <button
