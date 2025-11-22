@@ -3,8 +3,6 @@ import { Sun, Moon, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import SidebarMenu from "./SidebarMenu";
-import { useSelector } from "react-redux";
-import type { RootState } from "../store/store";
 import ProfilePopover from "./ProfilePopover";
 
 export default function Layout() {
@@ -16,8 +14,6 @@ export default function Layout() {
     document.documentElement.classList.toggle("dark", theme === "dark");
     localStorage.theme = theme;
   }, [theme]);
-
-  const user = useSelector((state: RootState) => state?.auth?.user);
 
   const handleLogout = () => {
     Swal.fire({
@@ -57,7 +53,7 @@ export default function Layout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-30 w-64 bg-[var(--card)] border-r border-[var(--border)] p-0 flex flex-col justify-between transform duration-300 ${
+        className={`fixed inset-y-0 left-0 z-30 w-[14rem] bg-[var(--card)] border-r border-[var(--border)] p-0 flex flex-col justify-between transform duration-300 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 lg:static`}
       >
@@ -75,7 +71,7 @@ export default function Layout() {
             </span>
           </div>
 
-          <SidebarMenu />
+          <SidebarMenu onNavigate={() => setSidebarOpen(false)} />
         </div>
 
         <div className="border-t border-[var(--border)] py-2 px-4">
@@ -93,7 +89,7 @@ export default function Layout() {
         {/* Navvigation Bar */}
         <header
           className="
-            h-16 bg-[var(--card)] border-b border-[var(--border)]
+            h-12 bg-[var(--card)] border-b border-[var(--border)]
             flex items-center justify-between lg:justify-end
             px-4 lg:px-6 gap-4
           "

@@ -8,7 +8,7 @@ export async function getAllProjects(query) {
     search = "",
     page = 1,
     limit = 10,
-    sort = "name",
+    sort = "status",
     order = "asc",
   } = query;
 
@@ -122,24 +122,16 @@ export async function deleteProjectService(id) {
 // VALIDATE EMPLOYEE ASSIGNMENTS
 // -----------------------------------
 async function validateEmployeeAssignment(employeeId, projectId) {
-  const existing = await prisma.projectEmployee.findMany({
-    where: { employeeId },
-    include: {
-      project: true,
-    },
+  const existing = await prisma.projectEmployee.findFirst({
+    where: {
+      employeeId: Number(employeeId),
+      projectId: Number(projectId)
+    }
   });
 
-  for (const rec of existing) {
-    if (
-      rec.project.id !== Number(projectId) &&
-      rec.project.status !== "COMPLETED" &&
-      rec.project.status !== "CANCELLED"
-    ) {
-      throw new Error(
-        `Employee already assigned to active project: ${rec.project.name}`
-      );
-    }
-  }
+  if (existing) return true; // already assigned here → OK
+  
+  return true; // allow multiple active project assignments
 }
 
 // -----------------------------------

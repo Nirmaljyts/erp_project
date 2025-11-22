@@ -100,7 +100,7 @@ export default function ClientsPage() {
   // ---------------- UI ----------------
   return (
     <div className="max-h-auto">
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">Clients</h1>
 
         <button
@@ -141,10 +141,19 @@ export default function ClientsPage() {
                   </div>
                 </div>
 
-                <p className="text-gray-600 dark:text-gray-300 mb-1">
+                <p className="text-md text-gray-600 dark:text-gray-500 mb-1">
                   {c.contactedBy}
                 </p>
-                <p className="text-gray-500 text-sm">{c.email}</p>
+
+                <div className="flex items-center justify-between">
+                  <p className="flex items-center text-gray-400 text-sm">
+                    {c.email}
+                  </p>
+
+                  <p className="flex items-center text-sm text-gray-600 dark:text-gray-500">
+                    {c.phone}
+                  </p>
+                </div>
               </div>
             ))}
           </div>

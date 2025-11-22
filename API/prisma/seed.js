@@ -2,39 +2,36 @@ import prisma from "../src/utils/prisma.js";
 import bcrypt from "bcryptjs";
 
 async function resetDatabase() {
-  console.log("🧹 Cleaning database...");
+  console.log("🧹 Resetting database...");
 
-  // Disable FK checks
   await prisma.$executeRawUnsafe(`SET FOREIGN_KEY_CHECKS = 0;`);
 
-  // List all models you want to reset
-  const tables = [
-    "OtpCode",
-    "ProjectEmployee",
-    "Project",
-    "Client",
-    "Holiday",
-    "User"
-  ];
+  const tableNames = await prisma.$queryRawUnsafe(`
+    SELECT TABLE_NAME
+    FROM information_schema.tables
+    WHERE table_schema = DATABASE();
+  `);
 
-  for (const table of tables) {
-    await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${table};`);
+  const skip = ["_prisma_migrations"];
+
+  for (const row of tableNames) {
+    const name = row.table_name || row.TABLE_NAME;
+    if (!name || skip.includes(name)) continue;
+
+    console.log(`→ Truncating: ${name}`);
+    await prisma.$executeRawUnsafe(`TRUNCATE TABLE \`${name}\`;`);
   }
 
-  // Re-enable FK
   await prisma.$executeRawUnsafe(`SET FOREIGN_KEY_CHECKS = 1;`);
-
-  console.log("🧹 Database cleaned. All IDs reset to 1.");
+  console.log("✔ All tables truncated & auto-increment reset");
 }
 
 async function seed() {
   console.log("🌱 Starting seed...");
 
-  // ------------------------------------------------
-  // USERS
-  // ------------------------------------------------
   const passwordHash = await bcrypt.hash("Password@123", 10);
 
+  // USERS
   const admin = await prisma.user.create({
     data: {
       id: 1,
@@ -79,7 +76,27 @@ async function seed() {
     data: {
       id: 5,
       name: "Christy",
-      email: "emp2@erp.com",
+      email: "christy@erp.com",
+      password: passwordHash,
+      role: "EMPLOYEE",
+    },
+  });
+
+  const emp3 = await prisma.user.create({
+    data: {
+      id: 6,
+      name: "Amal",
+      email: "amal@erp.com",
+      password: passwordHash,
+      role: "EMPLOYEE",
+    },
+  });
+
+  const emp4 = await prisma.user.create({
+    data: {
+      id: 7,
+      name: "Arjun",
+      email: "arjun@erp.com",
       password: passwordHash,
       role: "EMPLOYEE",
     },
@@ -87,76 +104,89 @@ async function seed() {
 
   console.log("✔ Users seeded");
 
-  // ------------------------------------------------
   // CLIENTS
-  // ------------------------------------------------
-  const client1 = await prisma.client.create({
-    data: {
-      id: 1,
-      name: "TechCorp Solutions",
-      email: "contact@techcorp.com",
-      phone: "9876543210",
-      contactedBy: "John"
-    },
-  });
-
-  const client2 = await prisma.client.create({
-    data: {
-      id: 2,
-      name: "BlueOcean Services",
-      email: "contact@blueocean.com",
-      phone: "9123456780",
-      contactedBy: "Paul"
-    },
+  await prisma.client.createMany({
+    data: [
+      {
+        id: 1,
+        name: "JP Morgan Solutions",
+        email: "contact@techcorp.com",
+        phone: "9876543210",
+        contactedBy: "John",
+      },
+      {
+        id: 2,
+        name: "PCP Pvt Ltd",
+        email: "contact@blueocean.com",
+        phone: "9123456780",
+        contactedBy: "Paul",
+      },
+    ],
   });
 
   console.log("✔ Clients seeded");
 
-  // ------------------------------------------------
   // PROJECTS
-  // ------------------------------------------------
-  const project1 = await prisma.project.create({
-    data: {
-      id: 1,
-      name: "Enterprise HR System",
-      description: "HR lifecycle automation",
-      clientId: client1.id,
-      managerId: manager.id,
-      status: "IN_PROGRESS",
-      startDate: new Date("2024-01-10"),
-    },
-  });
-
-  const project2 = await prisma.project.create({
-    data: {
-      id: 2,
-      name: "Inventory Automation",
-      description: "Warehouse tracking suite",
-      clientId: client2.id,
-      managerId: manager.id,
-      status: "ACTIVE",
-      startDate: new Date("2024-05-01"),
-    },
+  await prisma.project.createMany({
+    data: [
+      {
+        id: 1,
+        name: "PCP Kitchen Management System",
+        description: "Kitchen control automation",
+        clientId: 1,
+        managerId: 3,
+        status: "ON_HOLD",
+        startDate: new Date("2024-01-01"),
+        endDate: new Date("2024-12-31"),
+      },
+      {
+        id: 2,
+        name: "PCP Attendance Management System",
+        description: "Warehouse tracking suite",
+        clientId: 2,
+        managerId: 3,
+        status: "ACTIVE",
+        startDate: new Date("2024-06-01"),
+        endDate: new Date("2025-06-30"),
+      },
+      {
+        id: 3,
+        name: "Waste Classify",
+        description: "Waste identification and management automation",
+        clientId: 2,
+        managerId: 3,
+        status: "COMPLETED",
+        startDate: new Date("2024-06-01"),
+        endDate: new Date("2025-06-30"),
+      },
+      {
+        id: 4,
+        name: "TaskWhiz",
+        description: "Company project management",
+        clientId: 1,
+        managerId: 3,
+        status: "CANCELLED",
+        startDate: new Date("2024-06-01"),
+        endDate: new Date("2025-06-30"),
+      },
+    ],
   });
 
   console.log("✔ Projects seeded");
 
-  // ------------------------------------------------
-  // PROJECT — EMPLOYEE ASSIGNMENTS
-  // ------------------------------------------------
+  // EMPLOYEE ASSIGNMENTS
   await prisma.projectEmployee.createMany({
     data: [
-      { id: 1, projectId: project1.id, employeeId: emp1.id },
-      { id: 2, projectId: project1.id, employeeId: emp2.id },
-      { id: 3, projectId: project2.id, employeeId: emp1.id },
+      { id: 1, projectId: 1, employeeId: 4 },
+      { id: 2, projectId: 2, employeeId: 5 },
+      { id: 3, projectId: 3, employeeId: 6 },
+      { id: 4, projectId: 4, employeeId: 7 },
     ],
   });
 
   console.log("✔ Project assignments seeded");
 
-  // ------------------------------------------------
   // HOLIDAYS
-  // ------------------------------------------------
   await prisma.holiday.createMany({
     data: [
       {
@@ -175,8 +205,7 @@ async function seed() {
   });
 
   console.log("✔ Holidays seeded");
-
-  console.log("🌱 Seeding completed successfully.");
+  console.log("🎉 Seeding completed successfully.");
 }
 
 async function main() {

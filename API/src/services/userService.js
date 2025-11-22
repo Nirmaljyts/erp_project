@@ -156,7 +156,6 @@ export async function deleteUserService(id) {
   });
 }
 
-
 // ONLY MANAGERS
 export async function getManagersService() {
   return prisma.user.findMany({
@@ -170,31 +169,56 @@ export async function getManagersService() {
 
 // EMPLOYEES NOT ASSIGNED TO OTHER ACTIVE PROJECTS
 export async function getAvailableEmployeesService(currentProjectId) {
-  // If we're editing an existing project, allow employees
-  // who are already assigned to *this* project, but not to other
-  // non-completed/non-cancelled projects.
-  const projectFilter = currentProjectId
-    ? {
-        id: { not: Number(currentProjectId) },
-        status: { notIn: ["COMPLETED", "CANCELLED"] },
-      }
-    : {
-        status: { notIn: ["COMPLETED", "CANCELLED"] },
-      };
+  const projectId = Number(currentProjectId);
 
-  return prisma.user.findMany({
+  // If creating a NEW project → return all employees that are not assigned to active projects
+  if (!projectId || isNaN(projectId)) {
+    return prisma.user.findMany({
+      where: {
+        role: "EMPLOYEE",
+        isActive: true,
+        projects: {
+          none: {
+            project: {
+              status: { in: ["ACTIVE", "ON_HOLD"] }
+            }
+          }
+        }
+      },
+      select: { id: true, name: true }
+    });
+  }
+
+  // Editing existing project → allow assigned employees + available ones
+  const assignedToThisProject = await prisma.projectEmployee.findMany({
+    where: { projectId },
+    include: { employee: true }
+  });
+
+  const assignedEmployeeIds = assignedToThisProject.map(e => e.employeeId);
+
+  const availableEmployees = await prisma.user.findMany({
     where: {
       role: "EMPLOYEE",
       isActive: true,
       projects: {
         none: {
-          // "none" of their ProjectEmployee relations should be
-          // linked to a project matching projectFilter.
-          project: projectFilter,
-        },
-      },
+          project: {
+            id: { not: projectId },
+            status: { in: ["ACTIVE", "ON_HOLD"] }
+          }
+        }
+      }
     },
-    select: { id: true, name: true },
+    select: { id: true, name: true }
   });
+
+  return [
+    ...assignedToThisProject.map(e => ({
+      id: e.employee.id,
+      name: e.employee.name,
+    })),
+    ...availableEmployees.filter(e => !assignedEmployeeIds.includes(e.id)),
+  ];
 }
 

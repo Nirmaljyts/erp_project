@@ -15,7 +15,11 @@ const menu = [
   { label: "Calendar", path: "/calendar", icon: Calendar },
 ];
 
-export default function SidebarMenu() {
+type SidebarMenuProps = {
+  onNavigate?: () => void;
+};
+
+export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
   const location = useLocation();
 
   return (
@@ -27,6 +31,9 @@ export default function SidebarMenu() {
           <Link
             key={item.path}
             to={item.path}
+            onClick={() => {
+              if (onNavigate) onNavigate(); // Close sidebar on mobile/tablet
+            }}
             className={`
               flex items-center gap-3 p-2 rounded-lg text-md transition border-[var(--border)]
               hover:font-semibold

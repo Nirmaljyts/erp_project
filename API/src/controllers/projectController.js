@@ -84,7 +84,6 @@ export async function updateProjectStatus(req, res) {
 
     const validStatuses = [
       "ACTIVE",
-      "IN_PROGRESS",
       "ON_HOLD",
       "COMPLETED",
       "CANCELLED",

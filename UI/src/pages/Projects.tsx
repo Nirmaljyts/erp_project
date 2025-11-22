@@ -33,6 +33,8 @@ interface Project {
   status: string;
   manager?: Manager | null;
   employees: EmployeeItem[];
+  startDate?: any;
+  endDate?: any;
 }
 
 export default function Projects() {
@@ -66,7 +68,7 @@ export default function Projects() {
   async function loadProjects(page = 1) {
     try {
       setLoading(true);
-      const res = await getProjects(page, 10, "", "name", "asc");
+      const res = await getProjects(page, 12, "", "status", "asc");
 
       setProjects(res.data);
       setPagination({
@@ -83,11 +85,10 @@ export default function Projects() {
   }, []);
 
   const badgeStyles: Record<string, string> = {
-    COMPLETED: "bg-blue-100 text-blue-600",
-    ACTIVE: "bg-green-100 text-green-700",
-    IN_PROGRESS: "bg-indigo-100 text-indigo-700",
-    ON_HOLD: "bg-orange-100 text-orange-600",
-    CANCELLED: "bg-red-100 text-red-700",
+    COMPLETED: "border border-blue-700 text-blue-600",
+    ACTIVE: "border border-green-700 text-green-600",
+    ON_HOLD: "border border-orange-700 text-orange-600",
+    CANCELLED: "border border-red-700 text-red-600",
   };
 
   async function handleDeleteProject(id: number) {
@@ -140,18 +141,20 @@ export default function Projects() {
     setFormDescription(p.description || "");
     setFormStatus(p.status);
 
-    // Load managers + employees that are free OR already assigned to this project
+    // Fetch fresh available managers + employees
     const [mgr, emp] = await Promise.all([getManagers(), getEmployees(p.id)]);
 
     setManagers(mgr);
     setEmployees(emp);
 
-    // Pre-select stored manager (fallback to first manager if somehow null)
-    setSelectedManager(p.manager?.id || (mgr.length ? mgr[0].id : null));
+    // Set selected manager
+    setSelectedManager(p.manager?.id ?? (mgr.length > 0 ? mgr[0].id : null));
 
-    // Keep currently assigned employees checked
-    setAssignedEmployees(p.employees.map((e) => e.employee.id));
+    const assigned = Array.isArray(p.employees)
+      ? p.employees.map((x) => x.employee?.id).filter(Boolean)
+      : [];
 
+    setAssignedEmployees(assigned);
     setShowProjectModal(true);
   };
 
@@ -178,7 +181,7 @@ export default function Projects() {
   // ---------------- UI ----------------
   return (
     <div className="max-h-auto">
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">Projects</h1>
 
         <button
@@ -196,13 +199,13 @@ export default function Projects() {
       ) : (
         <>
           {/* GRID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {projects.map((p) => (
               <div
                 key={p.id}
                 className="bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-sm p-4"
               >
-                <div className="flex justify-between mb-3 gap-2">
+                <div className="flex justify-between mb-1 gap-2">
                   <h2 className="text-lg font-semibold truncate">{p.name}</h2>
                   <div className="flex items-center gap-2">
                     <Users
@@ -223,12 +226,12 @@ export default function Projects() {
                   </div>
                 </div>
 
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                <p className="text-gray-800 dark:text-gray-500 truncate">
                   {p.description || "No description provided."}
                 </p>
 
                 <span
-                  className={`inline-block px-3 py-1 text-xs font-semibold rounded-full mb-4 ${
+                  className={`inline-block px-2 py-[3px] text-xs font-semibold rounded-full my-1 ${
                     badgeStyles[p.status]
                   }`}
                 >
@@ -236,12 +239,38 @@ export default function Projects() {
                 </span>
 
                 <p>
-                  <strong>Manager:</strong> {p.manager?.name || "—"}
+                  <span className="text-sm text-gray-500">
+                    {p.startDate
+                      ? new Date(p.startDate).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "numeric",
+                          year: "numeric",
+                        })
+                      : "N/A"}
+                    {" - "}
+                    {p.endDate
+                      ? new Date(p.endDate).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "numeric",
+                          year: "numeric",
+                        })
+                      : "N/A"}
+                  </span>
                 </p>
 
                 <p>
-                  <strong>Employees:</strong>{" "}
-                  {p.employees.map((e) => e.employee.name).join(", ") || "—"}
+                  <span className="font-semibold text-sm">Manager:</span>{" "}
+                  <span className="text-sm text-gray-500">
+                    {p.manager?.name || "Not Assigned"}
+                  </span>
+                </p>
+
+                <p>
+                  <span className="font-semibold text-sm">Employees:</span>{" "}
+                  <span className="text-sm text-gray-500">
+                    {p.employees.map((e) => e.employee.name).join(", ") ||
+                      "Not Assigned"}
+                  </span>
                 </p>
               </div>
             ))}
@@ -264,137 +293,140 @@ export default function Projects() {
       {/* ------------ CREATE / EDIT MODAL ------------ */}
       {showProjectModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 w-full max-w-2xl relative">
-            <button
-              onClick={() => setShowProjectModal(false)}
-              className="absolute right-4 top-4"
-            >
-              <X size={22} className="text-[var(--text)]" />
-            </button>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault(); // prevents page reload & enables validation
 
-            <h2 className="text-xl font-semibold mb-6 text-[var(--text)]">
-              {editingProject ? "Edit Project" : "Create Project"}
-            </h2>
+              if (!formName.trim()) return;
 
-            {/* FORM INPUTS */}
-            <div className="space-y-4">
-              {/* Project Name */}
-              <input
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder="Project Name"
-                className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
-              />
+              const payload = {
+                name: formName,
+                description: formDescription,
+                status: formStatus,
+                managerId: selectedManager,
+                employees: assignedEmployees,
+              };
 
-              {/* Description */}
-              <textarea
-                rows={3}
-                value={formDescription}
-                onChange={(e) => setFormDescription(e.target.value)}
-                placeholder="Description"
-                className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
-              />
+              if (editingProject) {
+                await updateProject(editingProject.id, payload);
+              } else {
+                await createProject(payload);
+              }
 
-              {/* Status */}
-              <select
-                value={formStatus}
-                onChange={(e) => setFormStatus(e.target.value)}
-                className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
+              setShowProjectModal(false);
+              loadProjects(pagination.page);
+            }}
+          >
+            <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 w-full max-w-2xl relative">
+              <button
+                type="button"
+                onClick={() => setShowProjectModal(false)}
+                className="absolute right-4 top-4"
               >
-                <option value="ACTIVE">Active</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="ON_HOLD">On Hold</option>
-                <option value="CANCELLED">Cancelled</option>
-              </select>
+                <X size={22} className="text-[var(--text)]" />
+              </button>
 
-              {/* Manager */}
-              <div>
-                <h3 className="font-semibold mb-2 text-[var(--text)]">
-                  Select Manager
-                </h3>
+              <h2 className="text-xl font-semibold mb-6 text-[var(--text)]">
+                {editingProject ? "Edit Project" : "Create Project"}
+              </h2>
+
+              {/* FORM INPUTS */}
+              <div className="space-y-4">
+                <input
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  placeholder="Project Name"
+                  className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
+                  required
+                />
+
+                <textarea
+                  rows={3}
+                  value={formDescription}
+                  onChange={(e) => setFormDescription(e.target.value)}
+                  placeholder="Description"
+                  className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
+                />
 
                 <select
-                  value={selectedManager ?? ""}
-                  onChange={(e) =>
-                    setSelectedManager(
-                      e.target.value ? Number(e.target.value) : null
-                    )
-                  }
+                  value={formStatus}
+                  onChange={(e) => setFormStatus(e.target.value)}
                   className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
+                  required
                 >
-                  <option value="">-- Select Manager --</option>
-                  {managers.map((m) => (
-                    <option key={m.id} value={m.id}>
-                      {m.name}
-                    </option>
-                  ))}
+                  <option value="ACTIVE">Active</option>
+                  <option value="ON_HOLD">On Hold</option>
+                  <option value="COMPLETED">Completed</option>
+                  <option value="CANCELLED">Cancelled</option>
                 </select>
-              </div>
 
-              {/* Employees */}
-              <div>
-                <h3 className="font-semibold mb-2 text-[var(--text)]">
-                  Select Employees
-                </h3>
+                <div>
+                  <h3 className="font-semibold mb-2 text-[var(--text)]">
+                    Select Manager
+                  </h3>
 
-                <div className="border border-[var(--border)] bg-[var(--card)] p-3 rounded-xl max-h-40 overflow-y-auto space-y-2">
-                  {employees.map((emp) => (
-                    <label
-                      key={emp.id}
-                      className="flex gap-3 items-center text-[var(--text)]"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={assignedEmployees.includes(emp.id)}
-                        onChange={() =>
-                          setAssignedEmployees((prev) =>
-                            prev.includes(emp.id)
-                              ? prev.filter((x) => x !== emp.id)
-                              : [...prev, emp.id]
-                          )
-                        }
-                      />
-                      {emp.name}
-                    </label>
-                  ))}
+                  <select
+                    value={selectedManager ?? ""}
+                    onChange={(e) =>
+                      setSelectedManager(
+                        e.target.value ? Number(e.target.value) : null
+                      )
+                    }
+                    className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
+                    required
+                  >
+                    {managers.map((m) => (
+                      <option key={m.id} value={m.id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Employees */}
+                <div>
+                  <h3 className="font-semibold mb-2 text-[var(--text)]">
+                    Select Employees
+                  </h3>
+                  <div className="border border-[var(--border)] bg-[var(--card)] p-3 rounded-xl max-h-40 overflow-y-auto space-y-2">
+                    {employees.length === 0 ? (
+                      <p className="text-gray-500 text-sm italic">
+                        No Employees Available
+                      </p>
+                    ) : (
+                      employees.map((emp) => (
+                        <label
+                          key={emp.id}
+                          className="flex gap-3 items-center text-[var(--text)]"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={assignedEmployees.includes(emp.id)}
+                            onChange={() =>
+                              setAssignedEmployees((prev) =>
+                                prev.includes(emp.id)
+                                  ? prev.filter((x) => x !== emp.id)
+                                  : [...prev, emp.id]
+                              )
+                            }
+                          />
+                          {emp.name}
+                        </label>
+                      ))
+                    )}
+                  </div>
                 </div>
               </div>
+
+              {/* SUBMIT BUTTON */}
+              <button
+                type="submit"
+                className="mt-6 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
+              >
+                {editingProject ? "Update" : "Create"}
+              </button>
             </div>
-
-            {/* SUBMIT BUTTON */}
-            <button
-              onClick={async () => {
-                if (!selectedManager) {
-                  alert("Manager is required");
-                  return;
-                }
-
-                if (editingProject) {
-                  await updateProject(editingProject.id, {
-                    name: formName,
-                    description: formDescription,
-                    status: formStatus,
-                    managerId: selectedManager,
-                    employees: assignedEmployees,
-                  });
-                } else {
-                  await createProject({
-                    name: formName,
-                    description: formDescription,
-                    status: formStatus,
-                    managerId: selectedManager,
-                    employees: assignedEmployees,
-                  });
-                }
-
-                setShowProjectModal(false);
-                loadProjects(pagination.page);
-              }}
-              className="mt-6 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
-            >
-              {editingProject ? "Update" : "Create"}
-            </button>
-          </div>
+          </form>
         </div>
       )}
 
@@ -431,31 +463,32 @@ export default function Projects() {
             {/* Employees */}
             <h3 className="font-semibold mb-2">Select Employees</h3>
             <div className="border p-3 rounded-xl max-h-40 overflow-y-auto space-y-2">
-              {employees.map((emp) => (
-                <label key={emp.id} className="flex gap-3 items-center">
-                  <input
-                    type="checkbox"
-                    checked={assignedEmployees.includes(emp.id)}
-                    onChange={() =>
-                      setAssignedEmployees((prev) =>
-                        prev.includes(emp.id)
-                          ? prev.filter((x) => x !== emp.id)
-                          : [...prev, emp.id]
-                      )
-                    }
-                  />
-                  {emp.name}
-                </label>
-              ))}
+              {employees.length === 0 ? (
+                <p className="text-gray-500 text-sm italic">
+                  No Employees Available
+                </p>
+              ) : (
+                employees.map((emp) => (
+                  <label key={emp.id} className="flex gap-3 items-center">
+                    <input
+                      type="checkbox"
+                      checked={assignedEmployees.includes(emp.id)}
+                      onChange={() =>
+                        setAssignedEmployees((prev) =>
+                          prev.includes(emp.id)
+                            ? prev.filter((x) => x !== emp.id)
+                            : [...prev, emp.id]
+                        )
+                      }
+                    />
+                    {emp.name}
+                  </label>
+                ))
+              )}
             </div>
 
             <button
               onClick={async () => {
-                if (!selectedManager) {
-                  alert("Manager is required");
-                  return;
-                }
-
                 if (assignProject) {
                   await assignUsers(assignProject.id, {
                     managerId: selectedManager,
