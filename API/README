@@ -1,0 +1,286 @@
+🚀 ERP API (Node.js + Express + Prisma + MySQL)
+
+Backend service for the ERP Management System, providing:
+
+Authentication & Authorization (JWT)
+
+Role-Based Access (ADMIN, HR, MANAGER, EMPLOYEE)
+
+Holidays Module (CRUD + Bulk CSV Upload)
+
+Employees, Users, Projects, Tasks Modules
+
+Email Notifications
+
+File Upload using Multer
+
+Prisma ORM with MySQL
+
+This API is fully modular, scalable, and production-ready.
+
+⚙️ Tech Stack
+Feature	Technology
+Runtime	Node.js (ES Modules)
+Framework	Express.js
+ORM	Prisma ORM
+Database	MySQL
+File Upload	Multer
+Parsing	CSV-Parse, ExcelJS
+Auth	JWT + Cookies
+Emails	Nodemailer
+Config	dotenv
+Dev Tools	Nodemon, Prisma CLI
+
+--------------------------------------------------------------------------
+
+📁 Project Structure
+erp-api/
+│── prisma/
+│   ├── schema.prisma
+│   ├── migrations/
+│   └── seed.js
+│
+│── src/
+│   ├── controllers/
+│   │   ├── authController.js
+│   │   ├── holidayController.js
+│   │   ├── projectController.js
+│   │   └── employeeController.js
+│   │
+│   ├── middleware/
+│   │   ├── auth.js
+│   │   └── upload.js
+│   │
+│   ├── routes/
+│   │   ├── authRoutes.js
+│   │   ├── holidayRoutes.js
+│   │   ├── projectRoutes.js
+│   │   └── employeeRoutes.js
+│   │
+│   ├── services/
+│   │   ├── holidayService.js
+│   │   ├── authService.js
+│   │   ├── userService.js
+│   │   ├── projectService.js
+│   │   └── employeeService.js
+│   │
+│   ├── utils/
+│   │   ├── prisma.js
+│   │   ├── email.js
+│   │   └── jwt.js
+│   │
+│   └── index.js
+│
+│── uploads/     ← Temporary CSV uploads (auto-deleted)
+│── .env
+│── package.json
+└── README.md
+
+--------------------------------------------------------------------------
+
+🛠 Installation & Setup
+1️⃣ Clone Repository
+git clone https://github.com/your-org/erp-api.git
+cd erp-api
+
+2️⃣ Install dependencies
+npm install
+
+3️⃣ Create .env file
+PORT=5000
+
+DATABASE_URL="mysql://root:password@localhost:3306/erp"
+
+JWT_SECRET="your_jwt_secret_key"
+JWT_EXPIRES_IN="7d"
+
+EMAIL_USER="your-email@gmail.com"
+EMAIL_PASS="your-email-password"
+EMAIL_FROM="ERP System <your-email@gmail.com>"
+
+FRONTEND_URL="http://localhost:5173"
+
+4️⃣ Prepare Database
+
+Create MySQL database:
+
+CREATE DATABASE erp;
+
+
+Run Prisma migration:
+
+npm run prisma:migrate
+
+
+Generate Prisma client:
+
+npm run prisma:generate
+
+
+(Optional) Seed database:
+
+npm run seed
+
+5️⃣ Run API
+Development:
+npm run dev
+
+Production:
+npm start
+
+
+The API runs at:
+
+http://localhost:5000
+
+🔐 Authentication & Roles
+JWT-based authentication
+
+Tokens are stored in cookies + Authorization header.
+
+--------------------------------------------------------------------------
+
+Supported Roles
+
+ADMIN
+
+HR
+
+MANAGER
+
+EMPLOYEE
+
+--------------------------------------------------------------------------
+
+Middleware
+Middleware	Description
+authRequired	Ensures user is authenticated
+requireRole("ADMIN")	Restrict endpoint by role(s)
+multer.single("file")	Handles CSV uploads
+📌 API Modules
+✔ Auth Module
+Method	Endpoint	Description
+POST	/auth/login	Login user
+POST	/auth/register (OPTIONAL)	Create user
+GET	/auth/me	Get logged-in user
+POST	/auth/refresh	Refresh token
+POST	/auth/logout	Logout
+✔ Holiday Module
+Method	Endpoint	Role	Description
+GET	/holidays?year=2025	ALL	List holidays
+POST	/holidays	ADMIN, HR	Create holiday
+PUT	/holidays/:id	ADMIN, HR	Update holiday
+DELETE	/holidays/:id	ADMIN, HR	Delete holiday
+POST	/holidays/bulk	ADMIN, HR	Bulk Upload .csv
+Allowed CSV Format:
+date,name,isCommon,country
+01/01/2025,New Year,true,UK
+
+Filename must include year:
+holidays2025.csv
+holidays-2024.csv
+
+
+Invalid filename → ❌ “Filename should include valid year”
+
+--------------------------------------------------------------------------
+
+✔ Employees Module
+Method	Endpoint	Role	Description
+GET	/employees	ADMIN, HR	List employees
+POST	/employees	ADMIN, HR	Create employee
+PUT	/employees/:id	ADMIN, HR	Update
+DELETE	/employees/:id	ADMIN, HR	Remove
+✔ Projects Module
+Method	Endpoint	Role
+GET	/projects	ALL
+POST	/projects	ADMIN, MANAGER
+PUT	/projects/:id	ADMIN, MANAGER
+DELETE	/projects/:id	ADMIN
+✔ Tasks Module (Optional depending on your code)
+📄 Prisma Schema (Summary)
+
+Your models include:
+
+User
+
+Employee
+
+Project
+
+Task
+
+Holiday
+
+RefreshToken
+
+--------------------------------------------------------------------------
+
+📤 File upload (Multer)
+
+Uploads only to uploads/ (auto deleted after parsing)
+
+Only CSV allowed
+
+XLSX rejected by controller
+
+--------------------------------------------------------------------------
+
+✉️ Email Support (Nodemailer)
+
+Used for:
+
+Sending login alerts
+
+Sending onboarding emails
+
+Forgot password (if implemented)
+
+Config from .env is required.
+
+🧪 Testing (Postman Collection)
+
+You can import Postman/Thunder Client collection containing:
+
+Auth tests
+
+Holiday CRUD + Bulk upload
+
+Employees
+
+Projects
+
+(I can generate this too if needed.)
+
+❗ Common Issues & Fixes
+❌ Prisma Client Not Found
+
+Run:
+
+npm run prisma:generate
+
+❌ Migration fails
+
+Ensure DB exists
+
+Ensure .env DATABASE_URL is correct
+
+❌ Bulk upload failing
+
+Ensure CSV has correct structure
+
+Ensure filename includes year
+
+Ensure only .csv used
+
+🎯 Production Deployment Notes
+
+Use PM2 or Docker (if needed later)
+
+Setup Nginx reverse proxy
+
+Enable HTTPS
+
+Use environment variables
+
+Configure CORS for UI domain
