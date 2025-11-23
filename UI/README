@@ -103,44 +103,17 @@ Redux Toolkit stores user info
 
 Protected routes check user role
 
-👮 Role-Based UI Logic
-Role	Permissions
-ADMIN	Full access, create/edit/delete holidays
-HR	Same as ADMIN
-MANAGER	View only
-EMPLOYEE	View only
+👮 Role-Based in UI
 
-----------------------------------------------------------------------------------------------------
-
-📅 Holiday Calendar Module (FullCalendar)
-
-Features:
-
-Click a date → Create holiday modal
-
-Click an event → Edit/Delete modal
-
-Tooltip includes:
-
-Name
-
-Country
-
-Holiday type (optional / public)
-
-Color coding:
-
-Green → Public Holiday
-
-Purple → Optional Holiday
-
-Bulk holiday upload (.csv)
+ADMIN | HR | MANAGER | EMPLOYEE
 
 ----------------------------------------------------------------------------------------------------
 
 🎨 Theme System
 
 Uses CSS variables defined for both themes:
+
+Both dark and light theme supported
 
 --background
 --text
