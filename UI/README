@@ -39,15 +39,13 @@ Built with:
 
 🏷️ Tech Badges
 
-![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=000000&style=for-the-badge)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white&style=for-the-badge)
-![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?logo=vite&logoColor=white&style=for-the-badge)
-![Redux Toolkit](https://img.shields.io/badge/Redux_Toolkit-2.x-764ABC?logo=redux&logoColor=white&style=for-the-badge)
-![React Router](https://img.shields.io/badge/React_Router-6.x-CA4245?logo=reactrouter&logoColor=white&style=for-the-badge)
-![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.x-06B6D4?logo=tailwindcss&logoColor=white&style=for-the-badge)
-![FullCalendar](https://img.shields.io/badge/FullCalendar-6.x-0E7FC0?style=for-the-badge)
-![Axios](https://img.shields.io/badge/Axios-1.x-5A29E4?logo=axios&logoColor=white&style=for-the-badge)
-![React Hot Toast](https://img.shields.io/badge/React_Hot_Toast-2.x-F97316?style=for-the-badge)
+![HTML](https://img.shields.io/badge/HTML5-%23E34F26.svg?&style=flat&logo=html5&logoColor=white)
+![CSS](https://img.shields.io/badge/CSS3-%231572B6.svg?&style=flat&logo=css3&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-%23F7DF1E.svg?&style=flat&logo=javascript&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-%23007ACC.svg?&style=flat&logo=typescript&logoColor=white)
+![React](https://img.shields.io/badge/React-%2320232a.svg?&style=flat&logo=react&logoColor=%2361DAFB)
+![Redux](https://img.shields.io/badge/Redux-%23593d88.svg?&style=flat&logo=redux&logoColor=white)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-%2306B6D4.svg?&style=flat&logo=tailwind-css&logoColor=white)
 
 ----------------------------------------------------------------------------------------------------
 
@@ -84,21 +82,22 @@ erp-client/
 ----------------------------------------------------------------------------------------------------
 
 🛠 Installation & Setup
-1️⃣ Install dependencies
+1️⃣ Clone Repository
+git clone https://github.com/Nirmaljyts/erp_project.git
+cd UI
+
+2️⃣ Install dependencies
 npm install
 
-2️⃣ Create .env file
+3️⃣ Create .env file
 VITE_API_URL="http://localhost:5000/api"
 
-3️⃣ Run development server
+4️⃣ Run development server
 npm run dev
 
+Local URL: http://localhost:5173
 
-Local URL:
-
-http://localhost:5173
-
-4️⃣ Build for production
+5️⃣ Build for production
 npm run build
 npm run preview
 
@@ -115,13 +114,6 @@ Axios interceptor refreshes token automatically
 Redux Toolkit stores user info
 
 Protected routes check user role
-
-Example Axios instance:
-
-export const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
-  withCredentials: true,
-});
 
 👮 Role-Based UI Logic
 Role	Permissions
@@ -156,8 +148,6 @@ Purple → Optional Holiday
 
 Bulk holiday upload (.csv)
 
-🧪 API Integration (Sample)
-
 ----------------------------------------------------------------------------------------------------
 
 🎨 Theme System
@@ -171,13 +161,7 @@ Uses CSS variables defined for both themes:
 
 Automatically applied to:
 
-Modals
-
-Calendar
-
-Forms
-
-Layout
+Modals | Calendar | Forms | Layout
 
 ----------------------------------------------------------------------------------------------------
 
@@ -193,11 +177,7 @@ CSV upload results
 
 Validation errors
 
-Example:
 
-toast.success("Holiday created!");
-
-❗ Troubleshooting
 API CORS blocked
 
 Backend must allow:
@@ -205,15 +185,7 @@ Backend must allow:
 origin: "http://localhost:5173"
 credentials: true
 
-Calendar not showing
-
-Ensure dates are ISO strings:
-
-start: h.date
-
-Upload button not visible
-
-User must be ADMIN or HR.
+----------------------------------------------------------------------------------------------------
 
 📄 License
 
