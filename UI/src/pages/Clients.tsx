@@ -203,7 +203,7 @@ export default function ClientsPage() {
                 key={c.id}
                 className="bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-sm p-4"
               >
-                <div className="flex justify-between mb-3 gap-2">
+                <div className="flex justify-between mb-2 gap-2">
                   <h2 className="text-lg font-semibold truncate">{c.name}</h2>
 
                   <div className="flex items-center gap-2">
@@ -224,15 +224,13 @@ export default function ClientsPage() {
                   {c.contactedBy}
                 </p>
 
-                <div className="flex items-center justify-between">
-                  <p className="flex items-center text-gray-400 text-sm">
-                    {c.email}
-                  </p>
+                <p className="flex items-center text-sm text-gray-600 truncate">
+                  {c.email}
+                </p>
 
-                  <p className="flex items-center text-sm text-gray-600 dark:text-gray-500">
-                    {c.phone}
-                  </p>
-                </div>
+                <p className="flex items-center text-sm text-gray-600 truncate">
+                  {c.phone}
+                </p>
               </div>
             ))}
           </div>

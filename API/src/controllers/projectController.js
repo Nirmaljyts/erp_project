@@ -7,6 +7,7 @@ import {
   removeEmployeeFromProjectService,
   updateProjectStatusService,
   deleteProjectService,
+  validateEmployeesForProject,
 } from "../services/projectService.js";
 
 export async function listProjects(req, res) {
@@ -25,6 +26,18 @@ export async function getProject(req, res) {
     res.json(project);
   } catch (err) {
     res.status(500).json({ message: "Failed to fetch project" });
+  }
+}
+
+export async function validateEmployeeAssignments(req, res) {
+  try {
+    const { projectId, employees, status } = req.body;
+
+    await validateEmployeesForProject(projectId, employees, status);
+
+    return res.json({ valid: true });
+  } catch (err) {
+    return res.status(400).json({ valid: false, message: err.message });
   }
 }
 

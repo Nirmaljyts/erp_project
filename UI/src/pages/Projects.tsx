@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Edit2, Trash2, Users, X } from "lucide-react";
 import Swal from "sweetalert2";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import {
   getProjects,
   createProject,
@@ -9,6 +11,7 @@ import {
   assignUsers,
   getManagers,
   getEmployees,
+  validateEmployees,
 } from "../services/projectServices";
 import Pagination from "../components/Pagination";
 import { useSelector } from "react-redux";
@@ -64,11 +67,13 @@ export default function Projects() {
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formStatus, setFormStatus] = useState("ACTIVE");
+  const [formStartDate, setFormStartDate] = useState<Date | null>(null);
+  const [formEndDate, setFormEndDate] = useState<Date | null>(null);
 
   // Error handling
   const [nameError, setNameError] = useState("");
   const [managerError, setManagerError] = useState("");
-  const [error, setError] = useState("");
+  const [dateError, setDateError] = useState("");
 
   const user = useSelector((state: RootState) => state?.auth?.user);
 
@@ -145,6 +150,8 @@ export default function Projects() {
     setFormName(p.name);
     setFormDescription(p.description || "");
     setFormStatus(p.status);
+    setFormStartDate(p.startDate ? new Date(p.startDate) : null);
+    setFormEndDate(p.endDate ? new Date(p.endDate) : null);
 
     // Fetch fresh available managers + employees
     const [mgr, emp] = await Promise.all([getManagers(), getEmployees(p.id)]);
@@ -188,6 +195,27 @@ export default function Projects() {
     loadProjects(pagination.page);
   };
 
+  async function validateEmployeeAssignmentsBeforeSubmit() {
+    try {
+      const res = await validateEmployees(
+        editingProject?.id || null,
+        assignedEmployees
+      );
+      return res.valid;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || "Employee conflict detected";
+
+      Swal.fire({
+        icon: "warning",
+        title: "Assignment Issue",
+        text: message,
+      });
+
+      return false;
+    }
+  }
+
   async function handleProjectSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -195,6 +223,9 @@ export default function Projects() {
 
     const cleanName = formName.trim();
     const cleanManager = selectedManager;
+
+    const isValid = await validateEmployeeAssignmentsBeforeSubmit();
+    if (!isValid) return;
 
     // Validate Project Name
     if (!cleanName) {
@@ -205,6 +236,20 @@ export default function Projects() {
       valid = false;
     } else {
       setNameError("");
+    }
+
+    // Date Validation
+    if (!formStartDate || !formEndDate) {
+      setDateError("Select both start and end dates");
+      return;
+    } else if (formStartDate.getTime() === formEndDate.getTime()) {
+      setDateError("Start and End date cannot be the same");
+      return;
+    } else if (formEndDate <= formStartDate) {
+      setDateError("End date must be greater than Start date");
+      return;
+    } else {
+      setDateError("");
     }
 
     // Validate Manager
@@ -223,6 +268,8 @@ export default function Projects() {
       status: formStatus,
       managerId: cleanManager,
       employees: assignedEmployees,
+      startDate: formStartDate.toISOString(),
+      endDate: formEndDate.toISOString(),
     };
 
     try {
@@ -234,9 +281,8 @@ export default function Projects() {
 
       closeProjectModal();
       loadProjects(pagination.page);
-    } catch (error) {
-      console.error("errorrrrrr", error);
-      Swal.fire("Error", "Something went wrong. Try again.", "error");
+    } catch (error: any) {
+      Swal.fire("Error", error?.response?.data?.message, "error");
     }
   }
 
@@ -244,6 +290,8 @@ export default function Projects() {
     setNameError("");
     setManagerError("");
     setShowProjectModal(false);
+    setFormStartDate(null);
+    setFormEndDate(null);
   };
 
   // ---------------- PAGINATION ----------------
@@ -339,19 +387,19 @@ export default function Projects() {
                   </span>
                 </p>
 
-                <p>
-                  <span className="font-semibold text-sm">Manager:</span>{" "}
-                  <span className="text-sm text-gray-500">
+                <p className="flex items-center gap-1">
+                  <p className="font-semibold text-sm">Manager:</p>{" "}
+                  <p className="text-sm text-gray-500 truncate">
                     {p.manager?.name || "Not Assigned"}
-                  </span>
+                  </p>
                 </p>
 
-                <p>
-                  <span className="font-semibold text-sm">Employees:</span>{" "}
-                  <span className="text-sm text-gray-500">
+                <p className="flex items-center gap-1">
+                  <p className="font-semibold text-sm">Employees:</p>{" "}
+                  <p className="text-sm text-gray-500 truncate">
                     {p.employees.map((e) => e.employee.name).join(", ") ||
                       "Not Assigned"}
-                  </span>
+                  </p>
                 </p>
               </div>
             ))}
@@ -412,6 +460,46 @@ export default function Projects() {
                 className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
               />
 
+              {/* Start Date & End Date */}
+              <div className="flex items-center gap-4">
+                <DatePicker
+                  selected={formStartDate}
+                  onChange={(date: Date | null) => {
+                    setFormStartDate(date);
+                    if (dateError) setDateError("");
+                  }}
+                  className="w-full p-2 border border-[var(--border)] cursor-pointer rounded-lg bg-[var(--card)] text-[var(--text)]"
+                  dateFormat="dd/MM/yyyy"
+                  placeholderText="Start Date"
+                />
+                <span>~</span>
+                <DatePicker
+                  selected={formEndDate}
+                  onChange={(date: Date | null) => {
+                    setFormEndDate(date);
+                    if (dateError) setDateError("");
+                  }}
+                  className="w-full p-2 border border-[var(--border)] cursor-pointer rounded-lg bg-[var(--card)] text-[var(--text)]"
+                  dateFormat="dd/MM/yyyy"
+                  placeholderText="End Date"
+                  minDate={formStartDate || undefined}
+                />
+              </div>
+
+              {dateError && <p className="text-red-500 text-sm">{dateError}</p>}
+
+              {/* Status */}
+              <select
+                value={formStatus}
+                onChange={(e) => setFormStatus(e.target.value)}
+                className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
+              >
+                <option value="ACTIVE">Active</option>
+                <option value="ON_HOLD">On Hold</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="CANCELLED">Cancelled</option>
+              </select>
+
               {/* Manager */}
               <div>
                 <h3 className="font-semibold mb-1 text-[var(--text)]">
@@ -440,18 +528,6 @@ export default function Projects() {
                   <p className="text-red-500 text-sm">{managerError}</p>
                 )}
               </div>
-
-              {/* Status */}
-              <select
-                value={formStatus}
-                onChange={(e) => setFormStatus(e.target.value)}
-                className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
-              >
-                <option value="ACTIVE">Active</option>
-                <option value="ON_HOLD">On Hold</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="CANCELLED">Cancelled</option>
-              </select>
 
               {/* Employees */}
               <div>

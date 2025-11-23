@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import Login from "./pages/auth/Login";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
@@ -44,100 +45,103 @@ function RoleGuard({
 
 export default function App() {
   return (
-    <Routes>
-      {/* PUBLIC ROUTES */}
-      <Route
-        path="login"
-        element={
-          <PublicRoute>
-            <Login />
-          </PublicRoute>
-        }
-      />
-
-      <Route
-        path="forgot-password"
-        element={
-          <PublicRoute>
-            <ForgotPassword />
-          </PublicRoute>
-        }
-      />
-
-      <Route
-        path="verify-otp"
-        element={
-          <PublicRoute>
-            <VerifyOtp />
-          </PublicRoute>
-        }
-      />
-
-      <Route
-        path="reset-password"
-        element={
-          <PublicRoute>
-            <ResetPassword />
-          </PublicRoute>
-        }
-      />
-
-      {/* PRIVATE ROUTES */}
-      <Route
-        path="/"
-        element={
-          <PrivateRoute>
-            <Layout />
-          </PrivateRoute>
-        }
-      >
-        {/* Dashboard — everyone */}
-        <Route index element={<Dashboard />} />
-
-        {/* Projects — Admin, HR, Manager, Employee */}
+    <>
+      <Routes>
+        {/* PUBLIC ROUTES */}
         <Route
-          path="projects"
+          path="login"
           element={
-            <RoleGuard allowedRoles={["ADMIN", "HR", "MANAGER", "EMPLOYEE"]}>
-              <Projects />
-            </RoleGuard>
+            <PublicRoute>
+              <Login />
+            </PublicRoute>
           }
         />
 
-        {/* Clients — Admin only */}
         <Route
-          path="clients"
+          path="forgot-password"
           element={
-            <RoleGuard allowedRoles={["ADMIN"]}>
-              <Clients />
-            </RoleGuard>
+            <PublicRoute>
+              <ForgotPassword />
+            </PublicRoute>
           }
         />
 
-        {/* Users — Admin + HR only */}
         <Route
-          path="users"
+          path="verify-otp"
           element={
-            <RoleGuard allowedRoles={["ADMIN", "HR", "MANAGER", "EMPLOYEE"]}>
-              <Users />
-            </RoleGuard>
+            <PublicRoute>
+              <VerifyOtp />
+            </PublicRoute>
           }
         />
 
-        {/* Holidays / Calendar — everyone */}
         <Route
-          path="calendar"
+          path="reset-password"
           element={
-            <RoleGuard allowedRoles={["ADMIN", "HR", "MANAGER", "EMPLOYEE"]}>
-              <CalendarPage />
-            </RoleGuard>
+            <PublicRoute>
+              <ResetPassword />
+            </PublicRoute>
           }
         />
-      </Route>
 
-      {/* UNIVERSAL 404 */}
-      <Route path="/404" element={<Page404 />} />
-      <Route path="*" element={<Navigate to="/404" replace />} />
-    </Routes>
+        {/* PRIVATE ROUTES */}
+        <Route
+          path="/"
+          element={
+            <PrivateRoute>
+              <Layout />
+            </PrivateRoute>
+          }
+        >
+          {/* Dashboard — everyone */}
+          <Route index element={<Dashboard />} />
+
+          {/* Projects — Admin, HR, Manager, Employee */}
+          <Route
+            path="projects"
+            element={
+              <RoleGuard allowedRoles={["ADMIN", "HR", "MANAGER", "EMPLOYEE"]}>
+                <Projects />
+              </RoleGuard>
+            }
+          />
+
+          {/* Clients — Admin only */}
+          <Route
+            path="clients"
+            element={
+              <RoleGuard allowedRoles={["ADMIN"]}>
+                <Clients />
+              </RoleGuard>
+            }
+          />
+
+          {/* Users — Admin + HR only */}
+          <Route
+            path="users"
+            element={
+              <RoleGuard allowedRoles={["ADMIN", "HR", "MANAGER", "EMPLOYEE"]}>
+                <Users />
+              </RoleGuard>
+            }
+          />
+
+          {/* Holidays / Calendar — everyone */}
+          <Route
+            path="calendar"
+            element={
+              <RoleGuard allowedRoles={["ADMIN", "HR", "MANAGER", "EMPLOYEE"]}>
+                <CalendarPage />
+              </RoleGuard>
+            }
+          />
+        </Route>
+
+        {/* UNIVERSAL 404 */}
+        <Route path="/404" element={<Page404 />} />
+        <Route path="*" element={<Navigate to="/404" replace />} />
+      </Routes>
+      <Toaster position="top-right" />
+    </>
   );
 }

@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { requestResetOtp } from "../../services/authService";
+import { requestResetOtp } from "../../services/authServices";
 import forgotPassword from "../../assets/forgot_password.png";
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");

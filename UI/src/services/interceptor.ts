@@ -1,6 +1,6 @@
 import axios from "axios";
 import serverConfig from "./serverConfig";
-import { refreshToken } from "./authService";
+import { refreshToken } from "./authServices";
 import Swal from "sweetalert2";
 
 export const axiosInstance = axios.create({

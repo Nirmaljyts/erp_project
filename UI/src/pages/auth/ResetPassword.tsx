@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { resetPassword } from "../../services/authService";
+import { resetPassword } from "../../services/authServices";
 import resetImage from "../../assets/reset_password.png";
 import { Eye, EyeOff } from "lucide-react";
 

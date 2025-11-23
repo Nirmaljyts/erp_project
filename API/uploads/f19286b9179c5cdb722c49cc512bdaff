@@ -1,0 +1,9 @@
+date,name,country,isCommon
+01/01/2025,New Year's Day,United Kingdom,TRUE
+18/04/2025,Good Friday,United Kingdom,TRUE
+21/04/2025,Easter Monday,United Kingdom,TRUE
+05/05/2025,Early May Bank Holiday,United Kingdom,TRUE
+26/05/2025,Spring Bank Holiday,United Kingdom,TRUE
+25/08/2025,Summer Bank Holiday,United Kingdom,TRUE
+25/12/2025,Christmas Day,United Kingdom,TRUE
+26/12/2025,Boxing Day,United Kingdom,TRUE

@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { verifyResetOtp } from "../../services/authService";
+import { verifyResetOtp } from "../../services/authServices";
 import otpImage from "../../assets/verify_otp.png";
 
 export default function VerifyOtp() {

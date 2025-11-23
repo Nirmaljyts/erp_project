@@ -1,7 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { userLogin } from "../../services/authService";
+import { userLogin } from "../../services/authServices";
 import { setCredentials } from "../../store/authSlice";
 import { Eye, EyeOff } from "lucide-react";
 import LoginImage from "../../assets/login.png";

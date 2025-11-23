@@ -228,57 +228,53 @@ export async function getManagersService(user) {
   });
 }
 
-// EMPLOYEES NOT ASSIGNED TO OTHER ACTIVE PROJECTS
+// EMPLOYEES AVAILABLE FOR ASSIGNMENT BASED ON PROJECT STATUS
 export async function getAvailableEmployeesService(currentProjectId) {
   const projectId = Number(currentProjectId);
 
-  // If creating a NEW project → return all employees that are not assigned to active projects
-  if (!projectId || isNaN(projectId)) {
-    return prisma.user.findMany({
-      where: {
-        role: "EMPLOYEE",
-        isActive: true,
-        projects: {
-          none: {
-            project: {
-              status: { in: ["ACTIVE", "ON_HOLD"] },
-            },
-          },
+  // Common query → exclude employees in ACTIVE/ON_HOLD projects
+  const excludeActiveProjects = {
+    role: "EMPLOYEE",
+    isActive: true,
+    projects: {
+      none: {
+        project: {
+          status: { in: ["ACTIVE", "ON_HOLD"] },
+          ...(projectId && { id: { not: projectId } }), // allow current project
         },
       },
+    },
+  };
+
+  // NEW PROJECT → No assigned base
+  if (!projectId || isNaN(projectId)) {
+    return prisma.user.findMany({
+      where: excludeActiveProjects,
       select: { id: true, name: true },
     });
   }
 
-  // Editing existing project → allow assigned employees + available ones
-  const assignedToThisProject = await prisma.projectEmployee.findMany({
+  // EDIT PROJECT
+  const assigned = await prisma.projectEmployee.findMany({
     where: { projectId },
     include: { employee: true },
   });
 
-  const assignedEmployeeIds = assignedToThisProject.map((e) => e.employeeId);
+  const assignedIds = assigned.map((a) => a.employeeId);
 
-  const availableEmployees = await prisma.user.findMany({
-    where: {
-      role: "EMPLOYEE",
-      isActive: true,
-      projects: {
-        none: {
-          project: {
-            id: { not: projectId },
-            status: { in: ["ACTIVE", "ON_HOLD"] },
-          },
-        },
-      },
-    },
+  const available = await prisma.user.findMany({
+    where: excludeActiveProjects,
     select: { id: true, name: true },
   });
 
   return [
-    ...assignedToThisProject.map((e) => ({
-      id: e.employee.id,
-      name: e.employee.name,
+    // those already in this project
+    ...assigned.map((a) => ({
+      id: a.employee.id,
+      name: a.employee.name,
     })),
-    ...availableEmployees.filter((e) => !assignedEmployeeIds.includes(e.id)),
+    // prevent duplication
+    ...available.filter((a) => !assignedIds.includes(a.id)),
   ];
 }
+

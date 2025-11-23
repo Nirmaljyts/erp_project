@@ -78,22 +78,100 @@ export function getProjectById(id) {
   });
 }
 
+export async function validateEmployeesForProject(
+  projectId,
+  employees,
+  targetStatus
+) {
+  const pid = projectId ? Number(projectId) : null;
+
+  // Allow if switching to Completed/Cancelled OR status unchanged
+  if (!["ACTIVE", "ON_HOLD"].includes(targetStatus)) {
+    return true;
+  }
+
+  // Get current project status (if editing)
+  let currentStatus = null;
+  if (pid) {
+    const project = await prisma.project.findUnique({
+      where: { id: pid },
+      select: { status: true },
+    });
+
+    currentStatus = project?.status;
+
+    // If changing to same status → OK
+    if (currentStatus === targetStatus) {
+      return true;
+    }
+  }
+
+  for (const empId of employees) {
+    const conflict = await prisma.projectEmployee.findFirst({
+      where: {
+        employeeId: empId,
+        ...(pid ? { projectId: { not: pid } } : {}),
+        project: {
+          status: { in: ["ACTIVE", "ON_HOLD"] },
+        },
+      },
+      include: {
+        employee: { select: { name: true } },
+        project: { select: { name: true, status: true } },
+      },
+    });
+
+    if (conflict) {
+      throw new Error(
+        `Cannot set this project to ${targetStatus}. 
+        Employee "${conflict.employee.name}" already assigned to an "${conflict.project.status}" project "${conflict.project.name}".`
+      );
+    }
+  }
+
+  return true;
+}
+
 // -----------------------------------
 // CREATE PROJECT
 // -----------------------------------
-export function createNewProject(data, user) {
-  if (user.role === "MANAGER") {
-    data.managerId = user.id; // force their own ID
+export async function createNewProject(data, user) {
+  const {
+    name,
+    description,
+    status,
+    managerId,
+    employees = [],
+    startDate,
+    endDate,
+  } = data;
+
+  if (!startDate || !endDate) {
+    throw new Error("Start and End dates are required");
   }
+
+  if (new Date(startDate) >= new Date(endDate)) {
+    throw new Error("End date must be greater than start date");
+  }
+
+  // Managers can assign only themselves as manager
+  const finalManagerId = user.role === "MANAGER" ? user.id : managerId;
+
   return prisma.project.create({
     data: {
-      name: data.name,
-      description: data.description,
-      status: data.status,
-      managerId: data.managerId,
+      name,
+      description,
+      status,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      managerId: finalManagerId || null,
       employees: {
-        create: data.employees.map((id) => ({ employeeId: id })),
+        create: employees.map((id) => ({ employeeId: id })),
       },
+    },
+    include: {
+      manager: true,
+      employees: true,
     },
   });
 }
@@ -101,22 +179,47 @@ export function createNewProject(data, user) {
 // -----------------------------------
 // UPDATE PROJECT
 // -----------------------------------
-export function updateExistingProject(id, data, user) {
-  if (user.role === "MANAGER") {
-    data.managerId = user.id;
+export async function updateExistingProject(id, data, user) {
+  const {
+    name,
+    description,
+    status,
+    managerId,
+    employees = [],
+    startDate,
+    endDate,
+  } = data;
+
+  if (!startDate || !endDate) {
+    throw new Error("Start and End dates are required");
   }
+
+  if (new Date(startDate) >= new Date(endDate)) {
+    throw new Error("End date must be greater than start date");
+  }
+
+  const finalManagerId = user.role === "MANAGER" ? user.id : managerId;
+
+  // 🔥 Enforce validation BEFORE database update
+  await validateEmployeesForProject(id, employees, status);
 
   return prisma.project.update({
     where: { id: Number(id) },
     data: {
-      name: data.name,
-      description: data.description,
-      status: data.status,
-      managerId: data.managerId,
+      name,
+      description,
+      status,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      managerId: finalManagerId || null,
       employees: {
         deleteMany: {},
-        create: data.employees.map((eId) => ({ employeeId: eId })),
+        create: employees.map((eId) => ({ employeeId: eId })),
       },
+    },
+    include: {
+      manager: true,
+      employees: true,
     },
   });
 }
@@ -206,6 +309,39 @@ export async function removeEmployeeFromProjectService(projectId, employeeId) {
 // UPDATE STATUS
 // -----------------------------------
 export async function updateProjectStatusService(projectId, status) {
+  const newStatusIsActive = ["ACTIVE", "ON_HOLD"].includes(status);
+
+  if (newStatusIsActive) {
+    // Find employees assigned to this project
+    const assignedEmployees = await prisma.projectEmployee.findMany({
+      where: { projectId: Number(projectId) },
+      select: { employeeId: true },
+    });
+
+    // Check each employee to ensure they aren't in another active project
+    for (const { employeeId } of assignedEmployees) {
+      const conflict = await prisma.projectEmployee.findFirst({
+        where: {
+          employeeId,
+          projectId: { not: Number(projectId) },
+          project: {
+            status: { in: ["ACTIVE", "ON_HOLD"] },
+          },
+        },
+        include: {
+          project: { select: { name: true } },
+          employee: { select: { name: true } },
+        },
+      });
+
+      if (conflict) {
+        throw new Error(
+          `Employee "${conflict.employee.name}" is already assigned to ACTIVE/ON_HOLD project "${conflict.project.name}". Remove them first.`
+        );
+      }
+    }
+  }
+
   return prisma.project.update({
     where: { id: Number(projectId) },
     data: { status },
