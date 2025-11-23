@@ -1,0 +1,221 @@
+🎨 ERP Project (React + TypeScript + Vite)
+
+This is the frontend UI for the ERP (Enterprise Resource Planning) System.
+It communicates with the ERP API and provides a fast, modern, role-based interface.
+
+Built with:
+
+⚛  React 18 + TypeScript
+
+⚡ Vite
+
+🎛 Redux Toolkit
+
+🌐 React Router v6
+
+🎨 TailwindCSS
+
+📅 FullCalendar
+
+🔐 Axios + JWT Interceptor
+
+🔔 React Hot Toast
+
+----------------------------------------------------------------------------------------------------
+
+📸 Features
+
+✔ JWT Authentication (Login + Role-based Access)
+✔ Holiday Calendar (Create / Update / Delete for Admin + HR)
+✔ CSV Upload for Holidays
+✔ Dashboard & Routing System
+✔ Global State using Redux Toolkit
+✔ Form validation with inline error messages
+✔ Toast notifications
+✔ Dark/Light theme with CSS variables
+✔ FullCalendar event tooltips + event modals
+
+----------------------------------------------------------------------------------------------------
+
+🏷️ Tech Badges
+
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=000000&style=for-the-badge)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?logo=typescript&logoColor=white&style=for-the-badge)
+![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?logo=vite&logoColor=white&style=for-the-badge)
+![Redux Toolkit](https://img.shields.io/badge/Redux_Toolkit-2.x-764ABC?logo=redux&logoColor=white&style=for-the-badge)
+![React Router](https://img.shields.io/badge/React_Router-6.x-CA4245?logo=reactrouter&logoColor=white&style=for-the-badge)
+![TailwindCSS](https://img.shields.io/badge/TailwindCSS-3.x-06B6D4?logo=tailwindcss&logoColor=white&style=for-the-badge)
+![FullCalendar](https://img.shields.io/badge/FullCalendar-6.x-0E7FC0?style=for-the-badge)
+![Axios](https://img.shields.io/badge/Axios-1.x-5A29E4?logo=axios&logoColor=white&style=for-the-badge)
+![React Hot Toast](https://img.shields.io/badge/React_Hot_Toast-2.x-F97316?style=for-the-badge)
+
+----------------------------------------------------------------------------------------------------
+
+📁 Project Structure
+erp-client/
+│── public/
+│── src/
+│   ├── assets/
+│   ├── components/
+│   ├── pages/
+│   │   ├── CalendarPage.tsx
+│   │   ├── LoginPage.tsx
+│   │   ├── DashboardPage.tsx
+│   ├── router/
+│   │   ├── AppRouter.tsx
+│   │   └── PrivateRoute.tsx
+│   ├── services/
+│   │   ├── authServices.ts
+│   │   ├── holidayServices.ts
+│   │   └── interceptor.ts
+│   ├── store/
+│   │   ├── store.ts
+│   │   └── authSlice.ts
+│   ├── App.tsx
+│   └── main.tsx
+│
+│── tailwind.config.js
+│── tsconfig.json
+│── vite.config.ts
+│── package.json
+│── .env
+└── README.md
+
+----------------------------------------------------------------------------------------------------
+
+🛠 Installation & Setup
+1️⃣ Install dependencies
+npm install
+
+2️⃣ Create .env file
+VITE_API_URL="http://localhost:5000/api"
+
+3️⃣ Run development server
+npm run dev
+
+
+Local URL:
+
+http://localhost:5173
+
+4️⃣ Build for production
+npm run build
+npm run preview
+
+----------------------------------------------------------------------------------------------------
+
+🔐 Authentication Flow (JWT)
+
+User logs in using /auth/login
+
+Access + Refresh tokens stored in httpOnly cookies
+
+Axios interceptor refreshes token automatically
+
+Redux Toolkit stores user info
+
+Protected routes check user role
+
+Example Axios instance:
+
+export const axiosInstance = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+  withCredentials: true,
+});
+
+👮 Role-Based UI Logic
+Role	Permissions
+ADMIN	Full access, create/edit/delete holidays
+HR	Same as ADMIN
+MANAGER	View only
+EMPLOYEE	View only
+
+----------------------------------------------------------------------------------------------------
+
+📅 Holiday Calendar Module (FullCalendar)
+
+Features:
+
+Click a date → Create holiday modal
+
+Click an event → Edit/Delete modal
+
+Tooltip includes:
+
+Name
+
+Country
+
+Holiday type (optional / public)
+
+Color coding:
+
+Green → Public Holiday
+
+Purple → Optional Holiday
+
+Bulk holiday upload (.csv)
+
+🧪 API Integration (Sample)
+
+----------------------------------------------------------------------------------------------------
+
+🎨 Theme System
+
+Uses CSS variables defined for both themes:
+
+--background
+--text
+--card
+--border
+
+Automatically applied to:
+
+Modals
+
+Calendar
+
+Forms
+
+Layout
+
+----------------------------------------------------------------------------------------------------
+
+🔔 Notifications (react-hot-toast)
+
+Used for:
+
+Login success / failure
+
+Holiday created / updated / deleted
+
+CSV upload results
+
+Validation errors
+
+Example:
+
+toast.success("Holiday created!");
+
+❗ Troubleshooting
+API CORS blocked
+
+Backend must allow:
+
+origin: "http://localhost:5173"
+credentials: true
+
+Calendar not showing
+
+Ensure dates are ISO strings:
+
+start: h.date
+
+Upload button not visible
+
+User must be ADMIN or HR.
+
+📄 License
+
+This is private internal ERP software.
+Not open for redistribution.

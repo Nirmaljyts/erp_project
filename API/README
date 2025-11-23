@@ -33,6 +33,19 @@ Dev Tools	Nodemon, Prisma CLI
 
 --------------------------------------------------------------------------
 
+![Node.js](https://img.shields.io/badge/Node.js-20.x-339933?logo=node.js&logoColor=white&style=for-the-badge)
+![Express](https://img.shields.io/badge/Express.js-4.x-000000?logo=express&logoColor=white&style=for-the-badge)
+![Prisma](https://img.shields.io/badge/Prisma-5.x-2D3748?logo=prisma&logoColor=white&style=for-the-badge)
+![MySQL](https://img.shields.io/badge/MySQL-8.x-4479A1?logo=mysql&logoColor=white&style=for-the-badge)
+![JWT](https://img.shields.io/badge/JWT-Auth-000000?logo=jsonwebtokens&logoColor=white&style=for-the-badge)
+![Multer](https://img.shields.io/badge/Multer-File_Upload-FFCC00?style=for-the-badge)
+![CSV Parse](https://img.shields.io/badge/CSV--Parse-6.x-4B8BBE?style=for-the-badge)
+![ExcelJS](https://img.shields.io/badge/ExcelJS-4.x-217346?logo=microsoft-excel&logoColor=white&style=for-the-badge)
+![Nodemailer](https://img.shields.io/badge/Nodemailer-Email-2ea44f?logo=mail.ru&logoColor=white&style=for-the-badge)
+![dotenv](https://img.shields.io/badge/dotenv-Config-ECD53F?logo=dotenv&logoColor=000&style=for-the-badge)
+
+--------------------------------------------------------------------------
+
 📁 Project Structure
 erp-api/
 │── prisma/
@@ -115,7 +128,6 @@ npm run prisma:migrate
 Generate Prisma client:
 
 npm run prisma:generate
-
 
 (Optional) Seed database:
 
