@@ -37,10 +37,11 @@ export default function ClientsPage() {
 
   // ---------------- FETCH CLIENTS ----------------
   async function loadClients(page = 1) {
+    const limit = 10;
     try {
       setLoading(true);
 
-      const res = await getClients(page);
+      const res = await getClients(page, limit);
       setClients(res.data);
 
       setPagination({
@@ -239,11 +240,13 @@ export default function ClientsPage() {
             <div className="text-center text-gray-500 py-10">No Data</div>
           )}
 
-          <Pagination
-            page={pagination.page}
-            totalPages={pagination.totalPages}
-            onPageChange={handlePaginate}
-          />
+          <div className="fixed bottom-0 left-0 right-0 shadow-md p-3 z-50">
+            <Pagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              onPageChange={handlePaginate}
+            />
+          </div>
         </>
       )}
 

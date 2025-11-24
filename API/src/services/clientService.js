@@ -1,22 +1,40 @@
 import prisma from "../utils/prisma.js";
 
-export async function getClientsPaginated(page = 1, limit = 10) {
-  const skip = (page - 1) * limit;
+export async function getClientsPaginated({
+  page = 1,
+  limit = 10,
+  search = "",
+  sort = "name",
+  order = "asc",
+}) {
+  const take = Number(limit);
+  const skip = (Number(page) - 1) * take;
+
+  const where = search
+    ? { name: { contains: search, mode: "insensitive" } }
+    : {};
 
   const [clients, count] = await Promise.all([
     prisma.client.findMany({
+      where,
       skip,
-      take: limit,
-      orderBy: { createdAt: "desc" },
+      take,
+      orderBy: { [sort]: order },
     }),
-    prisma.client.count(),
+    prisma.client.count({ where }),
   ]);
 
   return {
-    clients,
-    totalPages: Math.ceil(count / limit),
+    data: clients,
+    pagination: {
+      total: count,
+      page: Number(page),
+      limit: take,
+      totalPages: Math.ceil(count / take),
+    },
   };
 }
+
 
 export async function createNewClient(data) {
   return prisma.client.create({ data });

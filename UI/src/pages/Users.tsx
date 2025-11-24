@@ -370,11 +370,13 @@ export default function UsersPage() {
             </table>
           </div>
 
-          <Pagination
-            page={pagination.page}
-            totalPages={pagination.totalPages}
-            onPageChange={handlePaginate}
-          />
+          <div className="fixed bottom-0 left-0 right-0 shadow-md p-3 z-50">
+            <Pagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              onPageChange={handlePaginate}
+            />
+          </div>
         </>
       )}
 

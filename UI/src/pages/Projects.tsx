@@ -79,9 +79,10 @@ export default function Projects() {
 
   // ---------------- FETCH PROJECTS ----------------
   async function loadProjects(page = 1) {
+    const limit = 12;
     try {
       setLoading(true);
-      const res = await getProjects(page, 12, "", "status", "asc");
+      const res = await getProjects(page, limit, "", "status", "asc");
 
       setProjects(res.data);
       setPagination({
@@ -409,11 +410,13 @@ export default function Projects() {
             <div className="text-center text-gray-500 py-10">No Data</div>
           )}
 
-          <Pagination
-            page={pagination.page}
-            totalPages={pagination.totalPages}
-            onPageChange={(p) => handlePaginate(p)}
-          />
+          <div className="fixed bottom-0 left-0 right-0 shadow-md p-3 z-50">
+            <Pagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              onPageChange={(p) => handlePaginate(p)}
+            />
+          </div>
         </>
       )}
 
