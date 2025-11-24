@@ -149,12 +149,14 @@ export default function CalendarPage() {
 
   return (
     <div className="max-h-auto">
-      <div className="flex justify-between items-center pb-2">
-        <h2 className="text-2xl font-semibold">Holidays - {currentYear}</h2>
+      <div className="flex justify-between items-center pb-4">
+        <h2 className="font-semibold text-md md:text-2xl lg:text-2xl">
+          Holidays - {currentYear}
+        </h2>
 
         {(user?.role === "ADMIN" || user?.role === "HR") && (
           <label className="px-4 py-2 bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a] rounded cursor-pointer">
-            Upload Holidays
+            <span className="flex text-[10px] md:text-lg lg:text-sm">Upload Holidays</span>
             <input
               type="file"
               accept=".csv"
@@ -169,7 +171,7 @@ export default function CalendarPage() {
       </div>
 
       {/* Calendar */}
-      <div className="border border-slate-700 rounded-lg p-3">
+      <div className="flex flex-col flex-1 border border-slate-300 rounded-lg p-3">
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, interactionPlugin]}
@@ -181,6 +183,9 @@ export default function CalendarPage() {
             center: "",
             right: "today prev,next",
           }}
+          height="100%"
+          contentHeight="auto"
+          expandRows={true}
           eventClick={(info) => {
             if (role !== "ADMIN" && role !== "HR") return;
 

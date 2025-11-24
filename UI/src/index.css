@@ -25,6 +25,7 @@ body {
   color: var(--text);
 }
 
+/* LOADER */
 .loader-overlay {
   opacity: 1;
   z-index: 9999;
@@ -57,5 +58,57 @@ body {
 
   100% {
     transform: rotate(360deg);
+  }
+}
+
+/* CALENDAR CSS */
+@media (max-width: 480px) {
+  /* Month Title */
+  .fc .fc-toolbar-title {
+    font-size: 1rem !important;
+    margin: 0;
+  }
+
+  /* Toolbar buttons (reduce spacing) */
+  .fc .fc-toolbar-chunk {
+    display: flex !important;
+    gap: 0.25rem !important;
+  }
+
+  .fc-button-group {
+    margin: 0px !important;
+  }
+
+  /* Today Button */
+  .fc .fc-button.fc-today-button {
+    font-size: 12px !important;
+    padding: 0px 8px !important;
+    height: 36px !important;
+    line-height: 28px !important;
+  }
+
+  /* Prev / Next Buttons */
+  .fc .fc-prev-button,
+  .fc .fc-next-button {
+    width: auto !important;
+    height: 36px !important;
+    font-size: 1rem !important;
+    padding: 0rem 1rem !important;
+  }
+
+  /* Reduce toolbar button border radius / padding */
+  .fc .fc-button {
+    padding: 0.2rem 0.4rem !important;
+  }
+
+  /* Shrink day header font */
+  .fc .fc-col-header-cell-cushion {
+    font-size: 0.75rem !important;
+  }
+
+  /* Shrink date numbers */
+  .fc .fc-daygrid-day-number {
+    font-size: 0.75rem !important;
+    padding: 2px !important;
   }
 }
