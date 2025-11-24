@@ -22,3 +22,5 @@ yarn-error.log*
 
 # Ignore package-lock.json
 package-lock.json
+
+.vite
