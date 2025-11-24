@@ -16,6 +16,14 @@ export async function getProjects(
   return res.data;
 }
 
+export async function validateEmployees(projectId: number | null, employees: number[]) {
+  const res = await axiosInstance.post("/projects/validate-employees", {
+    projectId,
+    employees,
+  });
+  return res.data; // { valid: boolean }
+}
+
 // --------------------------
 // CREATE PROJECT
 // --------------------------

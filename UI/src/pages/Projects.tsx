@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Edit2, Trash2, Users, X } from "lucide-react";
 import Swal from "sweetalert2";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import {
   getProjects,
   createProject,
@@ -9,8 +11,11 @@ import {
   assignUsers,
   getManagers,
   getEmployees,
+  validateEmployees,
 } from "../services/projectServices";
 import Pagination from "../components/Pagination";
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store";
 
 interface Manager {
   id: number;
@@ -33,12 +38,13 @@ interface Project {
   status: string;
   manager?: Manager | null;
   employees: EmployeeItem[];
+  startDate?: any;
+  endDate?: any;
 }
 
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
-
   const [loading, setLoading] = useState(true);
 
   // Select lists
@@ -61,12 +67,21 @@ export default function Projects() {
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formStatus, setFormStatus] = useState("ACTIVE");
+  const [formStartDate, setFormStartDate] = useState<Date | null>(null);
+  const [formEndDate, setFormEndDate] = useState<Date | null>(null);
+
+  // Error handling
+  const [nameError, setNameError] = useState("");
+  const [managerError, setManagerError] = useState("");
+  const [dateError, setDateError] = useState("");
+
+  const user = useSelector((state: RootState) => state?.auth?.user);
 
   // ---------------- FETCH PROJECTS ----------------
   async function loadProjects(page = 1) {
     try {
       setLoading(true);
-      const res = await getProjects(page, 10, "", "name", "asc");
+      const res = await getProjects(page, 12, "", "status", "asc");
 
       setProjects(res.data);
       setPagination({
@@ -83,11 +98,10 @@ export default function Projects() {
   }, []);
 
   const badgeStyles: Record<string, string> = {
-    COMPLETED: "bg-blue-100 text-blue-600",
-    ACTIVE: "bg-green-100 text-green-700",
-    IN_PROGRESS: "bg-indigo-100 text-indigo-700",
-    ON_HOLD: "bg-orange-100 text-orange-600",
-    CANCELLED: "bg-red-100 text-red-700",
+    COMPLETED: "border border-blue-700 text-blue-600",
+    ACTIVE: "border border-green-700 text-green-600",
+    ON_HOLD: "border border-orange-700 text-orange-600",
+    CANCELLED: "border border-red-700 text-red-600",
   };
 
   async function handleDeleteProject(id: number) {
@@ -119,16 +133,13 @@ export default function Projects() {
     setSelectedManager(null);
 
     // Load managers + free employees
-    const [mgr, emp] = await Promise.all([
-      getManagers(),
-      getEmployees(), // no projectId -> only globally free employees
-    ]);
+    const [mgr, emp] = await Promise.all([getManagers(), getEmployees()]);
 
     setManagers(mgr);
     setEmployees(emp);
 
     // auto-select first manager if available
-    setSelectedManager(mgr.length ? mgr[0].id : null);
+    // setSelectedManager(mgr.length ? mgr[0].id : null);
 
     setShowProjectModal(true);
   };
@@ -139,19 +150,23 @@ export default function Projects() {
     setFormName(p.name);
     setFormDescription(p.description || "");
     setFormStatus(p.status);
+    setFormStartDate(p.startDate ? new Date(p.startDate) : null);
+    setFormEndDate(p.endDate ? new Date(p.endDate) : null);
 
-    // Load managers + employees that are free OR already assigned to this project
+    // Fetch fresh available managers + employees
     const [mgr, emp] = await Promise.all([getManagers(), getEmployees(p.id)]);
 
     setManagers(mgr);
     setEmployees(emp);
 
-    // Pre-select stored manager (fallback to first manager if somehow null)
-    setSelectedManager(p.manager?.id || (mgr.length ? mgr[0].id : null));
+    // Set selected manager
+    setSelectedManager(p.manager?.id ?? (mgr.length > 0 ? mgr[0].id : null));
 
-    // Keep currently assigned employees checked
-    setAssignedEmployees(p.employees.map((e) => e.employee.id));
+    const assigned = Array.isArray(p.employees)
+      ? p.employees.map((x) => x.employee?.id).filter(Boolean)
+      : [];
 
+    setAssignedEmployees(assigned);
     setShowProjectModal(true);
   };
 
@@ -168,6 +183,117 @@ export default function Projects() {
     setShowAssignModal(true);
   };
 
+  const projectAssign = async () => {
+    if (assignProject) {
+      await assignUsers(assignProject.id, {
+        managerId: selectedManager,
+        employees: assignedEmployees,
+      });
+    }
+
+    setShowAssignModal(false);
+    loadProjects(pagination.page);
+  };
+
+  async function validateEmployeeAssignmentsBeforeSubmit() {
+    try {
+      const res = await validateEmployees(
+        editingProject?.id || null,
+        assignedEmployees
+      );
+      return res.valid;
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message || "Employee conflict detected";
+
+      Swal.fire({
+        icon: "warning",
+        title: "Assignment Issue",
+        text: message,
+      });
+
+      return false;
+    }
+  }
+
+  async function handleProjectSubmit(e: React.FormEvent) {
+    e.preventDefault();
+
+    let valid = true;
+
+    const cleanName = formName.trim();
+    const cleanManager = selectedManager;
+
+    const isValid = await validateEmployeeAssignmentsBeforeSubmit();
+    if (!isValid) return;
+
+    // Validate Project Name
+    if (!cleanName) {
+      setNameError("Project name is required");
+      valid = false;
+    } else if (cleanName.length < 3) {
+      setNameError("Project name must be at least 3 characters");
+      valid = false;
+    } else {
+      setNameError("");
+    }
+
+    // Date Validation
+    if (!formStartDate || !formEndDate) {
+      setDateError("Select both start and end dates");
+      return;
+    } else if (formStartDate.getTime() === formEndDate.getTime()) {
+      setDateError("Start and End date cannot be the same");
+      return;
+    } else if (formEndDate <= formStartDate) {
+      setDateError("End date must be greater than Start date");
+      return;
+    } else {
+      setDateError("");
+    }
+
+    // Validate Manager
+    if (!cleanManager) {
+      setManagerError("Manager is required");
+      valid = false;
+    } else {
+      setManagerError("");
+    }
+
+    if (!valid) return;
+
+    const payload = {
+      name: cleanName,
+      description: formDescription.trim(),
+      status: formStatus,
+      managerId: cleanManager,
+      employees: assignedEmployees,
+      startDate: formStartDate.toISOString(),
+      endDate: formEndDate.toISOString(),
+    };
+
+    try {
+      if (editingProject) {
+        await updateProject(editingProject.id, payload);
+      } else {
+        await createProject(payload);
+      }
+
+      closeProjectModal();
+      loadProjects(pagination.page);
+    } catch (error: any) {
+      Swal.fire("Error", error?.response?.data?.message, "error");
+    }
+  }
+
+  const closeProjectModal = () => {
+    setNameError("");
+    setManagerError("");
+    setShowProjectModal(false);
+    setFormStartDate(null);
+    setFormEndDate(null);
+  };
+
   // ---------------- PAGINATION ----------------
   const handlePaginate = (page: number) => {
     if (page > 0 && page <= pagination.totalPages) {
@@ -178,15 +304,17 @@ export default function Projects() {
   // ---------------- UI ----------------
   return (
     <div className="max-h-auto">
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">Projects</h1>
 
-        <button
-          onClick={openCreate}
-          className="px-4 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
-        >
-          Create Project
-        </button>
+        {(user?.role === "ADMIN" || user?.role === "MANAGER") && (
+          <button
+            onClick={openCreate}
+            className="px-4 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
+          >
+            Create Project
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -196,39 +324,43 @@ export default function Projects() {
       ) : (
         <>
           {/* GRID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
             {projects.map((p) => (
               <div
                 key={p.id}
                 className="bg-[var(--card)] border border-[var(--border)] rounded-2xl shadow-sm p-4"
               >
-                <div className="flex justify-between mb-3 gap-2">
+                <div className="flex justify-between mb-1 gap-2">
                   <h2 className="text-lg font-semibold truncate">{p.name}</h2>
-                  <div className="flex items-center gap-2">
-                    <Users
-                      size={18}
-                      className="cursor-pointer text-[#2f4f82] hover:text-[#1b335a]"
-                      onClick={() => openAssign(p)}
-                    />
-                    <Edit2
-                      size={18}
-                      className="cursor-pointer text-gray-500 hover:text-gray-700"
-                      onClick={() => openEdit(p)}
-                    />
-                    <Trash2
-                      size={18}
-                      className="cursor-pointer text-red-500 hover:text-red-600"
-                      onClick={() => handleDeleteProject(p.id)}
-                    />
-                  </div>
+                  {(user?.role === "ADMIN" || user?.role === "MANAGER") && (
+                    <div className="flex items-center gap-2">
+                      <Users
+                        size={18}
+                        className="cursor-pointer text-[#2f4f82] hover:text-[#1b335a]"
+                        onClick={() => openAssign(p)}
+                      />
+                      <Edit2
+                        size={18}
+                        className="cursor-pointer text-gray-500 hover:text-gray-700"
+                        onClick={() => openEdit(p)}
+                      />
+                      {user?.role === "ADMIN" && (
+                        <Trash2
+                          size={18}
+                          className="cursor-pointer text-red-500 hover:text-red-600"
+                          onClick={() => handleDeleteProject(p.id)}
+                        />
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                <p className="text-gray-800 dark:text-gray-500 truncate">
                   {p.description || "No description provided."}
                 </p>
 
                 <span
-                  className={`inline-block px-3 py-1 text-xs font-semibold rounded-full mb-4 ${
+                  className={`inline-block px-2 py-[3px] text-xs font-semibold rounded-full my-1 ${
                     badgeStyles[p.status]
                   }`}
                 >
@@ -236,21 +368,45 @@ export default function Projects() {
                 </span>
 
                 <p>
-                  <strong>Manager:</strong> {p.manager?.name || "—"}
+                  <span className="text-sm text-gray-500">
+                    {p.startDate
+                      ? new Date(p.startDate).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "numeric",
+                          year: "numeric",
+                        })
+                      : "N/A"}
+                    {" - "}
+                    {p.endDate
+                      ? new Date(p.endDate).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "numeric",
+                          year: "numeric",
+                        })
+                      : "N/A"}
+                  </span>
                 </p>
 
-                <p>
-                  <strong>Employees:</strong>{" "}
-                  {p.employees.map((e) => e.employee.name).join(", ") || "—"}
+                <p className="flex items-center gap-1">
+                  <p className="font-semibold text-sm">Manager:</p>{" "}
+                  <p className="text-sm text-gray-500 truncate">
+                    {p.manager?.name || "Not Assigned"}
+                  </p>
+                </p>
+
+                <p className="flex items-center gap-1">
+                  <p className="font-semibold text-sm">Employees:</p>{" "}
+                  <p className="text-sm text-gray-500 truncate">
+                    {p.employees.map((e) => e.employee.name).join(", ") ||
+                      "Not Assigned"}
+                  </p>
                 </p>
               </div>
             ))}
           </div>
 
           {projects.length === 0 && (
-            <div className="text-center text-gray-500 py-10">
-              No projects found
-            </div>
+            <div className="text-center text-gray-500 py-10">No Data</div>
           )}
 
           <Pagination
@@ -264,9 +420,13 @@ export default function Projects() {
       {/* ------------ CREATE / EDIT MODAL ------------ */}
       {showProjectModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 w-full max-w-2xl relative">
+          <form
+            onSubmit={handleProjectSubmit}
+            className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 w-full max-w-2xl relative"
+          >
             <button
-              onClick={() => setShowProjectModal(false)}
+              type="button"
+              onClick={closeProjectModal}
               className="absolute right-4 top-4"
             >
               <X size={22} className="text-[var(--text)]" />
@@ -276,15 +436,20 @@ export default function Projects() {
               {editingProject ? "Edit Project" : "Create Project"}
             </h2>
 
-            {/* FORM INPUTS */}
-            <div className="space-y-4">
-              {/* Project Name */}
+            <div className="space-y-2">
+              {/* Name */}
               <input
                 value={formName}
-                onChange={(e) => setFormName(e.target.value)}
+                onChange={(e) => {
+                  setFormName(e.target.value);
+                  if (nameError) setNameError("");
+                }}
                 placeholder="Project Name"
-                className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
+                className={`w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
+                  nameError ? "border-red-500" : "border-[var(--border)]"
+                }`}
               />
+              {nameError && <p className="text-red-500 text-sm">{nameError}</p>}
 
               {/* Description */}
               <textarea
@@ -295,6 +460,34 @@ export default function Projects() {
                 className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
               />
 
+              {/* Start Date & End Date */}
+              <div className="flex items-center gap-4">
+                <DatePicker
+                  selected={formStartDate}
+                  onChange={(date: Date | null) => {
+                    setFormStartDate(date);
+                    if (dateError) setDateError("");
+                  }}
+                  className="w-full p-2 border border-[var(--border)] cursor-pointer rounded-lg bg-[var(--card)] text-[var(--text)]"
+                  dateFormat="dd/MM/yyyy"
+                  placeholderText="Start Date"
+                />
+                <span>~</span>
+                <DatePicker
+                  selected={formEndDate}
+                  onChange={(date: Date | null) => {
+                    setFormEndDate(date);
+                    if (dateError) setDateError("");
+                  }}
+                  className="w-full p-2 border border-[var(--border)] cursor-pointer rounded-lg bg-[var(--card)] text-[var(--text)]"
+                  dateFormat="dd/MM/yyyy"
+                  placeholderText="End Date"
+                  minDate={formStartDate || undefined}
+                />
+              </div>
+
+              {dateError && <p className="text-red-500 text-sm">{dateError}</p>}
+
               {/* Status */}
               <select
                 value={formStatus}
@@ -302,25 +495,27 @@ export default function Projects() {
                 className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
               >
                 <option value="ACTIVE">Active</option>
-                <option value="COMPLETED">Completed</option>
                 <option value="ON_HOLD">On Hold</option>
+                <option value="COMPLETED">Completed</option>
                 <option value="CANCELLED">Cancelled</option>
               </select>
 
               {/* Manager */}
               <div>
-                <h3 className="font-semibold mb-2 text-[var(--text)]">
+                <h3 className="font-semibold mb-1 text-[var(--text)]">
                   Select Manager
                 </h3>
-
                 <select
                   value={selectedManager ?? ""}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setSelectedManager(
                       e.target.value ? Number(e.target.value) : null
-                    )
-                  }
-                  className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
+                    );
+                    if (managerError) setManagerError("");
+                  }}
+                  className={`w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
+                    managerError ? "border-red-500" : "border-[var(--border)]"
+                  }`}
                 >
                   <option value="">-- Select Manager --</option>
                   {managers.map((m) => (
@@ -329,6 +524,9 @@ export default function Projects() {
                     </option>
                   ))}
                 </select>
+                {managerError && (
+                  <p className="text-red-500 text-sm">{managerError}</p>
+                )}
               </div>
 
               {/* Employees */}
@@ -336,65 +534,40 @@ export default function Projects() {
                 <h3 className="font-semibold mb-2 text-[var(--text)]">
                   Select Employees
                 </h3>
-
-                <div className="border border-[var(--border)] bg-[var(--card)] p-3 rounded-xl max-h-40 overflow-y-auto space-y-2">
-                  {employees.map((emp) => (
-                    <label
-                      key={emp.id}
-                      className="flex gap-3 items-center text-[var(--text)]"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={assignedEmployees.includes(emp.id)}
-                        onChange={() =>
-                          setAssignedEmployees((prev) =>
-                            prev.includes(emp.id)
-                              ? prev.filter((x) => x !== emp.id)
-                              : [...prev, emp.id]
-                          )
-                        }
-                      />
-                      {emp.name}
-                    </label>
-                  ))}
+                <div className="border border-[var(--border)] bg-[var(--card)] p-3 rounded-xl max-h-40 overflow-y-auto space-y-1">
+                  {employees.length === 0 ? (
+                    <p className="text-gray-500 text-sm italic">
+                      No Employees Available
+                    </p>
+                  ) : (
+                    employees.map((emp) => (
+                      <label key={emp.id} className="flex gap-3 items-center">
+                        <input
+                          type="checkbox"
+                          checked={assignedEmployees.includes(emp.id)}
+                          onChange={() =>
+                            setAssignedEmployees((prev) =>
+                              prev.includes(emp.id)
+                                ? prev.filter((x) => x !== emp.id)
+                                : [...prev, emp.id]
+                            )
+                          }
+                        />
+                        {emp.name}
+                      </label>
+                    ))
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* SUBMIT BUTTON */}
             <button
-              onClick={async () => {
-                if (!selectedManager) {
-                  alert("Manager is required");
-                  return;
-                }
-
-                if (editingProject) {
-                  await updateProject(editingProject.id, {
-                    name: formName,
-                    description: formDescription,
-                    status: formStatus,
-                    managerId: selectedManager,
-                    employees: assignedEmployees,
-                  });
-                } else {
-                  await createProject({
-                    name: formName,
-                    description: formDescription,
-                    status: formStatus,
-                    managerId: selectedManager,
-                    employees: assignedEmployees,
-                  });
-                }
-
-                setShowProjectModal(false);
-                loadProjects(pagination.page);
-              }}
+              type="submit"
               className="mt-6 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
             >
               {editingProject ? "Update" : "Create"}
             </button>
-          </div>
+          </form>
         </div>
       )}
 
@@ -431,41 +604,32 @@ export default function Projects() {
             {/* Employees */}
             <h3 className="font-semibold mb-2">Select Employees</h3>
             <div className="border p-3 rounded-xl max-h-40 overflow-y-auto space-y-2">
-              {employees.map((emp) => (
-                <label key={emp.id} className="flex gap-3 items-center">
-                  <input
-                    type="checkbox"
-                    checked={assignedEmployees.includes(emp.id)}
-                    onChange={() =>
-                      setAssignedEmployees((prev) =>
-                        prev.includes(emp.id)
-                          ? prev.filter((x) => x !== emp.id)
-                          : [...prev, emp.id]
-                      )
-                    }
-                  />
-                  {emp.name}
-                </label>
-              ))}
+              {employees.length === 0 ? (
+                <p className="text-gray-500 text-sm italic">
+                  No Employees Available
+                </p>
+              ) : (
+                employees.map((emp) => (
+                  <label key={emp.id} className="flex gap-3 items-center">
+                    <input
+                      type="checkbox"
+                      checked={assignedEmployees.includes(emp.id)}
+                      onChange={() =>
+                        setAssignedEmployees((prev) =>
+                          prev.includes(emp.id)
+                            ? prev.filter((x) => x !== emp.id)
+                            : [...prev, emp.id]
+                        )
+                      }
+                    />
+                    {emp.name}
+                  </label>
+                ))
+              )}
             </div>
 
             <button
-              onClick={async () => {
-                if (!selectedManager) {
-                  alert("Manager is required");
-                  return;
-                }
-
-                if (assignProject) {
-                  await assignUsers(assignProject.id, {
-                    managerId: selectedManager,
-                    employees: assignedEmployees,
-                  });
-                }
-
-                setShowAssignModal(false);
-                loadProjects(pagination.page);
-              }}
+              onClick={projectAssign}
               className="mt-6 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
             >
               Save Assignments

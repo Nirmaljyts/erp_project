@@ -73,12 +73,15 @@ model ProjectEmployee {
 }
 
 model Holiday {
-  id        Int      @id @default(autoincrement())
-  date      DateTime
-  name      String
-  isOptional Boolean @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          Int       @id @default(autoincrement())
+  date DateTime @db.Date
+  name        String
+  country     String?   @default("United Kingdom") // Added
+  isOptional  Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([date, name]) // Prevent duplicates for same holiday date
 }
 
 model OtpCode {

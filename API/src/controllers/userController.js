@@ -5,7 +5,7 @@ import {
   updateUserService,
   deleteUserService,
   getManagersService,
-  getAvailableEmployeesService
+  getAvailableEmployeesService,
 } from "../services/userService.js";
 
 export async function listUsers(req, res) {
@@ -30,34 +30,42 @@ export async function getUserById(req, res) {
 export async function createUser(req, res) {
   try {
     const user = await createUserService(req.body);
-    res.json({ message: "User created", user });
+    return res.status(201).json({ message: "User created", user });
   } catch (err) {
-    res.status(500).json({ message: err.message || "Failed to create user" });
+    if (err.code === "P2002") {
+      return res.status(400).json({ message: "Email already in use" });
+    }
+    console.error("CreateUser Error:", err);
+    return res.status(500).json({ message: "Failed to create user" });
   }
 }
 
 export async function updateUser(req, res) {
   try {
     const updated = await updateUserService(req.params.id, req.body);
-    res.json({ message: "User updated", user: updated });
+    return res.json({ message: "User updated", user: updated });
   } catch (err) {
-    res.status(500).json({ message: err.message || "Failed to update user" });
+    if (err.code === "P2002") {
+      return res.status(400).json({ message: "Email already in use" });
+    }
+    console.error("UpdateUser Error:", err);
+    return res.status(500).json({ message: "Failed to update user" });
   }
 }
 
 export async function deleteUser(req, res) {
   try {
-    await deleteUserService(req.params.id);
-    res.json({ message: "User deleted" });
+    await deleteUserService(req.params.id, req.user);
+    res.json({ message: "User deleted successfully" });
   } catch (err) {
-    res.status(500).json({ message: err.message || "Failed to delete user" });
+    return res.status(403).json({ message: err.message });
   }
 }
 
 // ONLY MANAGERS
 export async function listManagers(req, res) {
   try {
-    const managers = await getManagersService();
+    const managers = await getManagersService(req.user);
     res.json(managers);
   } catch (err) {
     res.status(500).json({ message: err.message });

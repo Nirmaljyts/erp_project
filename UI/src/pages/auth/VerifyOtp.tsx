@@ -1,7 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { verifyResetOtp } from "../services/authService";
-import otpImage from "../assets/verify_otp.png";
+import { verifyResetOtp } from "../../services/authServices";
+import otpImage from "../../assets/verify_otp.png";
 
 export default function VerifyOtp() {
   const location = useLocation();
@@ -65,28 +65,26 @@ export default function VerifyOtp() {
 
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-white">
-
       {/* LEFT IMAGE */}
-      <div className="hidden lg:flex items-center justify-center bg-gray-100">
+      <div className="hidden lg:flex items-center justify-center bg-[#2f4f82]">
         <img src={otpImage} alt="OTP Verification" className="w-3/4 max-w-lg" />
       </div>
 
       {/* RIGHT FORM */}
       <div className="flex items-center justify-center p-8">
         <div className="w-full max-w-md">
-
           <h1 className="text-3xl font-bold text-gray-900 mb-4 text-center">
             Verify OTP
           </h1>
 
           <p className="text-gray-600 text-center mb-6 text-sm">
-            Enter the 6-digit OTP sent to <span className="font-semibold">{email}</span>.
+            Enter the 6-digit OTP sent to{" "}
+            <span className="font-semibold">{email}</span>.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-
             {/* OTP Inputs */}
-            <div className="flex justify-between">
+            <div className="flex items-center justify-center gap-2">
               {otp.map((digit, idx) => (
                 <input
                   key={idx}
@@ -95,7 +93,7 @@ export default function VerifyOtp() {
                   value={digit}
                   onChange={(e) => handleOtpChange(e.target.value, idx)}
                   className="
-                    w-12 h-12 text-center text-xl font-semibold
+                    w-9 h-9 text-center text-xl font-semibold
                     border border-gray-300 rounded-lg
                     focus:ring-2 focus:ring-sky-500 outline-none
                   "
@@ -135,7 +133,6 @@ export default function VerifyOtp() {
               Back
             </button>
           </p>
-
         </div>
       </div>
     </div>

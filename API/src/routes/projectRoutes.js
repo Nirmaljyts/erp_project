@@ -8,6 +8,7 @@ import {
   assignUsersToProject,
   removeEmployeeFromProject,
   updateProjectStatus,
+  validateEmployeeAssignments,
 } from "../controllers/projectController.js";
 
 import { authRequired, requireRole } from "../middleware/auth.js";
@@ -27,6 +28,8 @@ router.get(
   requireRole("ADMIN", "MANAGER", "EMPLOYEE"),
   getProject
 );
+
+router.post("/validate-employees", authRequired, validateEmployeeAssignments);
 
 router.post("/", authRequired, requireRole("ADMIN", "MANAGER"), createProject);
 

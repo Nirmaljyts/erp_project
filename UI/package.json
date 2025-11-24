@@ -9,11 +9,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fullcalendar/daygrid": "^6.1.19",
+    "@fullcalendar/interaction": "^6.1.19",
+    "@fullcalendar/react": "^6.1.19",
     "@reduxjs/toolkit": "^2.2.7",
     "axios": "^1.7.9",
+    "date-fns": "^4.1.0",
     "lucide-react": "^0.460.0",
     "react": "^18.3.1",
+    "react-datepicker": "^8.9.0",
     "react-dom": "^18.3.1",
+    "react-hot-toast": "^2.6.0",
     "react-redux": "^9.2.0",
     "react-router-dom": "^6.28.0",
     "sweetalert2": "^11.26.3"

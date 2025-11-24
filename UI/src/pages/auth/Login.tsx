@@ -1,10 +1,10 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
-import { userLogin } from "../services/authService";
-import { setCredentials } from "../store/authSlice";
+import { userLogin } from "../../services/authServices";
+import { setCredentials } from "../../store/authSlice";
 import { Eye, EyeOff } from "lucide-react";
-import LoginImage from "../assets/login.png";
+import LoginImage from "../../assets/login.png";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -107,7 +107,10 @@ export default function Login() {
               </div>
             </div>
 
-            <span className="flex items-center justify-end text-sm text-blue-700 mb-1 hover:underline cursor-pointer" onClick={()=> navigate("/forgot-password")}>
+            <span
+              className="flex items-center justify-end text-sm text-blue-700 mb-1 hover:underline cursor-pointer"
+              onClick={() => navigate("/forgot-password")}
+            >
               forget password?
             </span>
 
