@@ -14,7 +14,6 @@ export async function getClients(
   return res.data;
 }
 
-
 // CREATE CLIENT
 export async function createClient(data: any) {
   return (await axiosInstance.post(`/clients`, data)).data;

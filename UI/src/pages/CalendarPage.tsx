@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 import {
   getHolidays,
   uploadHolidayFile,
@@ -171,7 +171,7 @@ export default function CalendarPage() {
       </div>
 
       {/* Calendar */}
-      <div className="flex flex-col flex-1 border border-slate-300 rounded-lg p-3">
+      <div className="flex flex-col flex-1 border border-[var(--border)]  rounded-lg p-3">
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, interactionPlugin]}
@@ -256,7 +256,7 @@ export default function CalendarPage() {
             <input
               type="text"
               className={`w-full p-2 border rounded ${
-                errors.name ? "border-red-500" : "border-gray-300"
+                errors.name ? "border-red-500" : "border border-[var(--border)] "
               } bg-[var(--card)] text-[var(--text)]`}
               placeholder="Holiday name"
               value={modal.name}

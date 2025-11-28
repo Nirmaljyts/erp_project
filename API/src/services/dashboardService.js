@@ -1,11 +1,12 @@
 import prisma from "../utils/prisma.js";
 
 export async function getDashboardStatsService(user) {
-  let projectWhere = {};
+  // PROJECTS
+  let projectWhere = { deletedAt: null };
 
-  // PROJECT COUNT ROLE FILTERS
   if (user.role === "MANAGER") {
     projectWhere = {
+      deletedAt: null,
       OR: [
         { managerId: user.id },
         { employees: { some: { employeeId: user.id } } },
@@ -15,19 +16,26 @@ export async function getDashboardStatsService(user) {
 
   if (user.role === "EMPLOYEE") {
     projectWhere = {
+      deletedAt: null,
       employees: { some: { employeeId: user.id } },
     };
   }
 
-  // USER COUNT (Exclude Admins for EVERY ROLE)
+  // USERS COUNT (exclude admin + exclude soft-deleted)
   const userWhere = {
-    // role: { not: "ADMIN" }
+    deletedAt: null,
+    role: { not: "ADMIN" },
+  };
+
+  // CLIENTS COUNT (exclude soft-deleted)
+  const clientWhere = {
+    deletedAt: null,
   };
 
   const [projectCount, clientCount, userCount] = await Promise.all([
     prisma.project.count({ where: projectWhere }),
-    prisma.client.count(),
-    prisma.user.count({ where: userWhere }), // Admin excluded
+    prisma.client.count({ where: clientWhere }),
+    prisma.user.count({ where: userWhere }),
   ]);
 
   return {

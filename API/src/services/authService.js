@@ -2,10 +2,13 @@ import bcrypt from "bcryptjs";
 import prisma from "../utils/prisma.js";
 import { generateTokens } from "../utils/jwt.js";
 import { sendOtpEmail } from "../utils/mail.js";
+import jwt from "jsonwebtoken"; // <-- FIXED
 
 // REGISTER
 export async function registerUser({ name, email, password, role }) {
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await prisma.user.findFirst({
+    where: { email, deletedAt: null },
+  });
   if (existing) throw new Error("Email already in use");
 
   const hashed = await bcrypt.hash(password, 10);
@@ -26,14 +29,11 @@ export async function registerUser({ name, email, password, role }) {
 
 // LOGIN
 export async function loginUser({ email, password }) {
-  const user = await prisma.user.findUnique({
-    where: { email },
+  const user = await prisma.user.findFirst({
+    where: { email, deletedAt: null },
   });
 
-  // User missing or disabled = pretend they don’t exist
-  if (!user || !user.isActive) {
-    throw new Error("User not found");
-  }
+  if (!user || !user.isActive) throw new Error("User not found");
 
   const ok = await bcrypt.compare(password, user.password);
   if (!ok) throw new Error("Invalid password");
@@ -49,21 +49,49 @@ export async function loginUser({ email, password }) {
       email: user.email,
       role: user.role,
       createdAt: user.createdAt,
+      deletedAt: user.deletedAt,
     },
   };
 }
 
+// REFRESH TOKEN
+export async function refreshAccessToken(refreshToken) {
+  if (!refreshToken) throw new Error("Refresh token missing");
+
+  let decoded;
+
+  try {
+    decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+  } catch (err) {
+    throw new Error("Invalid or expired refresh token");
+  }
+
+  const user = await prisma.user.findFirst({
+    where: { id: decoded.id, deletedAt: null, isActive: true },
+  });
+
+  if (!user) throw new Error("User no longer active");
+
+  const payload = { id: user.id, email: user.email, role: user.role };
+
+  return jwt.sign(payload, process.env.JWT_SECRET, {
+    expiresIn: process.env.ACCESS_TOKEN_EXPIRY,
+  });
+}
+
 // ME
 export async function getMe(userId) {
-  return prisma.user.findUnique({
-    where: { id: userId },
+  return prisma.user.findFirst({
+    where: { id: userId, deletedAt: null },
     select: { id: true, name: true, email: true, role: true },
   });
 }
 
-// SEND OTP
+// OTP + RESET
 export async function sendResetOtp(email) {
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findFirst({
+    where: { email, deletedAt: null },
+  });
   if (!user) throw new Error("User not found");
 
   const code = Math.floor(100000 + Math.random() * 900000).toString();
@@ -76,7 +104,6 @@ export async function sendResetOtp(email) {
   await sendOtpEmail(email, code);
 }
 
-// VERIFY OTP
 export async function verifyResetOtp(email, code) {
   const record = await prisma.otpCode.findFirst({
     where: { email, code, used: false, expiresAt: { gt: new Date() } },
@@ -91,8 +118,12 @@ export async function verifyResetOtp(email, code) {
   });
 }
 
-// RESET PASSWORD
 export async function resetPasswordService(email, newPassword) {
+  const user = await prisma.user.findFirst({
+    where: { email, deletedAt: null },
+  });
+  if (!user) throw new Error("User not found");
+
   const hashed = await bcrypt.hash(newPassword, 10);
 
   await prisma.user.update({

@@ -22,6 +22,7 @@
     "react-hot-toast": "^2.6.0",
     "react-redux": "^9.2.0",
     "react-router-dom": "^6.28.0",
+    "react-toastify": "^11.0.5",
     "sweetalert2": "^11.26.3"
   },
   "devDependencies": {

@@ -5,6 +5,7 @@ import {
   sendResetOtp,
   verifyResetOtp,
   resetPasswordService,
+  refreshAccessToken,
 } from "../services/authService.js";
 
 // REGISTRATION
@@ -30,6 +31,17 @@ export async function login(req, res) {
       return res.status(401).json({ message: "Invalid password" });
 
     return res.status(400).json({ message: err.message });
+  }
+}
+
+// REFRESH TOKEN
+export async function refreshTokenController(req, res) {
+  try {
+    const token = req.body.refreshToken;
+    const newAccessToken = await refreshAccessToken(token);
+    return res.json({ accessToken: newAccessToken });
+  } catch (err) {
+    return res.status(401).json({ message: err.message });
   }
 }
 

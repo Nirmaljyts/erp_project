@@ -1,7 +1,13 @@
 import { axiosInstance } from "./interceptor";
 
 export async function userLogin(data: { email: string; password: string }) {
-  return axiosInstance.post("/auth/login", data).then((res) => res.data);
+  const res = await axiosInstance.post("/auth/login", data);
+
+  // SAVE BOTH TOKENS
+  localStorage.setItem("token", res.data.accessToken);
+  localStorage.setItem("RefreshToken", res.data.refreshToken);
+
+  return res.data;
 }
 
 export async function refreshToken() {

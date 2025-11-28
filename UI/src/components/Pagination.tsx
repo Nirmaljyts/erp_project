@@ -44,12 +44,12 @@ export default function Pagination({
   }
 
   return (
-    <div className="flex items-center justify-center mt-4 gap-2">
+    <div className="flex items-center justify-center py-2 gap-2">
       {/* Prev Button */}
       <button
         disabled={page === 1}
         onClick={() => onPageChange(page - 1)}
-        className="p-1 border rounded-md disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-500"
+        className="p-1 border border-[var(--border)] rounded-md disabled:opacity-40 hover:bg-[#2f4f82] dark:hover:bg-[#2f4f82] hover:text-white disabled:pointer-events-none"
       >
         <ChevronLeft />
       </button>
@@ -66,8 +66,8 @@ export default function Pagination({
             className={`px-3 py-1 rounded-md border 
               ${
                 page === num
-                  ? "bg-[#2f4f82] text-white border-[#2f4f82]"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-500"
+                  ? "bg-[#2f4f82] text-white border border-[var(--border)]"
+                  : "hover:bg-[#2f4f82] dark:hover:bg-[#2f4f82] hover:text-white"
               }`}
           >
             {num}
@@ -78,7 +78,7 @@ export default function Pagination({
       <button
         disabled={page === totalPages}
         onClick={() => onPageChange(page + 1)}
-        className="p-1 border rounded-md disabled:opacity-40 hover:bg-gray-100 dark:hover:bg-gray-500"
+        className="p-1 border border-[var(--border)] rounded-md disabled:opacity-40 hover:bg-[#2f4f82] dark:hover:bg-[#2f4f82] hover:text-white disabled:pointer-events-none"
       >
         <ChevronRight />
       </button>

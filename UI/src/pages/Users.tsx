@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Edit2, Trash2, X, Plus, EyeOff, Eye } from "lucide-react";
 import Swal from "sweetalert2";
+import { toast } from "react-toastify";
 import {
   getUsers,
   createUser,
@@ -22,6 +23,7 @@ interface User {
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
   const [showUserModal, setShowUserModal] = useState(false);
@@ -49,11 +51,11 @@ export default function UsersPage() {
   const currentRole = user?.role;
 
   // ---------------- FETCH USERS ----------------
-  async function loadUsers(page = 1) {
+  async function loadUsers(page = 1, searchValue = search) {
     const limit = 15;
     try {
       setLoading(true);
-      const res = await getUsers(page, limit, sortBy, sortOrder);
+      const res = await getUsers(page, limit, searchValue, sortBy, sortOrder);
       setUsers(res.data);
       setPagination({
         page: res.pagination.page,
@@ -64,8 +66,13 @@ export default function UsersPage() {
     }
   }
 
+  const onSearch = (value: any) => {
+    setSearch(value);
+    loadUsers(1, value);
+  };
+
   useEffect(() => {
-    loadUsers(1);
+    loadUsers(1, search);
   }, [sortBy, sortOrder]);
 
   function toggleSort(column: string) {
@@ -183,12 +190,14 @@ export default function UsersPage() {
     try {
       if (editingUser) {
         await updateUser(editingUser.id, payload);
+        toast.success("User updated");
       } else {
         await createUser(payload);
+        toast.success("User created");
       }
 
       closeUserModal();
-      loadUsers(pagination.page);
+      loadUsers(pagination.page, search);
     } catch (err) {
       console.error(err);
       Swal.fire("Error", "Failed to save user. Please try again.", "error");
@@ -212,14 +221,9 @@ export default function UsersPage() {
 
     try {
       await deleteUser(id);
-      await loadUsers(pagination.page);
+      await loadUsers(pagination.page, search);
 
-      Swal.fire({
-        icon: "success",
-        title: "User deleted",
-        timer: 1500,
-        showConfirmButton: false,
-      });
+      toast.success("User deleted");
     } catch (err: any) {
       const message =
         err?.response?.data?.message || "Failed to delete user. Try again.";
@@ -235,25 +239,60 @@ export default function UsersPage() {
   // ---------------- PAGINATION ----------------
   const handlePaginate = (page: number) => {
     if (page > 0 && page <= pagination.totalPages) {
-      loadUsers(page);
+      loadUsers(page, search);
     }
   };
 
-  // ---------------- UI ----------------
   return (
     <div className="max-h-auto">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">Users</h1>
 
-        {(user?.role === "ADMIN" || user?.role === "HR") && (
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+          <div className="relative w-full sm:w-72 md:w-64 lg:w-80">
+            <input
+              type="text"
+              placeholder="Search users..."
+              value={search}
+              onChange={(e) => {
+                let value = e.target.value.trimStart();
+
+                value = value.trimStart();
+
+                value = value.replace(/\s+/g, " ");
+
+                setSearch(value);
+                onSearch(value);
+              }}
+              onPaste={(e) => {
+                const pasted = e.clipboardData.getData("text");
+                if (/^\s*$/.test(pasted)) {
+                  e.preventDefault();
+                }
+              }}
+              className="w-full px-3 py-2 pr-10 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--text)] 
+                 focus:outline-none focus:ring-2 focus:ring-[#2f4f82]"
+            />
+
+            {search && (
+              <button
+                onClick={() => {
+                  setSearch("");
+                  onSearch("");
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                <X size={18} />
+              </button>
+            )}
+          </div>
           <button
             onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
+            className="px-4 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
           >
-            <Plus size={18} />
-            Add User
+            Create User
           </button>
-        )}
+        </div>
       </div>
 
       {loading ? (
@@ -263,8 +302,8 @@ export default function UsersPage() {
       ) : (
         <>
           {/* TABLE */}
-          <div className="overflow-x-auto border border-[var(--border)] rounded-2xl bg-[var(--card)]">
-            <table className="min-w-full text-sm">
+          <div className="w-full overflow-x-auto text-sm border border-[var(--border)] rounded-2xl bg-[var(--card)]">
+            <table className="min-w-[500px] w-full text-xs sm:text-sm border">
               <thead>
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
@@ -473,9 +512,6 @@ export default function UsersPage() {
 
               {/* Role */}
               <div>
-                <label className="block text-sm mb-1 text-[var(--text)]">
-                  Role
-                </label>
                 <select
                   value={formRole}
                   onChange={(e) => setFormRole(e.target.value as User["role"])}
@@ -489,15 +525,25 @@ export default function UsersPage() {
               </div>
 
               {/* Active toggle */}
-              <div className="flex items-center gap-2">
-                <input
-                  id="user-active"
-                  type="checkbox"
-                  checked={formActive}
-                  onChange={(e) => setFormActive(e.target.checked)}
-                  className="cursor-pointer"
-                />
-                <label htmlFor="user-active" className="text-sm cursor-pointer">
+              <div className="flex items-center">
+                <button
+                  type="button"
+                  onClick={() => setFormActive(!formActive)}
+                  className={`relative inline-flex h-6 w-10 p-0 items-center rounded-full transition ${
+                    formActive ? "bg-[#1b335a]" : "bg-gray-400"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 p-0 transform rounded-full bg-white transition ${
+                      formActive ? "translate-x-5" : "translate-x-1"
+                    }`}
+                  ></span>
+                </button>
+
+                <label
+                  className="text-sm ml-2 cursor-pointer flex items-center"
+                  onClick={() => setFormActive(!formActive)}
+                >
                   Active
                 </label>
               </div>

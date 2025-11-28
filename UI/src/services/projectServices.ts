@@ -5,7 +5,7 @@ import { axiosInstance } from "./interceptor";
 // --------------------------
 export async function getProjects(
   page = 1,
-  limit = 10,
+  limit = 12,
   search = "",
   sort = "name",
   order = "asc"
@@ -16,7 +16,10 @@ export async function getProjects(
   return res.data;
 }
 
-export async function validateEmployees(projectId: number | null, employees: number[]) {
+export async function validateEmployees(
+  projectId: number | null,
+  employees: number[]
+) {
   const res = await axiosInstance.post("/projects/validate-employees", {
     projectId,
     employees,
@@ -56,6 +59,8 @@ export async function assignUsers(id: number, data: any) {
 // REMOVE EMPLOYEE FROM PROJECT
 // --------------------------
 export async function removeEmployee(projectId: number, employeeId: number) {
+  console.log('hello');
+  
   return (
     await axiosInstance.delete(
       `/projects/${projectId}/remove-employee/${employeeId}`

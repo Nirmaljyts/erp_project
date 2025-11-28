@@ -186,25 +186,6 @@ async function seed() {
 
   console.log("✔ Project assignments seeded");
 
-  // HOLIDAYS
-  await prisma.holiday.createMany({
-    data: [
-      {
-        id: 1,
-        date: new Date("2024-12-25"),
-        name: "Christmas",
-        isOptional: false,
-      },
-      {
-        id: 2,
-        date: new Date("2024-01-01"),
-        name: "New Year",
-        isOptional: false,
-      },
-    ],
-  });
-
-  console.log("✔ Holidays seeded");
   console.log("🎉 Seeding completed successfully.");
 }
 

@@ -3,6 +3,7 @@ import { Edit2, Trash2, Users, X } from "lucide-react";
 import Swal from "sweetalert2";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { toast } from "react-toastify";
 import {
   getProjects,
   createProject,
@@ -12,6 +13,7 @@ import {
   getManagers,
   getEmployees,
   validateEmployees,
+  removeEmployee,
 } from "../services/projectServices";
 import Pagination from "../components/Pagination";
 import { useSelector } from "react-redux";
@@ -45,6 +47,7 @@ interface Project {
 export default function Projects() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
   // Select lists
@@ -63,6 +66,8 @@ export default function Projects() {
   const [selectedManager, setSelectedManager] = useState<number | null>(null);
   const [assignedEmployees, setAssignedEmployees] = useState<number[]>([]);
 
+  const [originalEmployees, setOriginalEmployees] = useState<number[]>([]);
+
   // Form fields
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
@@ -78,11 +83,12 @@ export default function Projects() {
   const user = useSelector((state: RootState) => state?.auth?.user);
 
   // ---------------- FETCH PROJECTS ----------------
-  async function loadProjects(page = 1) {
+  async function loadProjects(page = 1, searchValue = search) {
     const limit = 12;
+
     try {
       setLoading(true);
-      const res = await getProjects(page, limit, "", "status", "asc");
+      const res = await getProjects(page, limit, searchValue, "status", "asc");
 
       setProjects(res.data);
       setPagination({
@@ -94,8 +100,13 @@ export default function Projects() {
     }
   }
 
+  const onSearch = (value: any) => {
+    setSearch(value);
+    loadProjects(1, value);
+  };
+
   useEffect(() => {
-    loadProjects(1);
+    loadProjects(1, search);
   }, []);
 
   const badgeStyles: Record<string, string> = {
@@ -119,7 +130,8 @@ export default function Projects() {
 
     if (result.isConfirmed) {
       await deleteProject(id);
-      await loadProjects(pagination.page);
+      await loadProjects(pagination.page, search);
+      toast.success("Project deleted");
     }
   }
 
@@ -167,6 +179,7 @@ export default function Projects() {
       ? p.employees.map((x) => x.employee?.id).filter(Boolean)
       : [];
 
+    setOriginalEmployees(assigned);
     setAssignedEmployees(assigned);
     setShowProjectModal(true);
   };
@@ -182,40 +195,54 @@ export default function Projects() {
     setAssignedEmployees(p.employees.map((e) => e.employee.id));
 
     setShowAssignModal(true);
+
+    const originalEmployees = p.employees.map((e) => e.employee.id);
+    setOriginalEmployees(originalEmployees);
   };
 
   const projectAssign = async () => {
-    if (assignProject) {
-      await assignUsers(assignProject.id, {
-        managerId: selectedManager,
-        employees: assignedEmployees,
-      });
+  try {
+    if (!assignProject) return;
+
+    // detect removed employees
+    const removed = originalEmployees.filter(
+      (id) => !assignedEmployees.includes(id)
+    );
+
+    console.log("ORIGINAL:", originalEmployees);
+    console.log("NEW:", assignedEmployees);
+    console.log("REMOVED:", removed);
+
+    // call remove API for each removed employee
+    for (const empId of removed) {
+      await removeEmployee(assignProject.id, empId);
     }
 
+    // update manager + add new employees
+    await assignUsers(assignProject.id, {
+      managerId: selectedManager,
+      employees: assignedEmployees,
+    });
+
+    toast.success("User assignment updated");
     setShowAssignModal(false);
-    loadProjects(pagination.page);
-  };
+    loadProjects(pagination.page, search);
+  } catch (err: any) {
+    const message =
+      err?.response?.data?.message ||
+      err?.response?.data?.error ||
+      err?.message ||
+      "Failed to assign users";
 
-  async function validateEmployeeAssignmentsBeforeSubmit() {
-    try {
-      const res = await validateEmployees(
-        editingProject?.id || null,
-        assignedEmployees
-      );
-      return res.valid;
-    } catch (err: any) {
-      const message =
-        err?.response?.data?.message || "Employee conflict detected";
-
-      Swal.fire({
-        icon: "warning",
-        title: "Assignment Issue",
-        text: message,
-      });
-
-      return false;
-    }
+    Swal.fire({
+      icon: "error",
+      title: "Assignment Error",
+      text: message,
+      confirmButtonColor: "#d33",
+    });
   }
+};
+
 
   async function handleProjectSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -224,9 +251,6 @@ export default function Projects() {
 
     const cleanName = formName.trim();
     const cleanManager = selectedManager;
-
-    const isValid = await validateEmployeeAssignmentsBeforeSubmit();
-    if (!isValid) return;
 
     // Validate Project Name
     if (!cleanName) {
@@ -275,15 +299,39 @@ export default function Projects() {
 
     try {
       if (editingProject) {
-        await updateProject(editingProject.id, payload);
-      } else {
-        await createProject(payload);
-      }
+  // detect removed employees
+  const removed = originalEmployees.filter(
+    (id) => !assignedEmployees.includes(id)
+  );
+
+  // remove via API → updates reviewers properly
+  for (const empId of removed) {
+    await removeEmployee(editingProject.id, empId);
+  }
+
+  // now update project normally
+  await updateProject(editingProject.id, payload);
+  toast.success("Project updated");
+} else {
+  await createProject(payload);
+  toast.success("Project created");
+}
+
 
       closeProjectModal();
-      loadProjects(pagination.page);
+      loadProjects(pagination.page, search);
     } catch (error: any) {
-      Swal.fire("Error", error?.response?.data?.message, "error");
+      console.log("assign error", error);
+
+      const message =
+        error?.response?.data?.message || "Employee conflict detected";
+
+      Swal.fire({
+        icon: "error",
+        title: "Assignment Error",
+        text: message,
+        confirmButtonColor: "#d33",
+      });
     }
   }
 
@@ -298,24 +346,66 @@ export default function Projects() {
   // ---------------- PAGINATION ----------------
   const handlePaginate = (page: number) => {
     if (page > 0 && page <= pagination.totalPages) {
-      loadProjects(page);
+      loadProjects(page, search);
     }
   };
 
-  // ---------------- UI ----------------
   return (
     <div className="max-h-auto">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
         <h1 className="text-2xl font-semibold">Projects</h1>
 
-        {(user?.role === "ADMIN" || user?.role === "MANAGER") && (
-          <button
-            onClick={openCreate}
-            className="px-4 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
-          >
-            Create Project
-          </button>
-        )}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+          <div className="relative w-full sm:w-72 md:w-64 lg:w-80">
+            <input
+              type="text"
+              placeholder="Search projects..."
+              value={search}
+              onChange={(e) => {
+                let value = e.target.value.trimStart();
+
+                // Remove leading/trailing spaces
+                value = value.trimStart();
+
+                // Replace multiple spaces with a single space
+                value = value.replace(/\s+/g, " ");
+
+                setSearch(value);
+                onSearch(value);
+              }}
+              onPaste={(e) => {
+                const pasted = e.clipboardData.getData("text");
+                if (/^\s*$/.test(pasted)) {
+                  e.preventDefault(); // block whitespace-only paste
+                }
+              }}
+              className="w-full px-3 py-2 pr-10 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--text)] 
+                 focus:outline-none focus:ring-2 focus:ring-[#2f4f82]"
+            />
+
+            {/* CLEAR BUTTON */}
+            {search && (
+              <button
+                onClick={() => {
+                  setSearch("");
+                  onSearch("");
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+              >
+                <X size={18} />
+              </button>
+            )}
+          </div>
+
+          {(user?.role === "ADMIN" || user?.role === "MANAGER") && (
+            <button
+              onClick={openCreate}
+              className="px-4 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
+            >
+              Create Project
+            </button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -324,8 +414,8 @@ export default function Projects() {
         </div>
       ) : (
         <>
-          {/* GRID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+          {/* GRID SECTION */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-3">
             {projects.map((p) => (
               <div
                 key={p.id}
@@ -368,8 +458,8 @@ export default function Projects() {
                   {p.status}
                 </span>
 
-                <p>
-                  <span className="text-sm text-gray-500">
+                <div>
+                  <span className="text-xs text-gray-500">
                     {p.startDate
                       ? new Date(p.startDate).toLocaleDateString("en-GB", {
                           day: "2-digit",
@@ -386,22 +476,22 @@ export default function Projects() {
                         })
                       : "N/A"}
                   </span>
-                </p>
+                </div>
 
-                <p className="flex items-center gap-1">
+                <div className="flex items-center gap-1">
                   <p className="font-semibold text-sm">Manager:</p>{" "}
                   <p className="text-sm text-gray-500 truncate">
                     {p.manager?.name || "Not Assigned"}
                   </p>
-                </p>
+                </div>
 
-                <p className="flex items-center gap-1">
+                <div className="flex items-center gap-1">
                   <p className="font-semibold text-sm">Employees:</p>{" "}
                   <p className="text-sm text-gray-500 truncate">
                     {p.employees.map((e) => e.employee.name).join(", ") ||
                       "Not Assigned"}
                   </p>
-                </p>
+                </div>
               </div>
             ))}
           </div>
@@ -635,7 +725,7 @@ export default function Projects() {
               onClick={projectAssign}
               className="mt-6 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
             >
-              Save Assignments
+              Update Users
             </button>
           </div>
         </div>

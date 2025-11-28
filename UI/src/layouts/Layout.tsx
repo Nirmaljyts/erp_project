@@ -2,12 +2,14 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { Sun, Moon, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
+import { toast } from "react-toastify";
 import SidebarMenu from "./SidebarMenu";
 import ProfilePopover from "./ProfilePopover";
 
 export default function Layout() {
   const [theme, setTheme] = useState(localStorage.theme || "light");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -17,6 +19,7 @@ export default function Layout() {
 
   const headerNavigation = () => {
     setSidebarOpen(false);
+    localStorage.clear();
     navigate("/");
   };
 
@@ -36,19 +39,13 @@ export default function Layout() {
         localStorage.clear();
         navigate("/login");
 
-        Swal.fire({
-          title: "Logged out",
-          text: "You have been logged out successfully.",
-          icon: "success",
-          timer: 1500,
-          showConfirmButton: false,
-        });
+        toast.success(`Signed out`);
       }
     });
   };
 
   return (
-    <div className="flex min-h-screen bg-[var(--bg)] text-[var(--text)]">
+    <div className="flex h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)]">
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/40 z-20 lg:hidden"
@@ -62,10 +59,10 @@ export default function Layout() {
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 lg:static`}
       >
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-6 hover:cursor-pointer">
+        <div className="p-0">
+          <div className="flex w-full items-center justify-between p-[13.5px] border-[var(--border)] border-b hover:cursor-pointer">
             <h1
-              className="text-xl font-bold tracking-tight"
+              className="text-xl font-bold text-[#2f4f82] tracking-tight"
               onClick={headerNavigation}
             >
               ERP COMPANY
@@ -122,7 +119,7 @@ export default function Layout() {
           </div>
         </header>
 
-        <main className="p-4">
+        <main className="flex-1 overflow-y-auto p-4 w-full max-w-full">
           <Outlet />
         </main>
       </div>
