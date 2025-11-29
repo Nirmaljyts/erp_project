@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { Calendar, Plus, X } from "lucide-react";
+import { Calendar, X } from "lucide-react";
 import { getMyLeaves, applyLeave, cancelLeave } from "../services/leaveService";
 
 export default function Leaves() {
@@ -72,7 +72,6 @@ export default function Leaves() {
           onClick={() => setShowModal(true)}
           className="px-4 py-2 rounded-lg bg-[#2f4f82] text-white hover:bg-[#1b335a] flex items-center gap-2"
         >
-          <Plus size={18} />
           Apply Leave
         </button>
       </div>
@@ -115,6 +114,11 @@ export default function Leaves() {
                 </div>
 
                 <p className="text-sm text-gray-500 mt-1">{l.reason || "-"}</p>
+
+                <p className="text-sm text-gray-500 mt-2">
+                  Approved by:{" "}
+                  <span className="font-semibold">{l.approvedBy.name}</span>
+                </p>
 
                 {/* CANCEL BUTTON */}
                 {l.status === "PENDING" && (

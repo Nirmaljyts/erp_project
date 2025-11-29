@@ -102,7 +102,7 @@ export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
   };
 
   return (
-    <nav className="space-y-2 p-2">
+    <nav className="space-y-1 p-2">
       {menu
         .filter((item) => item.roles.includes(userRole))
         .map((item) => {
@@ -119,7 +119,7 @@ export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
             ${
               active
                 ? "bg-black text-white border-gray-700 font-semibold dark:bg-[#1b335a] dark:text-white shadow-lg"
-                : "text-[var(--text)] hover:bg-gray-200 dark:hover:bg-[#566f96] hover:text-white"
+                : "text-[var(--text)] hover:bg-gray-200 dark:hover:bg-[#1b335a] hover:text-white"
             }
           `}
               >
@@ -137,7 +137,7 @@ export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
               <button
                 onClick={() => handleToggleDropdown(item.label)}
                 className="flex w-full items-center justify-between gap-3 p-2 rounded-lg text-md transition border-[var(--border)]
-            text-[var(--text)] hover:bg-gray-200 dark:hover:bg-[#566f96] hover:text-white"
+            text-[var(--text)] hover:bg-gray-200 dark:hover:bg-[#1b335a] hover:text-white"
               >
                 <div className="flex items-center gap-3">
                   <item.icon size={18} />
@@ -152,7 +152,7 @@ export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
               </button>
 
               {isOpen && (
-                <div className="ml-6 mt-1 space-y-2">
+                <div className="ml-6 mt-1 space-y-1">
                   {item
                     .children!.filter((c) => c.roles.includes(userRole))
                     .map((child) => {
@@ -166,7 +166,7 @@ export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
                       ${
                         active
                           ? "bg-black text-white border-gray-700 font-semibold dark:bg-[#1b335a] dark:text-white shadow-lg"
-                          : "text-[var(--text)] hover:bg-gray-200 dark:hover:bg-[#566f96] hover:text-white"
+                          : "text-[var(--text)] hover:bg-gray-200 dark:hover:bg-[#1b335a] hover:text-white"
                       }
                     `}
                         >

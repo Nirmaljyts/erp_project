@@ -11,12 +11,12 @@ export async function createLeaveService(userId, body) {
   if (new Date(startDate) > new Date(endDate))
     throw new Error("End date cannot be earlier than start date");
 
-  const reviewerId = await resolveReviewer(userId);
+  const approvedById = await resolveReviewer(userId);
 
   return prisma.leave.create({
     data: {
       userId,
-      reviewerId,
+      approvedById,
       type,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
@@ -29,6 +29,9 @@ export async function createLeaveService(userId, body) {
 export function getMyLeavesService(userId) {
   return prisma.leave.findMany({
     where: { userId, deletedAt: null },
+    include: {
+      approvedBy: true,
+    },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -39,7 +42,7 @@ export function getMyLeavesService(userId) {
 export async function getTeamLeavesService(user) {
   return prisma.leave.findMany({
     where: {
-      reviewerId: user.id,     // ONLY THIS
+      approvedById: user.id, // ONLY THIS
       status: "PENDING",
       deletedAt: null,
     },
@@ -54,7 +57,7 @@ export async function approveLeaveService(approver, leaveId) {
   if (!leave) throw new Error("Leave request not found");
   if (leave.status !== "PENDING") throw new Error("Not pending");
 
-  if (leave.reviewerId !== approver.id)
+  if (leave.approvedById !== approver.id)
     throw new Error("You are not authorized to approve this leave");
 
   return prisma.leave.update({
@@ -73,7 +76,7 @@ export async function rejectLeaveService(approver, leaveId) {
   if (!leave) throw new Error("Leave request not found");
   if (leave.status !== "PENDING") throw new Error("Not pending");
 
-  if (leave.reviewerId !== approver.id)
+  if (leave.approvedById !== approver.id)
     throw new Error("You are not authorized to reject this leave");
 
   return prisma.leave.update({
@@ -109,48 +112,68 @@ export async function cancelLeaveService(user, leaveId) {
 export async function getLeaveDashboardService(user) {
   let where = { deletedAt: null };
 
+  // 1️⃣ EMPLOYEE → only own leave
   if (user.role === "EMPLOYEE") {
     where.userId = user.id;
   }
 
+  // 2️⃣ MANAGER → own leave + employees in manager's projects
   else if (user.role === "MANAGER") {
     where.OR = [
-      // Manager's own leaves
-      { userId: user.id },
-
-      // Employees assigned directly under manager
-      { user: { managerId: user.id } },
-
-      // Employees working in manager's projects
+      { userId: user.id }, // manager’s own leave
       {
         user: {
           projects: {
             some: {
               project: {
-                managerId: user.id
-              }
-            }
-          }
-        }
-      }
+                managerId: user.id,
+              },
+            },
+          },
+        },
+      },
     ];
   }
 
-  else if (user.role === "ADMIN" || user.role === "HR") {
-    // full access
+  // 3️⃣ HR → own leave + bench employee leaves
+  else if (user.role === "HR") {
+    where.OR = [
+      { userId: user.id }, // HR's own leave
+      {
+        user: {
+          projects: {
+            none: {
+              project: {
+                status: { in: ["ACTIVE", "ON_HOLD"] },
+              },
+            },
+          },
+        },
+      },
+    ];
   }
 
+  // 4️⃣ ADMIN → only own leave
+  else if (user.role === "ADMIN") {
+    where.userId = user.id;
+  }
+
+  // --- FETCH DATA ---
   const [stats, leaves] = await Promise.all([
     prisma.leave.groupBy({
       by: ["status"],
       where,
-      _count: true
+      _count: true,
     }),
+
     prisma.leave.findMany({
       where,
-      include: { user: true },
-      orderBy: { startDate: "asc" }
-    })
+      include: {
+        user: true,
+        approvedBy: true,
+      },
+      orderBy: { startDate: "asc" },
+    }),
   ]);
 
   const total = leaves.length;

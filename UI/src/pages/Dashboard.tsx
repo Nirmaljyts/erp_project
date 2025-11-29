@@ -70,7 +70,7 @@ export default function Dashboard() {
       link: "/calendar",
       icon: Calendar,
       allowedRoles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
-      style: "text-2xl",
+      style: "text-2xl text-[#2f4f82]",
     },
   ];
 
@@ -121,7 +121,7 @@ export default function Dashboard() {
                     <div className={`font-bold mb-4 ${c.style}`}>{c.count}</div>
 
                     <Link to={c.link}>
-                      <button className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-500 font-medium">
+                      <button className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-[#2f4f82] font-medium">
                         View details →
                       </button>
                     </Link>
