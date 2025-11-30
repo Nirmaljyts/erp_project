@@ -19,7 +19,6 @@ export default function Layout() {
 
   const headerNavigation = () => {
     setSidebarOpen(false);
-    localStorage.clear();
     navigate("/");
   };
 
@@ -62,14 +61,18 @@ export default function Layout() {
         <div className="p-0">
           <div className="flex w-full items-center justify-between p-[13.5px] border-[var(--border)] border-b hover:cursor-pointer">
             <h1
-              className="text-xl font-bold text-[#2f4f82] tracking-tight"
+              className="text-xl font-bold text-[#2f4f82] tracking-tight cursor-pointer"
               onClick={headerNavigation}
             >
               ERP COMPANY
             </h1>
 
-            <span className="lg:hidden hover:text-gray-600">
-              <X size={20} onClick={() => setSidebarOpen(false)} />
+            <span className="cursor-pointer lg:hidden hover:text-gray-600 hover:cursor-pointer">
+              <X
+                className="cursor-pointer"
+                size={20}
+                onClick={() => setSidebarOpen(false)}
+              />
             </span>
           </div>
 
