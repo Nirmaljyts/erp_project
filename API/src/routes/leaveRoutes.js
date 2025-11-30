@@ -8,6 +8,7 @@ import {
   rejectLeave,
   cancelLeave,
   getLeaveDashboard,
+  deleteApprovedLeaveController,
 } from "../controllers/leaveController.js";
 
 const router = Router();
@@ -22,13 +23,23 @@ router.get("/my", authRequired, getMyLeaves);
 router.get(
   "/team",
   authRequired,
-  requireRole("MANAGER", "HR", "ADMIN"),
+  requireRole("MANAGER", "HR_MANAGER", "HR", "ADMIN"),
   getTeamLeaves
 );
 
 // Approve / Reject
-router.post("/:id/approve", authRequired, requireRole("ADMIN", "HR", "MANAGER"), approveLeave);
-router.post("/:id/reject", authRequired, requireRole("ADMIN", "HR", "MANAGER"), rejectLeave);
+router.post(
+  "/:id/approve",
+  authRequired,
+  requireRole("ADMIN", "HR_MANAGER", "HR", "MANAGER"),
+  approveLeave
+);
+router.post(
+  "/:id/reject",
+  authRequired,
+  requireRole("ADMIN", "HR_MANAGER", "HR", "MANAGER"),
+  rejectLeave
+);
 
 // Cancel
 router.post("/:id/cancel", authRequired, cancelLeave);
@@ -37,8 +48,16 @@ router.post("/:id/cancel", authRequired, cancelLeave);
 router.get(
   "/dashboard",
   authRequired,
-  requireRole("ADMIN", "HR", "MANAGER", "EMPLOYEE"),
+  requireRole("ADMIN", "HR_MANAGER", "HR", "MANAGER", "EMPLOYEE"),
   getLeaveDashboard
+);
+
+// Delete approved leave if needed
+router.delete(
+  "/approved/:id",
+  authRequired,
+  requireRole("ADMIN", "HR_MANAGER", "HR"),
+  deleteApprovedLeaveController
 );
 
 export default router;

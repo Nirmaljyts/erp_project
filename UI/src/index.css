@@ -25,6 +25,25 @@ body {
   color: var(--text);
 }
 
+* {
+  cursor: default;
+}
+
+button,
+a,
+[role="button"],
+input[type="checkbox"],
+input[type="radio"],
+select,
+summary {
+  cursor: pointer;
+}
+
+input,
+textarea {
+  cursor: text;
+}
+
 /* LOADER */
 .loader-overlay {
   opacity: 1;
@@ -112,4 +131,3 @@ body {
     padding: 2px !important;
   }
 }
-

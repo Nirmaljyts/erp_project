@@ -198,9 +198,13 @@ export default function UsersPage() {
 
       closeUserModal();
       loadUsers(pagination.page, search);
-    } catch (err) {
-      console.error(err);
-      Swal.fire("Error", "Failed to save user. Please try again.", "error");
+    } catch (err: any) {
+      const errorMessage = err?.response?.data?.message;
+      Swal.fire(
+        "Error",
+        errorMessage || "Failed to save user. Please try again.",
+        "error"
+      );
     }
   }
 
@@ -245,7 +249,7 @@ export default function UsersPage() {
 
   return (
     <div className="max-h-auto">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
         <h1 className="text-2xl font-semibold">Users</h1>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
@@ -286,6 +290,7 @@ export default function UsersPage() {
               </button>
             )}
           </div>
+
           <button
             onClick={openCreate}
             className="px-4 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
@@ -302,16 +307,16 @@ export default function UsersPage() {
       ) : (
         <>
           {/* TABLE */}
-          <div className="w-full overflow-x-auto text-sm border border-[var(--border)] rounded-2xl bg-[var(--card)]">
-            <table className="min-w-[500px] w-full text-xs sm:text-sm border">
+          <div className="border border-[var(--border)] rounded-2xl bg-[var(--card)]">
+            <table className="text-xs md:text-sm border-collapse">
               <thead>
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
+                  <th className="w-[10%] px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
                     #
                   </th>
                   <th
                     onClick={() => toggleSort("name")}
-                    className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide cursor-pointer hover:opacity-80"
+                    className="w-[18%] px-4 py-3 text-left text-xs font-bold uppercase tracking-wide cursor-pointer"
                   >
                     Name{" "}
                     {sortBy === "name" && (sortOrder === "asc" ? "▲" : "▼")}
@@ -319,7 +324,7 @@ export default function UsersPage() {
 
                   <th
                     onClick={() => toggleSort("email")}
-                    className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide cursor-pointer hover:opacity-80"
+                    className="w-[20%] px-4 py-3 text-left text-xs font-bold uppercase tracking-wide cursor-pointer"
                   >
                     Email{" "}
                     {sortBy === "email" && (sortOrder === "asc" ? "▲" : "▼")}
@@ -327,7 +332,7 @@ export default function UsersPage() {
 
                   <th
                     onClick={() => toggleSort("role")}
-                    className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide cursor-pointer hover:opacity-80"
+                    className="w-[18%] px-4 py-3 text-left text-xs font-bold uppercase tracking-wide cursor-pointer"
                   >
                     Role{" "}
                     {sortBy === "role" && (sortOrder === "asc" ? "▲" : "▼")}
@@ -335,13 +340,16 @@ export default function UsersPage() {
 
                   <th
                     onClick={() => toggleSort("isActive")}
-                    className="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide cursor-pointer hover:opacity-80"
+                    className="w-[18%] px-4 py-3 text-left text-xs font-bold uppercase tracking-wide cursor-pointer"
                   >
                     Status{" "}
                     {sortBy === "isActive" && (sortOrder === "asc" ? "▲" : "▼")}
                   </th>
-                  {(currentRole === "ADMIN" || currentRole === "HR") && (
-                    <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide">
+
+                  {(currentRole === "ADMIN" ||
+                    currentRole === "HR_MANAGER" ||
+                    currentRole === "HR") && (
+                    <th className="w-[18%] px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide">
                       Actions
                     </th>
                   )}
@@ -363,15 +371,17 @@ export default function UsersPage() {
                       key={user.id}
                       className="border-t border-[var(--border)]"
                     >
-                      <td className="px-4 py-2 text-sm">{index + 1}</td>
-                      <td className="px-4 py-2 text-sm">{user.name}</td>
-                      <td className="px-4 py-2 text-sm">{user.email}</td>
-                      <td className="px-4 py-2 text-sm">
+                      <td className="w-[10%] px-4 py-2 text-sm">{index + 1}</td>
+                      <td className="w-[18%] px-4 py-2 text-sm">{user.name}</td>
+                      <td className="w-[20%] px-4 py-2 text-sm">
+                        {user.email}
+                      </td>
+                      <td className="w-[18%] px-4 py-2 text-sm">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
                           {user.role}
                         </span>
                       </td>
-                      <td className="px-4 py-2 text-sm">
+                      <td className="w-[18%] px-4 py-2 text-sm">
                         {user.isActive ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
                             Active
@@ -382,8 +392,10 @@ export default function UsersPage() {
                           </span>
                         )}
                       </td>
-                      {(currentRole === "ADMIN" || currentRole === "HR") && (
-                        <td className="px-4 py-2 text-sm text-right">
+                      {(currentRole === "ADMIN" ||
+                        currentRole === "HR_MANAGER" ||
+                        currentRole === "HR") && (
+                        <td className="w-[18%] px-4 py-2 text-sm text-right">
                           <div className="flex justify-end gap-3">
                             <button
                               type="button"
@@ -424,7 +436,7 @@ export default function UsersPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <form
             onSubmit={handleUserSubmit}
-            className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 w-full max-w-lg relative max-h-[90vh] overflow-y-auto"
+            className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 relative max-h-[90vh] overflow-y-auto"
           >
             <button
               type="button"
@@ -448,7 +460,7 @@ export default function UsersPage() {
                     if (nameError) setNameError("");
                   }}
                   placeholder="Full Name"
-                  className={`w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
+                  className={`p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
                     nameError ? "border-red-500" : "border-[var(--border)]"
                   }`}
                 />
@@ -467,7 +479,7 @@ export default function UsersPage() {
                     if (emailError) setEmailError("");
                   }}
                   placeholder="Email"
-                  className={`w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
+                  className={`p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
                     emailError ? "border-red-500" : "border-[var(--border)]"
                   }`}
                 />
@@ -489,7 +501,7 @@ export default function UsersPage() {
                     placeholder={
                       editingUser ? "New Password (optional)" : "Password"
                     }
-                    className={`w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
+                    className={`p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
                       passwordError
                         ? "border-red-500"
                         : "border-[var(--border)]"
@@ -515,12 +527,13 @@ export default function UsersPage() {
                 <select
                   value={formRole}
                   onChange={(e) => setFormRole(e.target.value as User["role"])}
-                  className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
+                  className="p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
                 >
-                  <option value="ADMIN">Admin</option>
+                  <option value="ADMIN">ADMIN</option>
+                  <option value="HR_MANAGER">HR_MANAGER</option>
                   <option value="HR">HR</option>
-                  <option value="MANAGER">Manager</option>
-                  <option value="EMPLOYEE">Employee</option>
+                  <option value="MANAGER">MANAGER</option>
+                  <option value="EMPLOYEE">EMPLOYEE</option>
                 </select>
               </div>
 
@@ -551,7 +564,7 @@ export default function UsersPage() {
 
             <button
               type="submit"
-              className="mt-6 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
+              className="mt-6 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
             >
               {editingUser ? "Update User" : "Create User"}
             </button>

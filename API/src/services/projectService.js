@@ -476,7 +476,7 @@ export async function removeEmployeeFromProjectService(projectId, employeeId) {
   // Update pending leaves
   await prisma.leave.updateMany({
     where: { userId: eid, status: "PENDING", deletedAt: null },
-    data: { reviewerId: newReviewer },
+    data: { approvedById: newReviewer },
   });
 
   return { success: true };

@@ -6,6 +6,7 @@ import {
   rejectLeaveService,
   cancelLeaveService,
   getLeaveDashboardService,
+  deleteApprovedLeaveService,
 } from "../services/leaveService.js";
 
 export async function createLeave(req, res) {
@@ -50,4 +51,20 @@ export async function cancelLeave(req, res) {
 
 export async function getLeaveDashboard(req, res) {
   res.json(await getLeaveDashboardService(req.user));
+}
+
+export async function deleteApprovedLeaveController(req, res) {
+  try {
+    const id = Number(req.params.id);
+
+    const result = await deleteApprovedLeaveService(id);
+
+    return res.json({ message: result });
+  } catch (err) {
+    console.error("Delete approved leave error:", err);
+
+    return res
+      .status(err.statusCode || 500)
+      .json({ message: err.message || "Failed to delete leave" });
+  }
 }

@@ -9,6 +9,8 @@ import {
   deleteClient,
 } from "../services/clientServices";
 import Pagination from "../components/Pagination";
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store";
 
 interface Client {
   id: number;
@@ -19,6 +21,7 @@ interface Client {
 }
 
 export default function ClientsPage() {
+  const user = useSelector((state: RootState) => state?.auth?.user);
   const [clients, setClients] = useState<Client[]>([]);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
   const [search, setSearch] = useState("");
@@ -233,12 +236,15 @@ export default function ClientsPage() {
               </button>
             )}
           </div>
-          <button
-            onClick={openCreate}
-            className="px-4 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
-          >
-            Create Client
-          </button>
+
+          {(user?.role === "ADMIN" || user?.role === "MANAGER") && (
+            <button
+              onClick={openCreate}
+              className="px-4 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
+            >
+              Create Client
+            </button>
+          )}
         </div>
       </div>
 
@@ -249,7 +255,7 @@ export default function ClientsPage() {
       ) : (
         <>
           {/* GRID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-2">
             {clients.map((c) => (
               <div
                 key={c.id}
@@ -257,19 +263,20 @@ export default function ClientsPage() {
               >
                 <div className="flex justify-between mb-2 gap-2">
                   <h2 className="text-lg font-semibold truncate">{c.name}</h2>
-
-                  <div className="flex items-center gap-2">
-                    <Edit2
-                      size={18}
-                      className="cursor-pointer text-gray-500 hover:text-gray-700"
-                      onClick={() => openEdit(c)}
-                    />
-                    <Trash2
-                      size={18}
-                      className="cursor-pointer text-red-500 hover:text-red-600"
-                      onClick={() => handleDelete(c.id)}
-                    />
-                  </div>
+                  {(user?.role === "ADMIN" || user?.role === "MANAGER") && (
+                    <div className="flex items-center gap-2">
+                      <Edit2
+                        size={18}
+                        className="cursor-pointer text-gray-500 hover:text-gray-700"
+                        onClick={() => openEdit(c)}
+                      />
+                      <Trash2
+                        size={18}
+                        className="cursor-pointer text-red-500 hover:text-red-600"
+                        onClick={() => handleDelete(c.id)}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <p className="text-md text-gray-600 dark:text-gray-500 mb-1">

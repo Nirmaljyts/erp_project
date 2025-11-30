@@ -102,7 +102,7 @@ export default function App() {
           <Route
             path="projects"
             element={
-              <RoleGuard allowedRoles={["ADMIN", "HR", "MANAGER", "EMPLOYEE"]}>
+              <RoleGuard allowedRoles={["ADMIN", "HR_MANAGER", "MANAGER", "EMPLOYEE"]}>
                 <Projects />
               </RoleGuard>
             }
@@ -111,7 +111,7 @@ export default function App() {
           <Route
             path="clients"
             element={
-              <RoleGuard allowedRoles={["ADMIN"]}>
+              <RoleGuard allowedRoles={["ADMIN", "HR_MANAGER"]}>
                 <Clients />
               </RoleGuard>
             }
@@ -120,7 +120,15 @@ export default function App() {
           <Route
             path="users"
             element={
-              <RoleGuard allowedRoles={["ADMIN", "HR", "MANAGER", "EMPLOYEE"]}>
+              <RoleGuard
+                allowedRoles={[
+                  "ADMIN",
+                  "HR_MANAGER",
+                  "HR",
+                  "MANAGER",
+                  "EMPLOYEE",
+                ]}
+              >
                 <Users />
               </RoleGuard>
             }
@@ -129,48 +137,74 @@ export default function App() {
           <Route
             path="calendar"
             element={
-              <RoleGuard allowedRoles={["ADMIN", "HR", "MANAGER", "EMPLOYEE"]}>
+              <RoleGuard
+                allowedRoles={[
+                  "ADMIN",
+                  "HR_MANAGER",
+                  "HR",
+                  "MANAGER",
+                  "EMPLOYEE",
+                ]}
+              >
                 <CalendarPage />
               </RoleGuard>
             }
           />
 
           <Route
-            path="/leaves"
+            path="leaves"
             element={
-              <RoleGuard allowedRoles={["ADMIN", "HR", "MANAGER", "EMPLOYEE"]}>
+              <RoleGuard
+                allowedRoles={[
+                  "ADMIN",
+                  "HR_MANAGER",
+                  "HR",
+                  "MANAGER",
+                  "EMPLOYEE",
+                ]}
+              >
                 <LeaveDashboard />
               </RoleGuard>
             }
           />
 
           <Route
-            path="/request-leaves"
+            path="request-leaves"
             element={
-              <RoleGuard allowedRoles={["ADMIN", "HR", "MANAGER", "EMPLOYEE"]}>
+              <RoleGuard
+                allowedRoles={[
+                  "ADMIN",
+                  "HR_MANAGER",
+                  "HR",
+                  "MANAGER",
+                  "EMPLOYEE",
+                ]}
+              >
                 <Leaves />
               </RoleGuard>
             }
           />
 
           <Route
-            path="/leave-approvals"
+            path="leave-approvals"
             element={
-              <RoleGuard allowedRoles={["ADMIN", "HR", "MANAGER"]}>
+              <RoleGuard
+                allowedRoles={["ADMIN", "HR_MANAGER", "HR", "MANAGER"]}
+              >
                 <LeaveApprovals />
               </RoleGuard>
             }
           />
         </Route>
 
-        {/* UNIVERSAL 404 */}
+        {/* UNKNOWN PAGE 404 */}
         <Route path="/404" element={<Page404 />} />
         <Route path="*" element={<Navigate to="/404" replace />} />
       </Routes>
 
       <ToastContainer
         position="top-right"
-        autoClose={5000}
+        autoClose={2000}
         hideProgressBar={false}
         newestOnTop
         closeOnClick={false}

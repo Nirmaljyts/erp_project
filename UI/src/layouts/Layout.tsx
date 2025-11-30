@@ -55,7 +55,7 @@ export default function Layout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-30 w-[14rem] bg-[var(--card)] border-r border-[var(--border)] p-0 flex flex-col justify-between transform duration-300 ${
+        className={`fixed inset-y-0 left-0 z-30 w-56 bg-[var(--card)] border-r border-[var(--border)] flex flex-col justify-between transform duration-300 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 lg:static`}
       >
@@ -89,13 +89,7 @@ export default function Layout() {
       {/* Main Section */}
       <div className="flex-1 flex flex-col">
         {/* Navvigation Bar */}
-        <header
-          className="
-            h-14 bg-[var(--card)] border-b border-[var(--border)]
-            flex items-center justify-between lg:justify-end
-            px-2 lg:px-4 gap-4
-          "
-        >
+        <header className="h-14 bg-[var(--card)] border-b border-[var(--border)] flex items-center justify-between lg:justify-end px-2 lg:px-4 gap-4">
           <button
             className="lg:hidden p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm hover:bg-gray-300 dark:hover:bg-gray-600 transition"
             onClick={() => setSidebarOpen(true)}
@@ -119,7 +113,7 @@ export default function Layout() {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 w-full max-w-full">
+        <main className="flex-1 w-full min-w-0 overflow-y-auto p-2 sm:p-4">
           <Outlet />
         </main>
       </div>

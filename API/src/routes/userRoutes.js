@@ -17,24 +17,39 @@ const router = Router();
 router.get(
   "/",
   authRequired,
-  requireRole("ADMIN", "HR", "MANAGER", "EMPLOYEE"),
+  requireRole("ADMIN", "HR_MANAGER", "HR", "MANAGER", "EMPLOYEE"),
   listUsers
 );
 
 // CREATE USER
-router.post("/", authRequired, requireRole("ADMIN", "HR"), createUser);
+router.post(
+  "/",
+  authRequired,
+  requireRole("ADMIN", "HR_MANAGER", "HR"),
+  createUser
+);
 
 // UPDATE USER
-router.put("/:id", authRequired, requireRole("ADMIN", "HR"), updateUser);
+router.put(
+  "/:id",
+  authRequired,
+  requireRole("ADMIN", "HR_MANAGER", "HR"),
+  updateUser
+);
 
 // DELETE USER
-router.delete("/:id", authRequired, requireRole("ADMIN", "HR"), deleteUser);
+router.delete(
+  "/:id",
+  authRequired,
+  requireRole("ADMIN", "HR_MANAGER", "HR"),
+  deleteUser
+);
 
 // GET ALL MANAGERS
 router.get(
   "/managers",
   authRequired,
-  requireRole("ADMIN", "HR", "MANAGER"),
+  requireRole("ADMIN", "HR_MANAGER", "HR", "MANAGER"),
   listManagers
 );
 
@@ -42,7 +57,7 @@ router.get(
 router.get(
   "/employees",
   authRequired,
-  requireRole("ADMIN", "HR", "MANAGER"),
+  requireRole("ADMIN", "HR_MANAGER", "HR", "MANAGER"),
   listAvailableEmployees
 );
 

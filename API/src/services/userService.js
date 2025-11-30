@@ -7,7 +7,7 @@ export async function fetchUsersService(query) {
     search = "",
     page = 1,
     limit = 10,
-    sort = "status",
+    sort = "role", // default sort by role hierarchy
     order = "asc",
   } = query;
 
@@ -20,12 +20,13 @@ export async function fetchUsersService(query) {
 
   const skip = (Number(page) - 1) * Number(limit);
 
-  const [data, total] = await Promise.all([
+  // Fetch raw (unsorted if sorting by role)
+  const [rawData, total] = await Promise.all([
     prisma.user.findMany({
       where,
       skip,
       take: Number(limit),
-      orderBy: { [sort]: order },
+      orderBy: sort !== "role" ? { [sort]: order } : undefined,
       select: {
         id: true,
         name: true,
@@ -37,6 +38,25 @@ export async function fetchUsersService(query) {
     }),
     prisma.user.count({ where }),
   ]);
+
+  // *** Custom role priority ***
+  const ROLE_ORDER = {
+    ADMIN: 1,
+    HR_MANAGER: 2,
+    HR: 3,
+    MANAGER: 4,
+    EMPLOYEE: 5,
+  };
+
+  let data = rawData;
+
+  // Apply custom role ordering only if sorting by "role"
+  if (sort === "role") {
+    data = rawData.sort((a, b) => {
+      const diff = ROLE_ORDER[a.role] - ROLE_ORDER[b.role];
+      return order === "asc" ? diff : -diff;
+    });
+  }
 
   return {
     data,
@@ -66,11 +86,32 @@ export async function fetchUserService(id) {
 }
 
 // CREATE USER
+// CREATE USER — with full ADMIN / HR_MANAGER restrictions
 export async function createUserService(data) {
   const { name, email, password, role = "EMPLOYEE", isActive = true } = data;
 
   if (!name || !email || !password) {
     throw new Error("Name, email and password are required");
+  }
+
+  // ❌ Only ONE ADMIN allowed
+  if (role === "ADMIN") {
+    const adminCount = await prisma.user.count({
+      where: { role: "ADMIN", deletedAt: null },
+    });
+    if (adminCount >= 1) {
+      throw new Error("Only one ADMIN account is allowed");
+    }
+  }
+
+  // ❌ Only ONE HR_MANAGER allowed
+  if (role === "HR_MANAGER") {
+    const count = await prisma.user.count({
+      where: { role: "HR_MANAGER", deletedAt: null },
+    });
+    if (count >= 1) {
+      throw new Error("Only one HR_MANAGER account is allowed");
+    }
   }
 
   const hashed = await bcrypt.hash(password, 10);
@@ -96,6 +137,7 @@ export async function createUserService(data) {
 }
 
 // UPDATE USER
+// UPDATE USER — full role protection rules
 export async function updateUserService(id, data) {
   const existing = await prisma.user.findFirst({
     where: { id: Number(id), deletedAt: null },
@@ -103,8 +145,15 @@ export async function updateUserService(id, data) {
 
   if (!existing) throw new Error("User not found");
 
+  // currentUser is passed in from controller
+  const actingRole = data.currentUser?.role;
+  const targetRole = existing.role;
+
   const updateData = {};
 
+  // -------------------------------------------------
+  // BASIC FIELD UPDATES
+  // -------------------------------------------------
   if (data.name) updateData.name = data.name;
   if (data.email) updateData.email = data.email;
 
@@ -112,10 +161,47 @@ export async function updateUserService(id, data) {
     updateData.password = await bcrypt.hash(data.password, 10);
   }
 
-  if (data.role) updateData.role = data.role;
-
   if (typeof data.isActive === "boolean") {
     updateData.isActive = data.isActive;
+  }
+
+  // -------------------------------------------------
+  // ROLE CHANGE LOGIC
+  // -------------------------------------------------
+  if (data.role) {
+    const newRole = data.role;
+
+    // ❌ ADMIN role cannot be changed by anyone
+    if (targetRole === "ADMIN") {
+      throw new Error("ADMIN role cannot be changed");
+    }
+
+    // ❌ HR_MANAGER role can ONLY be changed by ADMIN
+    if (targetRole === "HR_MANAGER" && actingRole !== "ADMIN") {
+      throw new Error("Only ADMIN can modify HR_MANAGER role");
+    }
+
+    // ❌ Cannot create a 2nd ADMIN
+    if (newRole === "ADMIN") {
+      const count = await prisma.user.count({
+        where: { role: "ADMIN", deletedAt: null },
+      });
+      if (count >= 1) {
+        throw new Error("Only one ADMIN account is allowed");
+      }
+    }
+
+    // ❌ Cannot create a 2nd HR_MANAGER
+    if (newRole === "HR_MANAGER") {
+      const count = await prisma.user.count({
+        where: { role: "HR_MANAGER", deletedAt: null },
+      });
+      if (count >= 1) {
+        throw new Error("Only one HR_MANAGER account is allowed");
+      }
+    }
+
+    updateData.role = newRole;
   }
 
   return prisma.user.update({
@@ -132,61 +218,82 @@ export async function updateUserService(id, data) {
   });
 }
 
-// DELETE USER (Soft Delete + Secure Rules)
+// DELETE USER — full role restriction rules
 export async function deleteUserService(id, currentUser) {
   const userId = Number(id);
 
-  if (!userId) throw new Error("Invalid user ID");
-
-  const userToDelete = await prisma.user.findFirst({
+  const targetUser = await prisma.user.findFirst({
     where: { id: userId, deletedAt: null },
     select: { id: true, role: true, isActive: true },
   });
 
-  if (!userToDelete) {
-    throw new Error("User not found");
-  }
+  if (!targetUser) throw new Error("User not found");
 
   const acting = currentUser.role;
-  const target = userToDelete.role;
+  const target = targetUser.role;
 
-  // Only ADMIN or HR can delete anyone
-  if (acting !== "ADMIN" && acting !== "HR") {
-    throw new Error("You are not allowed to delete users");
-  }
-
-  // Cannot delete yourself
+  // ❌ Universal self-delete block
   if (currentUser.id === userId) {
     throw new Error("You cannot delete your own account");
   }
 
-  // Special rules for Admin deletion
+  // ----------------------------------------
+  // ❌ ADMIN CANNOT BE DELETED
+  // ----------------------------------------
   if (target === "ADMIN") {
+    throw new Error("ADMIN account cannot be deleted");
+  }
+
+  // ----------------------------------------
+  // ❌ HR_MANAGER DELETION RULES
+  // ----------------------------------------
+  if (target === "HR_MANAGER") {
     if (acting !== "ADMIN") {
-      throw new Error("Only Admins can delete admins");
+      throw new Error("Only ADMIN can delete HR_MANAGER");
     }
 
-    const activeAdmins = await prisma.user.count({
-      where: { role: "ADMIN", deletedAt: null, isActive: true },
+    // Prevent deleting the only HR_MANAGER
+    const count = await prisma.user.count({
+      where: { role: "HR_MANAGER", deletedAt: null, isActive: true },
     });
 
-    if (activeAdmins <= 1) {
-      throw new Error("Cannot delete the last active Admin");
+    if (count <= 1) {
+      throw new Error("Cannot delete the only HR_MANAGER account");
     }
   }
 
-  // Remove user assignments in projects
+  // ----------------------------------------
+  // ❌ HR RULES
+  // ----------------------------------------
+  if (acting === "HR") {
+    if (["ADMIN", "HR_MANAGER", "HR"].includes(target)) {
+      throw new Error("HR cannot delete Admin, HR Manager, or other HR users");
+    }
+    // HR can delete only MANAGER + EMPLOYEE
+  }
+
+  // ----------------------------------------
+  // ❌ MANAGER / EMPLOYEE cannot delete anyone
+  // ----------------------------------------
+  if (acting === "MANAGER" || acting === "EMPLOYEE") {
+    throw new Error("You are not allowed to delete users");
+  }
+
+  // ----------------------------------------
+  // If ADMIN or HR_MANAGER deleting allowed roles → proceed
+  // ----------------------------------------
+
+  // remove project assignments
   await prisma.projectEmployee.deleteMany({
     where: { employeeId: userId },
   });
 
-  // Nullify manager relation in projects
+  // nullify project manager
   await prisma.project.updateMany({
     where: { managerId: userId },
     data: { managerId: null },
   });
 
-  // Soft delete the user
   return prisma.user.update({
     where: { id: userId },
     data: { deletedAt: new Date(), isActive: false },

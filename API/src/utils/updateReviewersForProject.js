@@ -16,7 +16,7 @@ export async function updateReviewersForProject(projectId) {
         status: "PENDING",
         deletedAt: null,
       },
-      data: { reviewerId: reviewer },
+      data: { approvedById: reviewer },
     });
   }
 }

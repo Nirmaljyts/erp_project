@@ -37,12 +37,15 @@ export function getMyLeavesService(userId) {
 }
 
 // GET TEAM LEAVES
-// MANAGER → only employees under his projects
-// HR / ADMIN → all employees
-export async function getTeamLeavesService(user) {
+// EMPLOYEE       → never receives approvals
+// MANAGER        → sees leaves of employees under him (because resolveReviewer assigns him)
+// HR             → same: sees leaves routed to HR
+// HR_MANAGER     → sees leaves routed to HR_MANAGER
+// ADMIN          → sees leaves routed to ADMIN
+export function getTeamLeavesService(user) {
   return prisma.leave.findMany({
     where: {
-      approvedById: user.id, // ONLY THIS
+      approvedById: user.id,
       status: "PENDING",
       deletedAt: null,
     },
@@ -112,35 +115,48 @@ export async function cancelLeaveService(user, leaveId) {
 export async function getLeaveDashboardService(user) {
   let where = { deletedAt: null };
 
-  // 1️⃣ EMPLOYEE → only own leave
+  // 1️⃣ EMPLOYEE → only own
   if (user.role === "EMPLOYEE") {
     where.userId = user.id;
   }
 
-  // 2️⃣ MANAGER → own leave + employees in manager's projects
+  // 2️⃣ MANAGER → own + employees in projects
   else if (user.role === "MANAGER") {
     where.OR = [
-      { userId: user.id }, // manager’s own leave
+      { userId: user.id },
       {
         user: {
           projects: {
-            some: {
-              project: {
-                managerId: user.id,
-              },
-            },
+            some: { project: { managerId: user.id } },
           },
         },
       },
     ];
   }
 
-  // 3️⃣ HR → own leave + bench employee leaves
+  // 3️⃣ HR → only own
   else if (user.role === "HR") {
+    where.userId = user.id;
+  }
+
+  // 4️⃣ HR_MANAGER → own + HR + MANAGER + bench employees
+  else if (user.role === "HR_MANAGER") {
     where.OR = [
-      { userId: user.id }, // HR's own leave
+      // HR_MANAGER → own leave
+      { userId: user.id },
+
+      // HR + MANAGER (explicitly exclude ADMIN)
       {
         user: {
+          role: { in: ["HR", "MANAGER"] },
+          NOT: { role: "ADMIN" },
+        },
+      },
+
+      // BENCH employees (exclude ADMIN)
+      {
+        user: {
+          role: { not: "ADMIN" },
           projects: {
             none: {
               project: {
@@ -153,12 +169,12 @@ export async function getLeaveDashboardService(user) {
     ];
   }
 
-  // 4️⃣ ADMIN → only own leave
+  // 5️⃣ ADMIN → sees ALL leaves (no filtering)
   else if (user.role === "ADMIN") {
-    where.userId = user.id;
+    where = { deletedAt: null };
   }
 
-  // --- FETCH DATA ---
+  // Fetch data
   const [stats, leaves] = await Promise.all([
     prisma.leave.groupBy({
       by: ["status"],
@@ -179,4 +195,41 @@ export async function getLeaveDashboardService(user) {
   const total = leaves.length;
 
   return { stats, leaves, total };
+}
+
+export async function deleteApprovedLeaveService(id) {
+  const leave = await prisma.leave.findUnique({
+    where: { id },
+  });
+
+  if (!leave) {
+    const error = new Error("Leave not found");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (leave.status !== "APPROVED") {
+    const error = new Error("Only approved leaves can be deleted");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const now = new Date();
+  const start = new Date(leave.startDate);
+
+  if (start <= now) {
+    const error = new Error(
+      "Cannot delete approved leaves that have already started"
+    );
+    error.statusCode = 400;
+    throw error;
+  }
+
+  // Soft delete
+  await prisma.leave.update({
+    where: { id },
+    data: { deletedAt: new Date() },
+  });
+
+  return "Approved leave deleted successfully";
 }

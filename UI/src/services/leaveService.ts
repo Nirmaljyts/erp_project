@@ -27,3 +27,8 @@ export function rejectLeave(id: number) {
 export function getLeaveDashboard() {
   return axiosInstance.get("/leaves/dashboard");
 }
+
+export async function deleteApprovedLeave(id: number) {
+  const res = await axiosInstance.delete(`/leaves/approved/${id}`);
+  return res.data;
+}

@@ -102,6 +102,16 @@ async function seed() {
     },
   });
 
+    const hrManager = await prisma.user.create({
+    data: {
+      id: 8,
+      name: "Eliza",
+      email: "hr.manager@erp.com",
+      password: passwordHash,
+      role: "HR_MANAGER",
+    },
+  });
+
   console.log("✔ Users seeded");
 
   // CLIENTS

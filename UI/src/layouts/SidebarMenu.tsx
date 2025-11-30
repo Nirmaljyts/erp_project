@@ -23,56 +23,56 @@ const menu = [
     label: "Dashboard",
     path: "/",
     icon: LayoutDashboard,
-    roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
+    roles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER", "EMPLOYEE"],
   },
   {
     label: "Projects",
     path: "/projects",
     icon: FolderKanban,
-    roles: ["ADMIN", "MANAGER", "EMPLOYEE"],
+    roles: ["ADMIN", "HR_MANAGER", "MANAGER", "EMPLOYEE"],
   },
   {
     label: "Clients",
     path: "/clients",
     icon: Building2,
-    roles: ["ADMIN"],
+    roles: ["ADMIN", "HR_MANAGER"],
   },
   {
     label: "Users",
     path: "/users",
     icon: Users2,
-    roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
+    roles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER", "EMPLOYEE"],
   },
   {
     label: "Calendar",
     path: "/calendar",
     icon: Calendar,
-    roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
+    roles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER", "EMPLOYEE"],
   },
 
   // GROUPED DROPDOWN
   {
     label: "Leaves",
     icon: CalendarDays,
-    roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
+    roles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER", "EMPLOYEE"],
     children: [
       {
         label: "Leave Dashboard",
         path: "/leaves",
         icon: Kanban,
-        roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
+        roles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER", "EMPLOYEE"],
       },
       {
         label: "My Leaves",
         path: "/request-leaves",
         icon: CalendarClock,
-        roles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
+        roles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER", "EMPLOYEE"],
       },
       {
         label: "Leave Approval",
         path: "/leave-approvals",
         icon: CalendarCheck2,
-        roles: ["ADMIN", "HR", "MANAGER"],
+        roles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER"],
       },
     ],
   },
@@ -106,22 +106,23 @@ export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
       {menu
         .filter((item) => item.roles.includes(userRole))
         .map((item) => {
+          const active = location.pathname === item.path;
           const hasChildren = !!item.children;
 
+          // ------------------ SIMPLE ITEM ------------------
           if (!hasChildren) {
-            const active = location.pathname === item.path;
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 onClick={() => onNavigate && onNavigate()}
-                className={`flex items-center gap-3 p-2 rounded-lg transition border-[var(--border)]
-            ${
-              active
-                ? "bg-black text-white border-gray-700 font-semibold dark:bg-[#1b335a] dark:text-white shadow-lg"
-                : "text-[var(--text)] hover:bg-gray-200 dark:hover:bg-[#1b335a] hover:text-white"
-            }
-          `}
+                className={`flex items-center gap-3 p-2 rounded-lg transition
+              ${
+                active
+                  ? "bg-[#1b335a] text-white font-semibold shadow-md"
+                  : "text-[var(--text)] hover:bg-[#1b335a] dark:hover:bg-[#1b335a] hover:text-white"
+              }
+            `}
               >
                 <item.icon size={18} />
                 {item.label}
@@ -129,15 +130,15 @@ export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
             );
           }
 
-          // --- DROPDOWN ITEM ---
+          // ------------------ DROPDOWN ITEM ------------------
           const isOpen = openDropdown === item.label;
 
           return (
             <div key={item.label}>
+              {/* Parent button */}
               <button
                 onClick={() => handleToggleDropdown(item.label)}
-                className="flex w-full items-center justify-between gap-3 p-2 rounded-lg text-md transition border-[var(--border)]
-            text-[var(--text)] hover:bg-gray-200 dark:hover:bg-[#1b335a] hover:text-white"
+                className={`flex w-full items-center justify-between p-2 rounded-lg transition text-[var(--text)]`}
               >
                 <div className="flex items-center gap-3">
                   <item.icon size={18} />
@@ -151,24 +152,27 @@ export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
                 )}
               </button>
 
+              {/* Children */}
               {isOpen && (
-                <div className="ml-6 mt-1 space-y-1">
-                  {item
-                    .children!.filter((c) => c.roles.includes(userRole))
+                <div className="ml-4 mt-1 space-y-1">
+                  {item.children
+                    .filter((c) => c.roles.includes(userRole))
                     .map((child) => {
-                      const active = location.pathname === child.path;
+                      const childActive = location.pathname === child.path;
+
                       return (
                         <Link
                           key={child.path}
                           to={child.path}
                           onClick={() => onNavigate && onNavigate()}
-                          className={`flex items-center gap-3 p-2 rounded-lg transition border-[var(--border)]
-                      ${
-                        active
-                          ? "bg-black text-white border-gray-700 font-semibold dark:bg-[#1b335a] dark:text-white shadow-lg"
-                          : "text-[var(--text)] hover:bg-gray-200 dark:hover:bg-[#1b335a] hover:text-white"
-                      }
-                    `}
+                          className={`
+                        flex items-center gap-3 p-2 rounded-lg transition
+                        ${
+                          childActive
+                            ? "bg-[#1b335a] text-white font-semibold shadow-md"
+                            : "text-[var(--text)] hover:bg-[#1b335a] dark:hover:bg-[#1b335a] hover:text-white"
+                        }
+                      `}
                         >
                           <child.icon size={18} />
                           {child.label}

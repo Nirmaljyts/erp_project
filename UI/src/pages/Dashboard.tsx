@@ -45,7 +45,7 @@ export default function Dashboard() {
       count: projectCount,
       link: "/projects",
       icon: FolderKanban,
-      allowedRoles: ["ADMIN", "MANAGER", "EMPLOYEE"],
+      allowedRoles: ["ADMIN", "HR_MANAGER", "MANAGER", "EMPLOYEE"],
       style: "text-2xl",
     },
     {
@@ -53,7 +53,7 @@ export default function Dashboard() {
       count: userCount,
       link: "/users",
       icon: Users2,
-      allowedRoles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
+      allowedRoles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER", "EMPLOYEE"],
       style: "text-2xl",
     },
     {
@@ -61,7 +61,7 @@ export default function Dashboard() {
       count: clientCount,
       link: "/clients",
       icon: Building2,
-      allowedRoles: ["ADMIN"],
+      allowedRoles: ["ADMIN", "HR_MANAGER"],
       style: "text-2xl",
     },
     {
@@ -69,7 +69,7 @@ export default function Dashboard() {
       count: formattedDate,
       link: "/calendar",
       icon: Calendar,
-      allowedRoles: ["ADMIN", "HR", "MANAGER", "EMPLOYEE"],
+      allowedRoles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER", "EMPLOYEE"],
       style: "text-2xl text-[#2f4f82]",
     },
   ];
@@ -90,6 +90,9 @@ export default function Dashboard() {
             <p className="text-gray-600 dark:text-gray-400 mb-4">
               {role === "ADMIN" &&
                 "Admin panel — full control over users, clients, and projects."}
+
+              {role === "HR_MANAGER" &&
+                "Coordinate HR activities and ensure smooth workforce management."}
 
               {role === "HR" &&
                 "Manage employees, roles, and their attendance."}
