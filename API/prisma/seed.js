@@ -102,6 +102,16 @@ async function seed() {
     },
   });
 
+    const hrManager = await prisma.user.create({
+    data: {
+      id: 8,
+      name: "Eliza",
+      email: "hr.manager@erp.com",
+      password: passwordHash,
+      role: "HR_MANAGER",
+    },
+  });
+
   console.log("✔ Users seeded");
 
   // CLIENTS
@@ -186,25 +196,6 @@ async function seed() {
 
   console.log("✔ Project assignments seeded");
 
-  // HOLIDAYS
-  await prisma.holiday.createMany({
-    data: [
-      {
-        id: 1,
-        date: new Date("2024-12-25"),
-        name: "Christmas",
-        isOptional: false,
-      },
-      {
-        id: 2,
-        date: new Date("2024-01-01"),
-        name: "New Year",
-        isOptional: false,
-      },
-    ],
-  });
-
-  console.log("✔ Holidays seeded");
   console.log("🎉 Seeding completed successfully.");
 }
 

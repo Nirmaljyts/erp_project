@@ -13,7 +13,7 @@ export async function listUsers(req, res) {
     const result = await fetchUsersService(req.query);
     res.json(result);
   } catch (err) {
-    res.status(500).json({ message: "Failed to list users" });
+    res.status(500).json({ message: err.message || "Failed to list users" });
   }
 }
 
@@ -23,7 +23,7 @@ export async function getUserById(req, res) {
     if (!user) return res.status(404).json({ message: "User not found" });
     res.json(user);
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch user" });
+    res.status(500).json({ message: err.message || "Failed to fetch user" });
   }
 }
 
@@ -35,8 +35,9 @@ export async function createUser(req, res) {
     if (err.code === "P2002") {
       return res.status(400).json({ message: "Email already in use" });
     }
-    console.error("CreateUser Error:", err);
-    return res.status(500).json({ message: "Failed to create user" });
+    return res
+      .status(500)
+      .json({ message: err.message || "Failed to create user" });
   }
 }
 
@@ -48,8 +49,9 @@ export async function updateUser(req, res) {
     if (err.code === "P2002") {
       return res.status(400).json({ message: "Email already in use" });
     }
-    console.error("UpdateUser Error:", err);
-    return res.status(500).json({ message: "Failed to update user" });
+    return res
+      .status(500)
+      .json({ message: err.message || "Failed to update user" });
   }
 }
 
@@ -62,7 +64,6 @@ export async function deleteUser(req, res) {
   }
 }
 
-// ONLY MANAGERS
 export async function listManagers(req, res) {
   try {
     const managers = await getManagersService(req.user);
@@ -72,7 +73,6 @@ export async function listManagers(req, res) {
   }
 }
 
-// AVAILABLE EMPLOYEES (NOT ASSIGNED TO OTHER ACTIVE PROJECTS)
 export async function listAvailableEmployees(req, res) {
   try {
     const { projectId } = req.query;

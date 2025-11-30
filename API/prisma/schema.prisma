@@ -9,89 +9,145 @@ generator client {
 
 enum Role {
   ADMIN
+  HR_MANAGER
   HR
   MANAGER
   EMPLOYEE
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   name      String
-  email     String   @unique
+  email     String    @unique
   password  String
-  role      Role     @default(EMPLOYEE)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  role      Role      @default(EMPLOYEE)
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
-  projectsManaged Project[]        @relation("ProjectManager")
+  // --- MANAGER <-> EMPLOYEES RELATION ---
+  managerId Int?
+  manager   User?  @relation("ManagerEmployees", fields: [managerId], references: [id])
+  employees User[] @relation("ManagerEmployees")
+
+  // --- LEAVE RELATIONS ---
+  leaveRequests  Leave[] @relation("UserLeaves")
+  leaveApprovals Leave[] @relation("LeaveApprover")
+
+  // --- PROJECT RELATIONS ---
+  projectsManaged Project[]         @relation("ProjectManager")
   projects        ProjectEmployee[]
-  otpCodes        OtpCode[]
+
+  // --- OTHERS ---
+  otpCodes OtpCode[]
 }
 
 model Client {
   id          Int       @id @default(autoincrement())
   name        String
   email       String
-  phone       String?     // <--- THIS FIELD EXISTS
+  phone       String?
   contactedBy String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime? // <--- soft delete
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   projects    Project[]
 }
 
 model Project {
-  id          Int              @id @default(autoincrement())
+  id          Int       @id @default(autoincrement())
   name        String
   description String?
-  status      String           @default("ACTIVE")
+  status      String    @default("ACTIVE")
   startDate   DateTime?
   endDate     DateTime?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  deletedAt   DateTime? // <--- soft delete
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  clientId    Int?
-  client      Client?          @relation(fields: [clientId], references: [id])
+  clientId Int?
+  client   Client? @relation(fields: [clientId], references: [id])
 
-  managerId   Int?
-  manager     User?            @relation("ProjectManager", fields: [managerId], references: [id])
+  managerId Int?
+  manager   User? @relation("ProjectManager", fields: [managerId], references: [id])
 
-  employees   ProjectEmployee[]
+  employees ProjectEmployee[]
 }
 
 model ProjectEmployee {
-  id         Int      @id @default(autoincrement())
+  id         Int       @id @default(autoincrement())
   projectId  Int
   employeeId Int
   startDate  DateTime?
   endDate    DateTime?
+  deletedAt  DateTime? // <--- soft delete (optional but useful)
 
-  project    Project  @relation(fields: [projectId], references: [id])
-  employee   User     @relation(fields: [employeeId], references: [id])
+  project  Project @relation(fields: [projectId], references: [id])
+  employee User    @relation(fields: [employeeId], references: [id])
 
   @@unique([projectId, employeeId])
 }
 
 model Holiday {
-  id          Int       @id @default(autoincrement())
-  date DateTime @db.Date
-  name        String
-  country     String?   @default("United Kingdom") // Added
-  isOptional  Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         Int       @id @default(autoincrement())
+  date       DateTime  @db.Date
+  name       String
+  country    String?   @default("United Kingdom")
+  isOptional Boolean   @default(false)
+  deletedAt  DateTime? // <--- soft delete
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
-  @@unique([date, name]) // Prevent duplicates for same holiday date
+  @@unique([date, name])
 }
 
 model OtpCode {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   email     String
   code      String
   expiresAt DateTime
-  used      Boolean  @default(false)
-  createdAt DateTime @default(now())
+  used      Boolean   @default(false)
+  deletedAt DateTime? // <--- soft delete (optional; probably unnecessary but added for consistency)
+  createdAt DateTime  @default(now())
 
-  user      User?    @relation(fields: [userId], references: [id])
-  userId    Int?
+  user   User? @relation(fields: [userId], references: [id])
+  userId Int?
+}
+
+model Leave {
+  id           Int  @id @default(autoincrement())
+  userId       Int
+  approvedById Int?
+
+  type      String
+  startDate DateTime
+  endDate   DateTime
+  reason    String?
+  status    String    @default("PENDING")
+  decidedAt DateTime?
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime @updatedAt @default(now())
+
+  // Employee who applied
+  user User @relation("UserLeaves", fields: [userId], references: [id])
+
+  // Manager / HR who approved
+  approvedBy User? @relation("LeaveApprover", fields: [approvedById], references: [id])
+}
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  UNPAID
+  WFH
+  OTHER
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
 }

@@ -18,14 +18,14 @@ const router = Router();
 router.get(
   "/",
   authRequired,
-  requireRole("ADMIN", "MANAGER", "EMPLOYEE"),
+  requireRole("ADMIN", "HR_MANAGER", "MANAGER", "EMPLOYEE"),
   listProjects
 );
 
 router.get(
   "/:id",
   authRequired,
-  requireRole("ADMIN", "MANAGER", "EMPLOYEE"),
+  requireRole("ADMIN", "HR_MANAGER", "MANAGER", "EMPLOYEE"),
   getProject
 );
 

@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
-import toast from "react-hot-toast";
+import { toast } from "react-toastify";
 import {
   getHolidays,
   uploadHolidayFile,
@@ -149,12 +149,18 @@ export default function CalendarPage() {
 
   return (
     <div className="max-h-auto">
-      <div className="flex justify-between items-center pb-2">
-        <h2 className="text-2xl font-semibold">Holidays - {currentYear}</h2>
+      <div className="flex justify-between items-center pb-4">
+        <h2 className="font-semibold text-md md:text-2xl lg:text-2xl">
+          Holidays - {currentYear}
+        </h2>
 
-        {(user?.role === "ADMIN" || user?.role === "HR") && (
-          <label className="px-4 py-2 bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a] rounded cursor-pointer">
-            Upload Holidays
+        {(user?.role === "ADMIN" ||
+          user?.role === "HR_MANAGER" ||
+          user?.role === "HR") && (
+          <label className="px-4 py-2 text-sm sm:text-base rounded-lg bg-[#2f4f82] text-white cursor-pointer font-medium hover:bg-[#1b335a]">
+            <span className="flex text-[10px] md:text-sm lg:text-sm">
+              Upload Holidays
+            </span>
             <input
               type="file"
               accept=".csv"
@@ -169,7 +175,30 @@ export default function CalendarPage() {
       </div>
 
       {/* Calendar */}
-      <div className="border border-slate-700 rounded-lg p-3">
+      <div className="flex flex-col flex-1 border border-[var(--border)] rounded-lg p-3">
+        <div className="w-full flex items-end justify-end gap-6 mb-3 mt-2">
+          <div className="flex items-center gap-2">
+            <span
+              className="w-4 h-4 rounded-sm"
+              style={{ backgroundColor: "#16a34a" }}
+            />
+            <span className="text-sm text-[var(--text)]">
+              Mandatory Holidays
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span
+              className="w-4 h-4 rounded-sm"
+              style={{ backgroundColor: "#8b5cf6" }}
+            />
+            <span className="text-sm text-[var(--text)]">
+              Optional Holidays
+            </span>
+          </div>
+        </div>
+
+        {/* HOLIDAY COLOR LEGEND */}
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, interactionPlugin]}
@@ -181,8 +210,15 @@ export default function CalendarPage() {
             center: "",
             right: "today prev,next",
           }}
+          buttonText={{
+            today: "Today",
+          }}
+          height="100%"
+          contentHeight="auto"
+          expandRows={true}
           eventClick={(info) => {
-            if (role !== "ADMIN" && role !== "HR") return;
+            if (role !== "ADMIN" && role !== "HR_MANAGER" && role !== "HR")
+              return;
 
             const holiday = events.find((e) => e.id == info.event.id);
 
@@ -214,7 +250,8 @@ export default function CalendarPage() {
             setCurrentDate(info.view.currentStart);
           }}
           dateClick={(info) => {
-            if (role !== "ADMIN" && role !== "HR") return;
+            if (role !== "ADMIN" && role !== "HR_MANAGER" && role !== "HR")
+              return;
 
             setModal({
               open: true,
@@ -251,7 +288,9 @@ export default function CalendarPage() {
             <input
               type="text"
               className={`w-full p-2 border rounded ${
-                errors.name ? "border-red-500" : "border-gray-300"
+                errors.name
+                  ? "border-red-500"
+                  : "border border-[var(--border)] "
               } bg-[var(--card)] text-[var(--text)]`}
               placeholder="Holiday name"
               value={modal.name}

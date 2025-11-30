@@ -2,12 +2,14 @@ import { Outlet, useNavigate } from "react-router-dom";
 import { Sun, Moon, Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import Swal from "sweetalert2";
+import { toast } from "react-toastify";
 import SidebarMenu from "./SidebarMenu";
 import ProfilePopover from "./ProfilePopover";
 
 export default function Layout() {
   const [theme, setTheme] = useState(localStorage.theme || "light");
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -17,6 +19,7 @@ export default function Layout() {
 
   const headerNavigation = () => {
     setSidebarOpen(false);
+    localStorage.clear();
     navigate("/");
   };
 
@@ -36,19 +39,13 @@ export default function Layout() {
         localStorage.clear();
         navigate("/login");
 
-        Swal.fire({
-          title: "Logged out",
-          text: "You have been logged out successfully.",
-          icon: "success",
-          timer: 1500,
-          showConfirmButton: false,
-        });
+        toast.success(`Signed out`);
       }
     });
   };
 
   return (
-    <div className="flex min-h-screen bg-[var(--bg)] text-[var(--text)]">
+    <div className="flex h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)]">
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/40 z-20 lg:hidden"
@@ -58,14 +55,14 @@ export default function Layout() {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-30 w-[14rem] bg-[var(--card)] border-r border-[var(--border)] p-0 flex flex-col justify-between transform duration-300 ${
+        className={`fixed inset-y-0 left-0 z-30 w-56 bg-[var(--card)] border-r border-[var(--border)] flex flex-col justify-between transform duration-300 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 lg:static`}
       >
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-6 hover:cursor-pointer">
+        <div className="p-0">
+          <div className="flex w-full items-center justify-between p-[13.5px] border-[var(--border)] border-b hover:cursor-pointer">
             <h1
-              className="text-xl font-bold tracking-tight"
+              className="text-xl font-bold text-[#2f4f82] tracking-tight"
               onClick={headerNavigation}
             >
               ERP COMPANY
@@ -92,13 +89,7 @@ export default function Layout() {
       {/* Main Section */}
       <div className="flex-1 flex flex-col">
         {/* Navvigation Bar */}
-        <header
-          className="
-            h-14 bg-[var(--card)] border-b border-[var(--border)]
-            flex items-center justify-between lg:justify-end
-            px-2 lg:px-4 gap-4
-          "
-        >
+        <header className="h-14 bg-[var(--card)] border-b border-[var(--border)] flex items-center justify-between lg:justify-end px-2 lg:px-4 gap-4">
           <button
             className="lg:hidden p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm hover:bg-gray-300 dark:hover:bg-gray-600 transition"
             onClick={() => setSidebarOpen(true)}
@@ -122,7 +113,7 @@ export default function Layout() {
           </div>
         </header>
 
-        <main className="p-4">
+        <main className="flex-1 w-full min-w-0 overflow-y-auto p-2 sm:p-4">
           <Outlet />
         </main>
       </div>

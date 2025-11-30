@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import Swal from "sweetalert2";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import type { RootState } from "../store/store";
 
 export default function ProfilePopover() {
@@ -41,13 +42,7 @@ export default function ProfilePopover() {
         localStorage.clear();
         navigate("/login");
 
-        Swal.fire({
-          title: "Logged out",
-          text: "You have been logged out successfully.",
-          icon: "success",
-          timer: 1500,
-          showConfirmButton: false,
-        });
+        toast.success(`Signed out`);
       }
     });
   };

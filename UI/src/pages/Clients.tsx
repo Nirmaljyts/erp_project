@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Edit2, Trash2, X } from "lucide-react";
 import Swal from "sweetalert2";
+import { toast } from "react-toastify";
 import {
   getClients,
   createClient,
@@ -8,6 +9,8 @@ import {
   deleteClient,
 } from "../services/clientServices";
 import Pagination from "../components/Pagination";
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store";
 
 interface Client {
   id: number;
@@ -18,8 +21,10 @@ interface Client {
 }
 
 export default function ClientsPage() {
+  const user = useSelector((state: RootState) => state?.auth?.user);
   const [clients, setClients] = useState<Client[]>([]);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
+  const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
   const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -36,11 +41,12 @@ export default function ClientsPage() {
   const [phoneError, setPhoneError] = useState("");
 
   // ---------------- FETCH CLIENTS ----------------
-  async function loadClients(page = 1) {
+  async function loadClients(page = 1, searchText = "") {
+    const limit = 16;
     try {
       setLoading(true);
 
-      const res = await getClients(page);
+      const res = await getClients(page, limit, searchText);
       setClients(res.data);
 
       setPagination({
@@ -52,8 +58,13 @@ export default function ClientsPage() {
     }
   }
 
+  const onSearch = (value: any) => {
+    setSearch(value);
+    loadClients(1, value);
+  };
+
   useEffect(() => {
-    loadClients(1);
+    loadClients(1, search);
   }, []);
 
   // ---------------- DELETE ----------------
@@ -71,7 +82,8 @@ export default function ClientsPage() {
 
     if (result.isConfirmed) {
       await deleteClient(id);
-      await loadClients(pagination.page);
+      await loadClients(pagination.page, search);
+      toast.success("Client deleted");
     }
   }
 
@@ -150,12 +162,14 @@ export default function ClientsPage() {
     try {
       if (editingClient) {
         await updateClient(editingClient.id, payload);
+        toast.success("Client updated");
       } else {
         await createClient(payload);
+        toast.success("Client created");
       }
 
       closeModal();
-      loadClients(pagination.page);
+      loadClients(pagination.page, search);
     } catch (error) {
       console.error(error);
       Swal.fire("Error", "Something went wrong. Try again later.", "error");
@@ -172,22 +186,66 @@ export default function ClientsPage() {
   // ---------------- PAGINATION ----------------
   const handlePaginate = (page: number) => {
     if (page > 0 && page <= pagination.totalPages) {
-      loadClients(page);
+      loadClients(page, search);
     }
   };
 
-  // ---------------- UI ----------------
   return (
     <div className="max-h-auto">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
         <h1 className="text-2xl font-semibold">Clients</h1>
 
-        <button
-          onClick={openCreate}
-          className="px-4 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
-        >
-          Create Client
-        </button>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+          <div className="relative w-full sm:w-72 md:w-64 lg:w-80">
+            <input
+              type="text"
+              placeholder="Search clients..."
+              value={search}
+              onChange={(e) => {
+                let value = e.target.value.trimStart();
+
+                // Remove leading/trailing spaces
+                value = value.trimStart();
+
+                // Replace multiple spaces with a single space
+                value = value.replace(/\s+/g, " ");
+
+                setSearch(value);
+                onSearch(value);
+              }}
+              onPaste={(e) => {
+                const pasted = e.clipboardData.getData("text");
+                if (/^\s*$/.test(pasted)) {
+                  e.preventDefault(); // block whitespace-only paste
+                }
+              }}
+              className="w-full px-3 py-2 pr-10 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--text)] 
+                 focus:outline-none focus:ring-2 focus:ring-[#2f4f82]"
+            />
+
+            {/* CLEAR BUTTON */}
+            {search && (
+              <button
+                onClick={() => {
+                  setSearch("");
+                  onSearch("");
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-500"
+              >
+                <X size={18} />
+              </button>
+            )}
+          </div>
+
+          {(user?.role === "ADMIN" || user?.role === "MANAGER") && (
+            <button
+              onClick={openCreate}
+              className="px-4 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
+            >
+              Create Client
+            </button>
+          )}
+        </div>
       </div>
 
       {loading ? (
@@ -197,7 +255,7 @@ export default function ClientsPage() {
       ) : (
         <>
           {/* GRID */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-2">
             {clients.map((c) => (
               <div
                 key={c.id}
@@ -205,19 +263,20 @@ export default function ClientsPage() {
               >
                 <div className="flex justify-between mb-2 gap-2">
                   <h2 className="text-lg font-semibold truncate">{c.name}</h2>
-
-                  <div className="flex items-center gap-2">
-                    <Edit2
-                      size={18}
-                      className="cursor-pointer text-gray-500 hover:text-gray-700"
-                      onClick={() => openEdit(c)}
-                    />
-                    <Trash2
-                      size={18}
-                      className="cursor-pointer text-red-500 hover:text-red-600"
-                      onClick={() => handleDelete(c.id)}
-                    />
-                  </div>
+                  {(user?.role === "ADMIN" || user?.role === "MANAGER") && (
+                    <div className="flex items-center gap-2">
+                      <Edit2
+                        size={18}
+                        className="cursor-pointer text-gray-500 hover:text-gray-700"
+                        onClick={() => openEdit(c)}
+                      />
+                      <Trash2
+                        size={18}
+                        className="cursor-pointer text-red-500 hover:text-red-600"
+                        onClick={() => handleDelete(c.id)}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <p className="text-md text-gray-600 dark:text-gray-500 mb-1">
@@ -239,11 +298,13 @@ export default function ClientsPage() {
             <div className="text-center text-gray-500 py-10">No Data</div>
           )}
 
-          <Pagination
-            page={pagination.page}
-            totalPages={pagination.totalPages}
-            onPageChange={handlePaginate}
-          />
+          <div className="fixed bottom-0 left-0 right-0 shadow-md p-3 z-50">
+            <Pagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              onPageChange={handlePaginate}
+            />
+          </div>
         </>
       )}
 

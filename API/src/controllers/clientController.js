@@ -5,25 +5,34 @@ import {
   deleteClientById,
 } from "../services/clientService.js";
 
+
+// LIST  CLIENTS + PAGINATION + SERACH
 export async function listClients(req, res) {
   try {
     const page = Number(req.query.page || 1);
-    const limit = 10;
-    const { clients, totalPages } = await getClientsPaginated(page, limit);
+    const limit = Number(req.query.limit || 10);
+    const search = req.query.search || "";
+    const sort = req.query.sort || "name";
+    const order = req.query.order || "asc";
 
-    return res.json({
-      data: clients,
-      pagination: {
-        page,
-        totalPages,
-      },
+    const result = await getClientsPaginated({
+      page,
+      limit,
+      search,
+      sort,
+      order,
     });
+
+    return res.json(result);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Failed to list clients" });
   }
 }
 
+
+
+// CREATE CLIENT
 export async function createClient(req, res) {
   try {
     const client = await createNewClient(req.body);
@@ -32,12 +41,15 @@ export async function createClient(req, res) {
     console.error("CREATE CLIENT ERROR:", err);
     res.status(500).json({
       message: "Failed to create client",
-      error: err.message, // TEMP
-      meta: err.meta || null, // TEMP
+      error: err.message,
+      meta: err.meta || null,
     });
   }
 }
 
+
+
+// UPDATE CLIENT
 export async function updateClient(req, res) {
   try {
     const { id } = req.params;
@@ -45,10 +57,13 @@ export async function updateClient(req, res) {
     return res.json(client);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Failed to update client" });
+    res.status(500).json({ message: err.message || "Failed to update client" });
   }
 }
 
+
+
+// DELETE CLIENT(SOFT DELETE)
 export async function deleteClient(req, res) {
   try {
     const { id } = req.params;
@@ -56,6 +71,6 @@ export async function deleteClient(req, res) {
     return res.json({ message: "Client deleted" });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Failed to delete client" });
+    res.status(500).json({ message: err.message || "Failed to delete client" });
   }
 }

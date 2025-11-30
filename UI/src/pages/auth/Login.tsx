@@ -1,9 +1,10 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
+import { Eye, EyeOff } from "lucide-react";
+import { toast } from "react-toastify";
 import { userLogin } from "../../services/authServices";
 import { setCredentials } from "../../store/authSlice";
-import { Eye, EyeOff } from "lucide-react";
 import LoginImage from "../../assets/login.png";
 
 export default function Login() {
@@ -25,6 +26,7 @@ export default function Login() {
     try {
       const data = await userLogin({ email, password });
 
+      toast.success(`Welcome back, ${data?.user?.name}`);
       dispatch(
         setCredentials({
           token: data.accessToken,

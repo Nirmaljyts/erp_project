@@ -17,28 +17,28 @@ router.get("/", authRequired, listHolidaysController);
 router.post(
   "/",
   authRequired,
-  requireRole("ADMIN", "HR"),
+  requireRole("ADMIN", "HR_MANAGER", "HR"),
   createHolidayController
 );
 
 router.put(
   "/:id",
   authRequired,
-  requireRole("ADMIN", "HR"),
+  requireRole("ADMIN", "HR_MANAGER", "HR"),
   updateHolidayController
 );
 
 router.delete(
   "/:id",
   authRequired,
-  requireRole("ADMIN", "HR"),
+  requireRole("ADMIN", "HR_MANAGER", "HR"),
   deleteHolidayController
 );
 
 router.post(
   "/bulk",
   authRequired,
-  requireRole("ADMIN", "HR"),
+  requireRole("ADMIN", "HR_MANAGER", "HR"),
   upload.single("file"),
   uploadHolidayBulkController
 );

@@ -1,8 +1,8 @@
 import prisma from "../utils/prisma.js";
+import { resolveReviewer } from "../utils/resolveReviewer.js";
+import { updateReviewersForProject } from "../utils/updateReviewersForProject.js";
 
-// -----------------------------------
 // LIST PROJECTS
-// -----------------------------------
 export async function getAllProjects(query, user) {
   const {
     search = "",
@@ -12,65 +12,68 @@ export async function getAllProjects(query, user) {
     order = "asc",
   } = query;
 
-  const skip = (Number(page) - 1) * Number(limit);
+  const take = Number(limit);
+  const skip = (Number(page) - 1) * take;
 
-  const whereSearch = search
-    ? { name: { contains: search, mode: "insensitive" } }
-    : {};
+  const cleanSearch = search.trim();
+  const whereSearch = cleanSearch ? { name: { contains: cleanSearch } } : {};
 
-  let where = { ...whereSearch };
+  let where = {
+    deletedAt: null,
+    ...whereSearch,
+  };
 
-  // Role-based filters
-  if (user.role === "ADMIN" || user.role === "HR") {
-    // See all projects → no role filter
-  } else if (user.role === "MANAGER") {
+  if (user.role === "MANAGER") {
     where.OR = [
       { managerId: user.id },
-      {
-        employees: {
-          some: { employeeId: user.id },
-        },
-      },
+      { employees: { some: { employeeId: user.id } } },
     ];
-  } else if (user.role === "EMPLOYEE") {
+  }
+
+  if (user.role === "EMPLOYEE") {
     where = {
+      deletedAt: null,
       ...whereSearch,
-      employees: {
-        some: { employeeId: user.id },
-      },
+      employees: { some: { employeeId: user.id } },
     };
   }
 
-  const data = await prisma.project.findMany({
-    where,
-    skip,
-    take: Number(limit),
-    orderBy: { [sort]: order },
-    include: {
-      manager: { select: { id: true, name: true } },
-      employees: { include: { employee: true } },
-    },
-  });
-
-  const total = await prisma.project.count({ where });
+  const [data, total] = await Promise.all([
+    prisma.project.findMany({
+      where,
+      skip,
+      take,
+      orderBy: { [sort]: order },
+      include: {
+        manager: { select: { id: true, name: true } },
+        employees: {
+          include: {
+            employee: { select: { id: true, name: true, deletedAt: true } },
+          },
+        },
+      },
+    }),
+    prisma.project.count({ where }),
+  ]);
 
   return {
     data,
     pagination: {
       total,
       page: Number(page),
-      limit: Number(limit),
-      totalPages: Math.ceil(total / limit),
+      limit: take,
+      totalPages: Math.ceil(total / take),
     },
   };
 }
 
-// -----------------------------------
-// SINGLE PROJECT
-// -----------------------------------
-export function getProjectById(id) {
-  return prisma.project.findUnique({
-    where: { id: Number(id) },
+// GET SINGLE PROJECT
+export async function getProjectById(id, user) {
+  return prisma.project.findFirst({
+    where: {
+      id: Number(id),
+      deletedAt: null,
+    },
     include: {
       manager: true,
       employees: { include: { employee: true } },
@@ -78,32 +81,27 @@ export function getProjectById(id) {
   });
 }
 
+// VALIDATE EMPLOYEES BEFORE CREATE/UPDATE
 export async function validateEmployeesForProject(
   projectId,
   employees,
   targetStatus
 ) {
+  if (!["ACTIVE", "ON_HOLD"].includes(targetStatus)) return true;
+
   const pid = projectId ? Number(projectId) : null;
 
-  // Allow if switching to Completed/Cancelled OR status unchanged
-  if (!["ACTIVE", "ON_HOLD"].includes(targetStatus)) {
-    return true;
-  }
-
-  // Get current project status (if editing)
   let currentStatus = null;
+
   if (pid) {
-    const project = await prisma.project.findUnique({
-      where: { id: pid },
+    const project = await prisma.project.findFirst({
+      where: { id: pid, deletedAt: null },
       select: { status: true },
     });
 
-    currentStatus = project?.status;
-
-    // If changing to same status → OK
-    if (currentStatus === targetStatus) {
-      return true;
-    }
+    if (!project) throw new Error("Project not found");
+    currentStatus = project.status;
+    if (currentStatus === targetStatus) return true;
   }
 
   for (const empId of employees) {
@@ -112,6 +110,7 @@ export async function validateEmployeesForProject(
         employeeId: empId,
         ...(pid ? { projectId: { not: pid } } : {}),
         project: {
+          deletedAt: null,
           status: { in: ["ACTIVE", "ON_HOLD"] },
         },
       },
@@ -123,8 +122,7 @@ export async function validateEmployeesForProject(
 
     if (conflict) {
       throw new Error(
-        `Cannot set this project to ${targetStatus}. 
-        Employee "${conflict.employee.name}" already assigned to an "${conflict.project.status}" project "${conflict.project.name}".`
+        `Employee "${conflict.employee.name}" is already in "${conflict.project.status}" project "${conflict.project.name}".`
       );
     }
   }
@@ -132,9 +130,7 @@ export async function validateEmployeesForProject(
   return true;
 }
 
-// -----------------------------------
 // CREATE PROJECT
-// -----------------------------------
 export async function createNewProject(data, user) {
   const {
     name,
@@ -146,40 +142,97 @@ export async function createNewProject(data, user) {
     endDate,
   } = data;
 
-  if (!startDate || !endDate) {
+  if (!startDate || !endDate)
     throw new Error("Start and End dates are required");
-  }
 
-  if (new Date(startDate) >= new Date(endDate)) {
+  if (new Date(startDate) >= new Date(endDate))
     throw new Error("End date must be greater than start date");
-  }
 
-  // Managers can assign only themselves as manager
   const finalManagerId = user.role === "MANAGER" ? user.id : managerId;
 
-  return prisma.project.create({
+  // Validate MANAGER is active & not deleted
+  const manager = await prisma.user.findFirst({
+    where: {
+      id: finalManagerId,
+      deletedAt: null,
+      isActive: true,
+    },
+    select: { id: true, name: true },
+  });
+
+  if (!manager) {
+    throw new Error(
+      "Assigned manager is inactive or deleted. Replace the manager before saving."
+    );
+  }
+
+  // Validate EMPLOYEES are active & not deleted
+  if (employees.length > 0) {
+    const activeEmployees = await prisma.user.findMany({
+      where: {
+        id: { in: employees },
+        role: "EMPLOYEE",
+        deletedAt: null,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+
+    const activeIds = activeEmployees.map((u) => u.id);
+    const inactiveIds = employees.filter((id) => !activeIds.includes(id));
+
+    if (inactiveIds.length > 0) {
+      const inactiveUsers = await prisma.user.findMany({
+        where: { id: { in: inactiveIds } },
+        select: { name: true },
+      });
+
+      const names = inactiveUsers.map((u) => u.name).join(", ");
+
+      throw new Error(
+        `Cannot assign inactive user(s): ${names}. Remove them before saving or reactivate the user(s).`
+      );
+    }
+  }
+
+  // Validate employee conflicts
+  await validateEmployeesForProject(null, employees, status);
+
+  const project = await prisma.project.create({
     data: {
       name,
       description,
       status,
+      deletedAt: null,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       managerId: finalManagerId || null,
       employees: {
-        create: employees.map((id) => ({ employeeId: id })),
+        create: employees.map((id) => ({
+          employeeId: id,
+          startDate: new Date(startDate),
+          endDate: new Date(endDate),
+        })),
       },
     },
-    include: {
-      manager: true,
-      employees: true,
-    },
+    include: { manager: true, employees: true },
   });
+
+  // 🔥 After project + employees are created, update leave reviewers
+  await updateReviewersForProject(project.id);
+
+  return project;
 }
 
-// -----------------------------------
-// UPDATE PROJECT
-// -----------------------------------
 export async function updateExistingProject(id, data, user) {
+  const projectId = Number(id);
+
+  const existing = await prisma.project.findFirst({
+    where: { id: projectId, deletedAt: null },
+  });
+
+  if (!existing) throw new Error("Project not found");
+
   const {
     name,
     description,
@@ -190,98 +243,202 @@ export async function updateExistingProject(id, data, user) {
     endDate,
   } = data;
 
-  if (!startDate || !endDate) {
+  if (!startDate || !endDate)
     throw new Error("Start and End dates are required");
-  }
 
-  if (new Date(startDate) >= new Date(endDate)) {
+  if (new Date(startDate) >= new Date(endDate))
     throw new Error("End date must be greater than start date");
-  }
 
   const finalManagerId = user.role === "MANAGER" ? user.id : managerId;
 
-  // 🔥 Enforce validation BEFORE database update
-  await validateEmployeesForProject(id, employees, status);
+  // Validate manager is active
+  const manager = await prisma.user.findFirst({
+    where: {
+      id: finalManagerId,
+      deletedAt: null,
+      isActive: true,
+    },
+    select: { id: true, name: true },
+  });
 
-  return prisma.project.update({
-    where: { id: Number(id) },
+  if (!manager) {
+    throw new Error(
+      "Assigned manager is inactive or deleted. Replace the manager before saving."
+    );
+  }
+
+  // Validate employees are active
+  if (employees.length > 0) {
+    const activeEmployees = await prisma.user.findMany({
+      where: {
+        id: { in: employees },
+        role: "EMPLOYEE",
+        deletedAt: null,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+
+    const activeIds = activeEmployees.map((u) => u.id);
+    const inactiveIds = employees.filter((id) => !activeIds.includes(id));
+
+    if (inactiveIds.length > 0) {
+      const inactiveUsers = await prisma.user.findMany({
+        where: { id: { in: inactiveIds } },
+        select: { name: true },
+      });
+
+      const names = inactiveUsers.map((u) => u.name).join(", ");
+
+      throw new Error(
+        `Cannot assign inactive user(s): ${names}. Remove them before saving or reactivate the user(s).`
+      );
+    }
+  }
+
+  // employee assignment validation
+  await validateEmployeesForProject(projectId, employees, status);
+
+  const updated = await prisma.project.update({
+    where: { id: projectId },
     data: {
       name,
       description,
       status,
+      deletedAt: null,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       managerId: finalManagerId || null,
       employees: {
-        deleteMany: {},
-        create: employees.map((eId) => ({ employeeId: eId })),
+        deleteMany: { projectId: projectId },
+        create: employees.map((eId) => ({
+          employeeId: eId,
+          startDate: new Date(startDate),
+          endDate: new Date(endDate),
+        })),
       },
     },
-    include: {
-      manager: true,
-      employees: true,
-    },
+    include: { manager: true, employees: true },
   });
+
+  // 🔥 Project status / employees / manager changed → update reviewers
+  await updateReviewersForProject(projectId);
+
+  return updated;
 }
 
-// -----------------------------------
 // DELETE PROJECT
-// -----------------------------------
 export async function deleteProjectService(id) {
   const projectId = Number(id);
 
-  // 1. Remove employee assignments
+  const existing = await prisma.project.findFirst({
+    where: { id: projectId, deletedAt: null },
+  });
+
+  if (!existing) throw new Error("Project not found");
+
+  // Remove employee relations
   await prisma.projectEmployee.deleteMany({
     where: { projectId },
   });
 
-  // 2. Remove manager association
-  await prisma.project.update({
+  // Soft delete project
+  const deleted = await prisma.project.update({
     where: { id: projectId },
-    data: { managerId: null },
+    data: { deletedAt: new Date() },
   });
 
-  // 3. Delete project
-  return prisma.project.delete({
-    where: { id: projectId },
-  });
+  // 🔥 Employees now effectively benched → reviewers must become HR
+  // We don't know employees here anymore; best effort:
+  // Any pending leaves for users who no longer have active/on_hold projects
+  // will be corrected next time resolveReviewer is used or via a batch script.
+
+  return deleted;
 }
 
-// -----------------------------------
-// VALIDATE EMPLOYEE ASSIGNMENTS
-// -----------------------------------
-async function validateEmployeeAssignment(employeeId, projectId) {
-  const existing = await prisma.projectEmployee.findFirst({
-    where: {
-      employeeId: Number(employeeId),
-      projectId: Number(projectId),
-    },
-  });
-
-  if (existing) return true; // already assigned here → OK
-
-  return true; // allow multiple active project assignments
-}
-
-// -----------------------------------
 // ASSIGN USERS
-// -----------------------------------
 export async function assignUsersService(projectId, data, user) {
+  const pid = Number(projectId);
+
+  const existing = await prisma.project.findFirst({
+    where: { id: pid, deletedAt: null },
+  });
+  if (!existing) throw new Error("Project not found");
+
   const { managerId, employees = [] } = data;
 
   if (!managerId) throw new Error("Manager is required");
 
-  // ❌ Manager cannot assign another manager
-  if (user.role === "MANAGER" && managerId !== user.id) {
-    throw new Error("Managers can only assign projects to employees");
+  // -----------------------------------------------------------
+  // 1. Validate MANAGER (submitted + existing)
+  // -----------------------------------------------------------
+  const manager = await prisma.user.findFirst({
+    where: {
+      id: managerId,
+      deletedAt: null,
+      isActive: true,
+    },
+    select: { id: true, name: true },
+  });
+
+  if (!manager) {
+    throw new Error(
+      "Assigned manager is inactive or deleted. Remove or replace them before saving."
+    );
   }
 
-  for (const empId of employees) {
-    await validateEmployeeAssignment(empId, projectId);
+  // -----------------------------------------------------------
+  // 2. Get EXISTING assigned employees
+  // -----------------------------------------------------------
+  const existingAssignments = await prisma.projectEmployee.findMany({
+    where: { projectId: pid },
+    include: { employee: true },
+  });
+
+  const existingAssignedIds = existingAssignments.map((a) => a.employeeId);
+
+  // -----------------------------------------------------------
+  // 3. Combine submitted + existing employees
+  // -----------------------------------------------------------
+  const finalEmployeeIds = Array.from(
+    new Set([...existingAssignedIds, ...employees])
+  );
+
+  // -----------------------------------------------------------
+  // 4. Validate ALL employees (existing + submitted)
+  // -----------------------------------------------------------
+  const activeEmployees = await prisma.user.findMany({
+    where: {
+      id: { in: finalEmployeeIds },
+      role: "EMPLOYEE",
+      deletedAt: null,
+      isActive: true,
+    },
+    select: { id: true },
+  });
+
+  const activeIds = activeEmployees.map((e) => e.id);
+
+  const inactiveIds = finalEmployeeIds.filter((id) => !activeIds.includes(id));
+
+  if (inactiveIds.length > 0) {
+    const inactiveUsers = await prisma.user.findMany({
+      where: { id: { in: inactiveIds } },
+      select: { name: true },
+    });
+
+    const names = inactiveUsers.map((u) => u.name).join(", ");
+
+    throw new Error(
+      `Cannot assign inactive user(s) ${names} to this project. Remove them before saving or reactivate the user(s).`
+    );
   }
 
-  return prisma.project.update({
-    where: { id: Number(projectId) },
+  // -----------------------------------------------------------
+  // 5. Safe to update
+  // -----------------------------------------------------------
+  const updated = await prisma.project.update({
+    where: { id: pid },
     data: {
       managerId,
       employees: {
@@ -291,40 +448,65 @@ export async function assignUsersService(projectId, data, user) {
     },
     include: { manager: true, employees: { include: { employee: true } } },
   });
+
+  // 🔥 FIX: update all employee reviewers under this project
+  await updateReviewersForProject(pid);
+
+  return updated;
 }
 
-// -----------------------------------
 // REMOVE EMPLOYEE
-// -----------------------------------
+// REMOVE EMPLOYEE
+// REMOVE EMPLOYEE
 export async function removeEmployeeFromProjectService(projectId, employeeId) {
-  return prisma.projectEmployee.deleteMany({
-    where: {
-      projectId: Number(projectId),
-      employeeId: Number(employeeId),
-    },
+  const pid = Number(projectId);
+  const eid = Number(employeeId);
+
+  // Remove assignment
+  await prisma.projectEmployee.deleteMany({
+    where: { projectId: pid, employeeId: eid },
   });
+
+  // Resolve reviewer (HR if benched)
+  const newReviewer = await resolveReviewer(eid);
+
+  console.log("Removed employee:", eid, "from project:", pid);
+  console.log("New reviewer:", newReviewer);
+
+  // Update pending leaves
+  await prisma.leave.updateMany({
+    where: { userId: eid, status: "PENDING", deletedAt: null },
+    data: { approvedById: newReviewer },
+  });
+
+  return { success: true };
 }
 
-// -----------------------------------
 // UPDATE STATUS
-// -----------------------------------
 export async function updateProjectStatusService(projectId, status) {
-  const newStatusIsActive = ["ACTIVE", "ON_HOLD"].includes(status);
+  const pid = Number(projectId);
 
-  if (newStatusIsActive) {
-    // Find employees assigned to this project
+  const project = await prisma.project.findFirst({
+    where: { id: pid, deletedAt: null },
+  });
+
+  if (!project) throw new Error("Project not found");
+
+  const activating = ["ACTIVE", "ON_HOLD"].includes(status);
+
+  if (activating) {
     const assignedEmployees = await prisma.projectEmployee.findMany({
-      where: { projectId: Number(projectId) },
+      where: { projectId: pid },
       select: { employeeId: true },
     });
 
-    // Check each employee to ensure they aren't in another active project
     for (const { employeeId } of assignedEmployees) {
       const conflict = await prisma.projectEmployee.findFirst({
         where: {
           employeeId,
-          projectId: { not: Number(projectId) },
+          projectId: { not: pid },
           project: {
+            deletedAt: null,
             status: { in: ["ACTIVE", "ON_HOLD"] },
           },
         },
@@ -336,14 +518,19 @@ export async function updateProjectStatusService(projectId, status) {
 
       if (conflict) {
         throw new Error(
-          `Employee "${conflict.employee.name}" is already assigned to ACTIVE/ON_HOLD project "${conflict.project.name}". Remove them first.`
+          `Employee "${conflict.employee.name}" is already in ACTIVE/ON_HOLD project "${conflict.project.name}". Remove them first.`
         );
       }
     }
   }
 
-  return prisma.project.update({
-    where: { id: Number(projectId) },
+  const updated = await prisma.project.update({
+    where: { id: pid },
     data: { status },
   });
+
+  // 🔥 Status change affects who manages employees (manager vs HR)
+  await updateReviewersForProject(pid);
+
+  return updated;
 }

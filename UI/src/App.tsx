@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
+import { ToastContainer } from "react-toastify";
+import { useSelector } from "react-redux";
 import Login from "./pages/auth/Login";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
@@ -10,9 +11,12 @@ import Layout from "./layouts/Layout";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import VerifyOtp from "./pages/auth/VerifyOtp";
 import ResetPassword from "./pages/auth/ResetPassword";
-import { useSelector } from "react-redux";
-import { RootState } from "./store/store";
 import Page404 from "./pages/common/Page404";
+import Leaves from "./pages/Leaves";
+import LeaveApprovals from "./pages/LeaveApprovals";
+
+import { RootState } from "./store/store";
+import LeaveDashboard from "./pages/LeaveDashboard";
 
 function PrivateRoute({ children }: { children: JSX.Element }) {
   const token = useSelector((state: RootState) => state?.auth?.token);
@@ -93,55 +97,123 @@ export default function App() {
             </PrivateRoute>
           }
         >
-          {/* Dashboard — everyone */}
           <Route index element={<Dashboard />} />
 
-          {/* Projects — Admin, HR, Manager, Employee */}
           <Route
             path="projects"
             element={
-              <RoleGuard allowedRoles={["ADMIN", "HR", "MANAGER", "EMPLOYEE"]}>
+              <RoleGuard allowedRoles={["ADMIN", "HR_MANAGER", "MANAGER", "EMPLOYEE"]}>
                 <Projects />
               </RoleGuard>
             }
           />
 
-          {/* Clients — Admin only */}
           <Route
             path="clients"
             element={
-              <RoleGuard allowedRoles={["ADMIN"]}>
+              <RoleGuard allowedRoles={["ADMIN", "HR_MANAGER"]}>
                 <Clients />
               </RoleGuard>
             }
           />
 
-          {/* Users — Admin + HR only */}
           <Route
             path="users"
             element={
-              <RoleGuard allowedRoles={["ADMIN", "HR", "MANAGER", "EMPLOYEE"]}>
+              <RoleGuard
+                allowedRoles={[
+                  "ADMIN",
+                  "HR_MANAGER",
+                  "HR",
+                  "MANAGER",
+                  "EMPLOYEE",
+                ]}
+              >
                 <Users />
               </RoleGuard>
             }
           />
 
-          {/* Holidays / Calendar — everyone */}
           <Route
             path="calendar"
             element={
-              <RoleGuard allowedRoles={["ADMIN", "HR", "MANAGER", "EMPLOYEE"]}>
+              <RoleGuard
+                allowedRoles={[
+                  "ADMIN",
+                  "HR_MANAGER",
+                  "HR",
+                  "MANAGER",
+                  "EMPLOYEE",
+                ]}
+              >
                 <CalendarPage />
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="leaves"
+            element={
+              <RoleGuard
+                allowedRoles={[
+                  "ADMIN",
+                  "HR_MANAGER",
+                  "HR",
+                  "MANAGER",
+                  "EMPLOYEE",
+                ]}
+              >
+                <LeaveDashboard />
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="request-leaves"
+            element={
+              <RoleGuard
+                allowedRoles={[
+                  "ADMIN",
+                  "HR_MANAGER",
+                  "HR",
+                  "MANAGER",
+                  "EMPLOYEE",
+                ]}
+              >
+                <Leaves />
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="leave-approvals"
+            element={
+              <RoleGuard
+                allowedRoles={["ADMIN", "HR_MANAGER", "HR", "MANAGER"]}
+              >
+                <LeaveApprovals />
               </RoleGuard>
             }
           />
         </Route>
 
-        {/* UNIVERSAL 404 */}
+        {/* UNKNOWN PAGE 404 */}
         <Route path="/404" element={<Page404 />} />
         <Route path="*" element={<Navigate to="/404" replace />} />
       </Routes>
-      <Toaster position="top-right" />
+
+      <ToastContainer
+        position="top-right"
+        autoClose={2000}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick={false}
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
     </>
   );
 }

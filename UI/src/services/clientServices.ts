@@ -1,8 +1,16 @@
 import { axiosInstance } from "./interceptor";
 
 // LIST CLIENTS
-export async function getClients(page = 1) {
-  const res = await axiosInstance.get(`/clients?page=${page}`);
+export async function getClients(
+  page = 1,
+  limit = 10,
+  search = "",
+  sort = "name",
+  order = "asc"
+) {
+  const res = await axiosInstance.get(
+    `/clients?page=${page}&limit=${limit}&search=${search}&sort=${sort}&order=${order}`
+  );
   return res.data;
 }
 
