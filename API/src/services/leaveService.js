@@ -11,16 +11,26 @@ export async function createLeaveService(userId, body) {
   if (new Date(startDate) > new Date(endDate))
     throw new Error("End date cannot be earlier than start date");
 
-  const approvedById = await resolveReviewer(userId);
+  // 🔥 Resolve reviewer based on role + project logic
+  const reviewerId = await resolveReviewer(userId);
+
+  if (!reviewerId)
+    throw new Error("No valid reviewer found for this leave request");
 
   return prisma.leave.create({
     data: {
       userId,
-      approvedById,
       type,
       startDate: new Date(startDate),
       endDate: new Date(endDate),
-      reason,
+      reason: reason || null,
+      status: "PENDING",
+
+      // Assign reviewer here
+      approvedById: reviewerId,
+
+      // Leave rejectedById empty
+      rejectedById: null,
     },
   });
 }
@@ -31,6 +41,7 @@ export function getMyLeavesService(userId) {
     where: { userId, deletedAt: null },
     include: {
       approvedBy: true,
+      rejectedBy: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -55,40 +66,44 @@ export function getTeamLeavesService(user) {
 }
 
 // APPROVE LEAVE
-export async function approveLeaveService(approver, leaveId) {
+export async function approveLeaveService(leaveId, reviewerId) {
   const leave = await prisma.leave.findUnique({ where: { id: leaveId } });
-  if (!leave) throw new Error("Leave request not found");
-  if (leave.status !== "PENDING") throw new Error("Not pending");
 
-  if (leave.approvedById !== approver.id)
+  if (!leave) throw new Error("Leave not found");
+  if (leave.status !== "PENDING") throw new Error("Already processed");
+  if (leave.approvedById !== reviewerId)
     throw new Error("You are not authorized to approve this leave");
 
   return prisma.leave.update({
     where: { id: leaveId },
     data: {
       status: "APPROVED",
-      approvedById: approver.id,
+      approvedById: reviewerId,
+      rejectedById: null,
       decidedAt: new Date(),
     },
+    include: { approvedBy: true },
   });
 }
 
 // REJECT LEAVE
-export async function rejectLeaveService(approver, leaveId) {
+export async function rejectLeaveService(leaveId, reviewerId) {
   const leave = await prisma.leave.findUnique({ where: { id: leaveId } });
-  if (!leave) throw new Error("Leave request not found");
-  if (leave.status !== "PENDING") throw new Error("Not pending");
 
-  if (leave.approvedById !== approver.id)
+  if (!leave) throw new Error("Leave not found");
+  if (leave.status !== "PENDING") throw new Error("Already processed");
+  if (leave.approvedById !== reviewerId)
     throw new Error("You are not authorized to reject this leave");
 
   return prisma.leave.update({
     where: { id: leaveId },
     data: {
       status: "REJECTED",
-      approvedById: approver.id,
+      rejectedById: reviewerId,
+      approvedById: null,
       decidedAt: new Date(),
     },
+    include: { rejectedBy: true },
   });
 }
 

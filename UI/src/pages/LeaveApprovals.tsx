@@ -65,6 +65,21 @@ export default function LeaveApprovals() {
 
                 <p className="text-gray-600 text-sm mt-1">{l.reason || "-"}</p>
 
+                {/* WHO DECIDED – will show only after approved/rejected */}
+                {l.status === "APPROVED" && l.approvedBy && (
+                  <p className="mt-1 text-sm text-green-600">
+                    Approved by:{" "}
+                    <span className="font-semibold">{l.approvedBy.name}</span>
+                  </p>
+                )}
+
+                {l.status === "REJECTED" && l.rejectedBy && (
+                  <p className="mt-1 text-sm text-red-600">
+                    Rejected by:{" "}
+                    <span className="font-semibold">{l.rejectedBy.name}</span>
+                  </p>
+                )}
+
                 <div className="flex gap-2 mt-3">
                   <button
                     onClick={() => handleAction(l.id, "REJECT")}
