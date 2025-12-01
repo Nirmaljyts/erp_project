@@ -170,16 +170,21 @@ export default function LeaveDashboard() {
               <table className="min-w-[520px] w-full text-xs sm:text-sm border border-[var(--border)]">
                 <thead>
                   <tr className="border-b border border-[var(--border)] ">
-                    {["Name", "Role", "Leave Type", "Period", "Status"].map(
-                      (head) => (
-                        <th
-                          key={head}
-                          className="px-3 py-3 text-left text-[10px] sm:text-xs font-bold uppercase tracking-wide whitespace-nowrap"
-                        >
-                          {head}
-                        </th>
-                      )
-                    )}
+                    {[
+                      "Name",
+                      "Role",
+                      "Leave Type",
+                      "Period",
+                      "Status",
+                      "Actions",
+                    ].map((head) => (
+                      <th
+                        key={head}
+                        className="px-3 py-3 text-left text-[10px] sm:text-xs font-bold uppercase tracking-wide whitespace-nowrap"
+                      >
+                        {head}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
 
@@ -207,7 +212,6 @@ export default function LeaveDashboard() {
                           {new Date(l.endDate).toLocaleDateString()}
                         </td>
                         <td className="p-2 whitespace-nowrap font-semibold">
-                          {/* STATUS COLOR */}
                           <span
                             style={{
                               color:
@@ -236,7 +240,8 @@ export default function LeaveDashboard() {
                               → {l.rejectedBy.name}
                             </span>
                           )}
-
+                        </td>
+                        <td>
                           {/* DELETE BUTTON FOR FUTURE APPROVED LEAVES */}
                           {l.status === "APPROVED" &&
                             new Date(l.startDate) > new Date() &&
