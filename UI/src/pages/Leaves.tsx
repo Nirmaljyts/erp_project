@@ -181,7 +181,7 @@ export default function Leaves() {
                             : form.endDate,
                       })
                     }
-                    dateFormat="dd/MM/yyyy"  
+                    dateFormat="dd/MM/yyyy"
                     minDate={new Date()}
                     placeholderText="Select start date"
                     className="border border-[var(--border)] p-2 rounded bg-[var(--card)] text-[var(--text)] w-full"
@@ -195,7 +195,7 @@ export default function Leaves() {
                         endDate: date ? date.toISOString().split("T")[0] : "",
                       })
                     }
-                    dateFormat="dd/MM/yyyy"  
+                    dateFormat="dd/MM/yyyy"
                     minDate={
                       form.startDate ? new Date(form.startDate) : new Date()
                     }
