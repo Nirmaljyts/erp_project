@@ -436,7 +436,7 @@ export default function UsersPage() {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <form
             onSubmit={handleUserSubmit}
-            className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 relative max-h-[90vh] overflow-y-auto"
+            className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 relative w-full max-w-xl max-h-[90vh] overflow-y-auto"
           >
             <button
               type="button"
@@ -460,7 +460,7 @@ export default function UsersPage() {
                     if (nameError) setNameError("");
                   }}
                   placeholder="Full Name"
-                  className={`p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
+                  className={`w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
                     nameError ? "border-red-500" : "border-[var(--border)]"
                   }`}
                 />
@@ -479,7 +479,7 @@ export default function UsersPage() {
                     if (emailError) setEmailError("");
                   }}
                   placeholder="Email"
-                  className={`p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
+                  className={`w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
                     emailError ? "border-red-500" : "border-[var(--border)]"
                   }`}
                 />
@@ -501,7 +501,7 @@ export default function UsersPage() {
                     placeholder={
                       editingUser ? "New Password (optional)" : "Password"
                     }
-                    className={`p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
+                    className={`w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
                       passwordError
                         ? "border-red-500"
                         : "border-[var(--border)]"
@@ -527,7 +527,7 @@ export default function UsersPage() {
                 <select
                   value={formRole}
                   onChange={(e) => setFormRole(e.target.value as User["role"])}
-                  className="p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
+                  className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
                 >
                   <option value="ADMIN">ADMIN</option>
                   <option value="HR_MANAGER">HR_MANAGER</option>
@@ -564,7 +564,7 @@ export default function UsersPage() {
 
             <button
               type="submit"
-              className="mt-6 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
+              className="w-full mt-6 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
             >
               {editingUser ? "Update User" : "Create User"}
             </button>

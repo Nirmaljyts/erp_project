@@ -158,9 +158,7 @@ export default function CalendarPage() {
           user?.role === "HR_MANAGER" ||
           user?.role === "HR") && (
           <label className="px-4 py-2 text-sm sm:text-base rounded-lg bg-[#2f4f82] text-white cursor-pointer font-medium hover:bg-[#1b335a]">
-            <span className="flex text-[10px] md:text-sm lg:text-sm">
-              Upload Holidays
-            </span>
+            <span>Upload Holidays</span>
             <input
               type="file"
               accept=".csv"
@@ -182,7 +180,7 @@ export default function CalendarPage() {
               className="w-4 h-4 rounded-sm"
               style={{ backgroundColor: "#16a34a" }}
             />
-            <span className="text-sm text-[var(--text)]">
+            <span className=" text-[var(--text)] text-[12px] sm:text-sm">
               Mandatory Holidays
             </span>
           </div>
@@ -192,7 +190,7 @@ export default function CalendarPage() {
               className="w-4 h-4 rounded-sm"
               style={{ backgroundColor: "#8b5cf6" }}
             />
-            <span className="text-sm text-[var(--text)]">
+            <span className="text-[var(--text)] text-[12px] sm:text-sm">
               Optional Holidays
             </span>
           </div>

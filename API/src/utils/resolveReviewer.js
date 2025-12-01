@@ -4,16 +4,24 @@ export async function resolveReviewer(userId) {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      projects: {
-        include: { project: true },
-      },
+      projects: { include: { project: true } },
     },
   });
 
   if (!user) return null;
 
-  // 1️⃣ EMPLOYEE → Manager OR HR_MANAGER
+  // Helper to get first active user by role
+  const getUserByRole = (role) =>
+    prisma.user.findFirst({
+      where: { role, isActive: true, deletedAt: null },
+      orderBy: { id: "asc" },
+    });
+
+  /* ======================================================
+     1️⃣ EMPLOYEE → Manager → HR → HR_MANAGER → ADMIN
+  ====================================================== */
   if (user.role === "EMPLOYEE") {
+    // Manager check (only if in active/on_hold project)
     const activeProject = user.projects.find((p) =>
       ["ACTIVE", "ON_HOLD"].includes(p.project.status)
     );
@@ -22,39 +30,63 @@ export async function resolveReviewer(userId) {
       return activeProject.project.managerId;
     }
 
-    // fallback → HR_MANAGER
-    const hrm = await prisma.user.findFirst({
-      where: { role: "HR_MANAGER", isActive: true, deletedAt: null },
-    });
+    // HR
+    const hr = await getUserByRole("HR");
+    if (hr) return hr.id;
 
-    return hrm?.id ?? null;
+    // HR_MANAGER
+    const hrm = await getUserByRole("HR_MANAGER");
+    if (hrm) return hrm.id;
+
+    // ADMIN
+    const admin = await getUserByRole("ADMIN");
+    if (admin) return admin.id;
+
+    return null;
   }
 
-  // 2️⃣ MANAGER → HR_MANAGER approves
+  /* ======================================================
+     2️⃣ MANAGER → HR → HR_MANAGER → ADMIN
+  ====================================================== */
   if (user.role === "MANAGER") {
-    const hrm = await prisma.user.findFirst({
-      where: { role: "HR_MANAGER", isActive: true, deletedAt: null },
-    });
-    return hrm?.id ?? null;
+    const hr = await getUserByRole("HR");
+    if (hr) return hr.id;
+
+    const hrm = await getUserByRole("HR_MANAGER");
+    if (hrm) return hrm.id;
+
+    const admin = await getUserByRole("ADMIN");
+    if (admin) return admin.id;
+
+    return null;
   }
 
-  // 3️⃣ HR → HR_MANAGER approves
+  /* ======================================================
+     3️⃣ HR → HR_MANAGER → ADMIN
+  ====================================================== */
   if (user.role === "HR") {
-    const hrm = await prisma.user.findFirst({
-      where: { role: "HR_MANAGER", isActive: true, deletedAt: null },
-    });
-    return hrm?.id ?? null;
+    const hrm = await getUserByRole("HR_MANAGER");
+    if (hrm) return hrm.id;
+
+    const admin = await getUserByRole("ADMIN");
+    if (admin) return admin.id;
+
+    return null;
   }
 
-  // 4️⃣ HR_MANAGER → Admin approves
+  /* ======================================================
+     4️⃣ HR_MANAGER → ADMIN
+  ====================================================== */
   if (user.role === "HR_MANAGER") {
-    const admin = await prisma.user.findFirst({
-      where: { role: "ADMIN", isActive: true, deletedAt: null },
-    });
-    return admin?.id ?? null;
+    const admin = await getUserByRole("ADMIN");
+    if (admin) return admin.id;
+
+    return null;
   }
 
-  // 5️⃣ ADMIN → approve own leave
+  /* ======================================================
+     5️⃣ ADMIN → SELF
+  ====================================================== */
   if (user.role === "ADMIN") {
     return user.id;
   }

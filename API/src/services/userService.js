@@ -1,13 +1,61 @@
 import prisma from "../utils/prisma.js";
 import bcrypt from "bcryptjs";
 
-// LIST USERS (pagination + search)
+/* ============================================================
+   ROLE PRIORITY CHAIN (for reviewer fallback)
+============================================================ */
+const ESCALATION = {
+  EMPLOYEE: ["MANAGER", "HR", "HR_MANAGER", "ADMIN"],
+  MANAGER: ["HR", "HR_MANAGER", "ADMIN"],
+  HR: ["HR_MANAGER", "ADMIN"],
+  HR_MANAGER: ["ADMIN"],
+  ADMIN: ["ADMIN"],
+};
+
+/* ============================================================
+   UTILITY — FIND NEXT REVIEWER IN CHAIN
+============================================================ */
+async function findNextReviewerByRole(role) {
+  const chain = ESCALATION[role];
+
+  for (const nextRole of chain) {
+    const user = await prisma.user.findFirst({
+      where: { role: nextRole, isActive: true, deletedAt: null },
+      orderBy: { id: "asc" },
+    });
+
+    if (user) return user.id;
+  }
+
+  return null;
+}
+
+/* ============================================================
+   UTILITY — REASSIGN PENDING LEAVES OF REMOVED/UPDATED USER
+============================================================ */
+async function reassignPendingLeaves(oldReviewerId, oldRole) {
+  const nextReviewer = await findNextReviewerByRole(oldRole);
+  if (!nextReviewer) return;
+
+  await prisma.leave.updateMany({
+    where: {
+      approvedById: oldReviewerId,
+      status: "PENDING",
+      deletedAt: null,
+    },
+    data: { approvedById: nextReviewer },
+  });
+}
+
+/* ============================================================
+   LIST USERS (pagination + search)
+============================================================ */
 export async function fetchUsersService(query) {
   const {
     search = "",
     page = 1,
     limit = 10,
-    sort = "role", // default sort by role hierarchy
+    sort = "role",
     order = "asc",
   } = query;
 
@@ -20,7 +68,6 @@ export async function fetchUsersService(query) {
 
   const skip = (Number(page) - 1) * Number(limit);
 
-  // Fetch raw (unsorted if sorting by role)
   const [rawData, total] = await Promise.all([
     prisma.user.findMany({
       where,
@@ -39,7 +86,6 @@ export async function fetchUsersService(query) {
     prisma.user.count({ where }),
   ]);
 
-  // *** Custom role priority ***
   const ROLE_ORDER = {
     ADMIN: 1,
     HR_MANAGER: 2,
@@ -50,7 +96,6 @@ export async function fetchUsersService(query) {
 
   let data = rawData;
 
-  // Apply custom role ordering only if sorting by "role"
   if (sort === "role") {
     data = rawData.sort((a, b) => {
       const diff = ROLE_ORDER[a.role] - ROLE_ORDER[b.role];
@@ -69,7 +114,9 @@ export async function fetchUsersService(query) {
   };
 }
 
-// GET ALL USERS
+/* ============================================================
+   GET ONE USER
+============================================================ */
 export async function fetchUserService(id) {
   return prisma.user.findFirst({
     where: { id: Number(id), deletedAt: null },
@@ -85,33 +132,29 @@ export async function fetchUserService(id) {
   });
 }
 
-// CREATE USER
-// CREATE USER — with full ADMIN / HR_MANAGER restrictions
+/* ============================================================
+   CREATE USER (with restrictions)
+============================================================ */
 export async function createUserService(data) {
   const { name, email, password, role = "EMPLOYEE", isActive = true } = data;
 
-  if (!name || !email || !password) {
+  if (!name || !email || !password)
     throw new Error("Name, email and password are required");
-  }
 
-  // ❌ Only ONE ADMIN allowed
+  // Only one ADMIN
   if (role === "ADMIN") {
-    const adminCount = await prisma.user.count({
+    const count = await prisma.user.count({
       where: { role: "ADMIN", deletedAt: null },
     });
-    if (adminCount >= 1) {
-      throw new Error("Only one ADMIN account is allowed");
-    }
+    if (count >= 1) throw new Error("Only one ADMIN is allowed");
   }
 
-  // ❌ Only ONE HR_MANAGER allowed
+  // Only one HR_MANAGER
   if (role === "HR_MANAGER") {
     const count = await prisma.user.count({
       where: { role: "HR_MANAGER", deletedAt: null },
     });
-    if (count >= 1) {
-      throw new Error("Only one HR_MANAGER account is allowed");
-    }
+    if (count >= 1) throw new Error("Only one HR_MANAGER is allowed");
   }
 
   const hashed = await bcrypt.hash(password, 10);
@@ -136,8 +179,9 @@ export async function createUserService(data) {
   });
 }
 
-// UPDATE USER
-// UPDATE USER — full role protection rules
+/* ============================================================
+   UPDATE USER (with auto-leave reassignment)
+============================================================ */
 export async function updateUserService(id, data) {
   const existing = await prisma.user.findFirst({
     where: { id: Number(id), deletedAt: null },
@@ -145,61 +189,43 @@ export async function updateUserService(id, data) {
 
   if (!existing) throw new Error("User not found");
 
-  // currentUser is passed in from controller
   const actingRole = data.currentUser?.role;
   const targetRole = existing.role;
 
   const updateData = {};
 
-  // -------------------------------------------------
-  // BASIC FIELD UPDATES
-  // -------------------------------------------------
   if (data.name) updateData.name = data.name;
   if (data.email) updateData.email = data.email;
 
-  if (data.password) {
-    updateData.password = await bcrypt.hash(data.password, 10);
-  }
+  if (data.password) updateData.password = await bcrypt.hash(data.password, 10);
 
-  if (typeof data.isActive === "boolean") {
-    updateData.isActive = data.isActive;
-  }
+  if (typeof data.isActive === "boolean") updateData.isActive = data.isActive;
 
-  // -------------------------------------------------
-  // ROLE CHANGE LOGIC
-  // -------------------------------------------------
-  if (data.role) {
+  /* --------- ROLE CHANGE HANDLING --------- */
+  if (data.role && data.role !== existing.role) {
     const newRole = data.role;
 
-    // ❌ ADMIN role cannot be changed by anyone
-    if (targetRole === "ADMIN") {
-      throw new Error("ADMIN role cannot be changed");
-    }
+    if (targetRole === "ADMIN") throw new Error("ADMIN role cannot be changed");
 
-    // ❌ HR_MANAGER role can ONLY be changed by ADMIN
-    if (targetRole === "HR_MANAGER" && actingRole !== "ADMIN") {
+    if (targetRole === "HR_MANAGER" && actingRole !== "ADMIN")
       throw new Error("Only ADMIN can modify HR_MANAGER role");
-    }
 
-    // ❌ Cannot create a 2nd ADMIN
     if (newRole === "ADMIN") {
       const count = await prisma.user.count({
         where: { role: "ADMIN", deletedAt: null },
       });
-      if (count >= 1) {
-        throw new Error("Only one ADMIN account is allowed");
-      }
+      if (count >= 1) throw new Error("Only one ADMIN account allowed");
     }
 
-    // ❌ Cannot create a 2nd HR_MANAGER
     if (newRole === "HR_MANAGER") {
       const count = await prisma.user.count({
         where: { role: "HR_MANAGER", deletedAt: null },
       });
-      if (count >= 1) {
-        throw new Error("Only one HR_MANAGER account is allowed");
-      }
+      if (count >= 1) throw new Error("Only one HR_MANAGER allowed");
     }
+
+    // AUTO REALLOCATE LEAVES
+    await reassignPendingLeaves(existing.id, existing.role);
 
     updateData.role = newRole;
   }
@@ -218,77 +244,54 @@ export async function updateUserService(id, data) {
   });
 }
 
-// DELETE USER — full role restriction rules
+/* ============================================================
+   DELETE USER (with auto-leave reassignment)
+============================================================ */
 export async function deleteUserService(id, currentUser) {
   const userId = Number(id);
 
-  const targetUser = await prisma.user.findFirst({
+  const target = await prisma.user.findFirst({
     where: { id: userId, deletedAt: null },
     select: { id: true, role: true, isActive: true },
   });
 
-  if (!targetUser) throw new Error("User not found");
+  if (!target) throw new Error("User not found");
 
-  const acting = currentUser.role;
-  const target = targetUser.role;
+  if (currentUser.id === userId) throw new Error("You cannot delete yourself");
 
-  // ❌ Universal self-delete block
-  if (currentUser.id === userId) {
-    throw new Error("You cannot delete your own account");
-  }
+  if (target.role === "ADMIN") throw new Error("ADMIN cannot be deleted");
 
-  // ----------------------------------------
-  // ❌ ADMIN CANNOT BE DELETED
-  // ----------------------------------------
-  if (target === "ADMIN") {
-    throw new Error("ADMIN account cannot be deleted");
-  }
-
-  // ----------------------------------------
-  // ❌ HR_MANAGER DELETION RULES
-  // ----------------------------------------
-  if (target === "HR_MANAGER") {
-    if (acting !== "ADMIN") {
+  if (target.role === "HR_MANAGER") {
+    if (currentUser.role !== "ADMIN")
       throw new Error("Only ADMIN can delete HR_MANAGER");
-    }
 
-    // Prevent deleting the only HR_MANAGER
     const count = await prisma.user.count({
       where: { role: "HR_MANAGER", deletedAt: null, isActive: true },
     });
 
-    if (count <= 1) {
-      throw new Error("Cannot delete the only HR_MANAGER account");
-    }
+    if (count <= 1) throw new Error("Cannot delete the only HR_MANAGER");
   }
 
-  // ----------------------------------------
-  // ❌ HR RULES
-  // ----------------------------------------
-  if (acting === "HR") {
-    if (["ADMIN", "HR_MANAGER", "HR"].includes(target)) {
-      throw new Error("HR cannot delete Admin, HR Manager, or other HR users");
-    }
-    // HR can delete only MANAGER + EMPLOYEE
+  if (
+    currentUser.role === "HR" &&
+    ["ADMIN", "HR_MANAGER", "HR"].includes(target.role)
+  ) {
+    throw new Error("HR cannot delete Admin / HR Manager / HR");
   }
 
-  // ----------------------------------------
-  // ❌ MANAGER / EMPLOYEE cannot delete anyone
-  // ----------------------------------------
-  if (acting === "MANAGER" || acting === "EMPLOYEE") {
+  if (["MANAGER", "EMPLOYEE"].includes(currentUser.role)) {
     throw new Error("You are not allowed to delete users");
   }
 
-  // ----------------------------------------
-  // If ADMIN or HR_MANAGER deleting allowed roles → proceed
-  // ----------------------------------------
+  /* --------- AUTO-REALLOCATE LEAVES --------- */
+  await reassignPendingLeaves(userId, target.role);
 
   // remove project assignments
   await prisma.projectEmployee.deleteMany({
     where: { employeeId: userId },
   });
 
-  // nullify project manager
+  // unset manager in projects
   await prisma.project.updateMany({
     where: { managerId: userId },
     data: { managerId: null },
@@ -300,7 +303,9 @@ export async function deleteUserService(id, currentUser) {
   });
 }
 
-// LIST MANAGERS FOR PROJECT ASSIGNMENT
+/* ============================================================
+   GET MANAGERS (unchanged)
+============================================================ */
 export async function getManagersService(user) {
   if (user.role === "MANAGER") {
     return prisma.user.findMany({
@@ -326,7 +331,9 @@ export async function getManagersService(user) {
   });
 }
 
-// GET AVAILABLE EMPLOYEES FOR PROJECT ASSIGNMENT
+/* ============================================================
+   GET AVAILABLE EMPLOYEES FOR PROJECT
+============================================================ */
 export async function getAvailableEmployeesService(currentProjectId) {
   const projectId = Number(currentProjectId);
 
@@ -345,7 +352,6 @@ export async function getAvailableEmployeesService(currentProjectId) {
     },
   };
 
-  // New project → return all available employees
   if (!projectId || isNaN(projectId)) {
     return prisma.user.findMany({
       where: baseWhere,
@@ -353,13 +359,12 @@ export async function getAvailableEmployeesService(currentProjectId) {
     });
   }
 
-  // Editing existing project
-  const currentlyAssigned = await prisma.projectEmployee.findMany({
+  const assigned = await prisma.projectEmployee.findMany({
     where: { projectId },
     include: { employee: true },
   });
 
-  const assignedIds = currentlyAssigned.map((x) => x.employeeId);
+  const assignedIds = assigned.map((x) => x.employeeId);
 
   const available = await prisma.user.findMany({
     where: baseWhere,
@@ -367,10 +372,7 @@ export async function getAvailableEmployeesService(currentProjectId) {
   });
 
   return [
-    ...currentlyAssigned.map((x) => ({
-      id: x.employee.id,
-      name: x.employee.name,
-    })),
+    ...assigned.map((x) => ({ id: x.employee.id, name: x.employee.name })),
     ...available.filter((a) => !assignedIds.includes(a.id)),
   ];
 }

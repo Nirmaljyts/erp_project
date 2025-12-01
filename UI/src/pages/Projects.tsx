@@ -209,10 +209,6 @@ export default function Projects() {
       (id) => !assignedEmployees.includes(id)
     );
 
-    console.log("ORIGINAL:", originalEmployees);
-    console.log("NEW:", assignedEmployees);
-    console.log("REMOVED:", removed);
-
     // call remove API for each removed employee
     for (const empId of removed) {
       await removeEmployee(assignProject.id, empId);
@@ -321,8 +317,6 @@ export default function Projects() {
       closeProjectModal();
       loadProjects(pagination.page, search);
     } catch (error: any) {
-      console.log("assign error", error);
-
       const message =
         error?.response?.data?.message || "Employee conflict detected";
 

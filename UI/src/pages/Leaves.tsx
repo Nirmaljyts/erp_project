@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
 import { Calendar, X } from "lucide-react";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { getMyLeaves, applyLeave, cancelLeave } from "../services/leaveService";
 
 export default function Leaves() {
@@ -47,8 +49,6 @@ export default function Leaves() {
   };
 
   const handleCancel = async (id: number) => {
-    console.log(id);
-
     try {
       await cancelLeave(id);
       toast.success("Leave request cancelled");
@@ -115,10 +115,20 @@ export default function Leaves() {
 
                 <p className="text-sm text-gray-500 mt-1">{l.reason || "-"}</p>
 
-                <p className="text-sm text-gray-500 mt-2">
-                  Approved by:{" "}
-                  <span className="font-semibold">{l.approvedBy.name}</span>
-                </p>
+                {/* APPROVED BY / REJECTED BY */}
+                {l.status === "APPROVED" && l.approvedBy && (
+                  <p className="text-sm text-gray-600 mt-2">
+                    Approved by:{" "}
+                    <span className="font-semibold">{l.approvedBy.name}</span>
+                  </p>
+                )}
+
+                {l.status === "REJECTED" && l.rejectedBy && (
+                  <p className="text-sm mt-2">
+                    Rejected by:{" "}
+                    <span className="font-semibold">{l.rejectedBy.name}</span>
+                  </p>
+                )}
 
                 {/* CANCEL BUTTON */}
                 {l.status === "PENDING" && (
@@ -159,22 +169,38 @@ export default function Leaves() {
                     <option value="OTHER">Other</option>
                   </select>
 
-                  <input
-                    type="date"
-                    className="border border-[var(--border)] p-2 rounded bg-[var(--card)] text-[var(--text)]"
-                    value={form.startDate}
-                    onChange={(e) =>
-                      setForm({ ...form, startDate: e.target.value })
+                  <DatePicker
+                    selected={form.startDate ? new Date(form.startDate) : null}
+                    onChange={(date) =>
+                      setForm({
+                        ...form,
+                        startDate: date ? date.toISOString().split("T")[0] : "",
+                        endDate:
+                          form.endDate && date && new Date(form.endDate) < date
+                            ? ""
+                            : form.endDate,
+                      })
                     }
+                    dateFormat="dd/MM/yyyy"
+                    minDate={new Date()}
+                    placeholderText="Select start date"
+                    className="border border-[var(--border)] p-2 rounded bg-[var(--card)] text-[var(--text)] w-full"
                   />
 
-                  <input
-                    type="date"
-                    className="border border-[var(--border)] p-2 rounded bg-[var(--card)] text-[var(--text)]"
-                    value={form.endDate}
-                    onChange={(e) =>
-                      setForm({ ...form, endDate: e.target.value })
+                  <DatePicker
+                    selected={form.endDate ? new Date(form.endDate) : null}
+                    onChange={(date) =>
+                      setForm({
+                        ...form,
+                        endDate: date ? date.toISOString().split("T")[0] : "",
+                      })
                     }
+                    dateFormat="dd/MM/yyyy"
+                    minDate={
+                      form.startDate ? new Date(form.startDate) : new Date()
+                    }
+                    placeholderText="Select end date"
+                    className="border border-[var(--border)] p-2 rounded bg-[var(--card)] text-[var(--text)] w-full"
                   />
 
                   <textarea

@@ -26,20 +26,34 @@ model User {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
-  // --- MANAGER <-> EMPLOYEES RELATION ---
+  // ======================
+  // MANAGER <-> EMPLOYEES
+  // ======================
   managerId Int?
   manager   User?  @relation("ManagerEmployees", fields: [managerId], references: [id])
   employees User[] @relation("ManagerEmployees")
 
-  // --- LEAVE RELATIONS ---
-  leaveRequests  Leave[] @relation("UserLeaves")
-  leaveApprovals Leave[] @relation("LeaveApprover")
+  // ======================
+  // LEAVE RELATIONS
+  // ======================
+  // Leaves requested by this user
+  leaveRequests Leave[] @relation("UserLeaves")
 
-  // --- PROJECT RELATIONS ---
+  // Leaves approved by this user
+  leaveApproved Leave[] @relation("LeaveApprovedBy")
+
+  // Leaves rejected by this user
+  leaveRejected Leave[] @relation("LeaveRejectedBy")
+
+  // ======================
+  // PROJECT RELATIONS
+  // ======================
   projectsManaged Project[]         @relation("ProjectManager")
   projects        ProjectEmployee[]
 
-  // --- OTHERS ---
+  // ======================
+  // MISC
+  // ======================
   otpCodes OtpCode[]
 }
 
@@ -116,9 +130,10 @@ model OtpCode {
 }
 
 model Leave {
-  id           Int  @id @default(autoincrement())
+  id           Int       @id @default(autoincrement())
   userId       Int
   approvedById Int?
+  rejectedById Int?
 
   type      String
   startDate DateTime
@@ -127,14 +142,13 @@ model Leave {
   status    String    @default("PENDING")
   decidedAt DateTime?
   deletedAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime @updatedAt @default(now())
 
-  // Employee who applied
-  user User @relation("UserLeaves", fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // Manager / HR who approved
-  approvedBy User? @relation("LeaveApprover", fields: [approvedById], references: [id])
+  user        User @relation("UserLeaves", fields: [userId], references: [id])
+  approvedBy  User? @relation("LeaveApprovedBy", fields: [approvedById], references: [id])
+  rejectedBy  User? @relation("LeaveRejectedBy", fields: [rejectedById], references: [id])
 }
 
 enum LeaveType {

@@ -59,8 +59,6 @@ export async function assignUsers(id: number, data: any) {
 // REMOVE EMPLOYEE FROM PROJECT
 // --------------------------
 export async function removeEmployee(projectId: number, employeeId: number) {
-  console.log('hello');
-  
   return (
     await axiosInstance.delete(
       `/projects/${projectId}/remove-employee/${employeeId}`

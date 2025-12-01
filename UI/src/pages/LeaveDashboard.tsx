@@ -143,45 +143,48 @@ export default function LeaveDashboard() {
           </div>
 
           {/* --- CALENDAR WRAPPER --- */}
-          <div className="w-full overflow-x-auto bg-[var(--card)] rounded-xl border border-[var(--border)] p-2 sm:p-4 shadow-sm mb-6">
-            <div className="">
-              <FullCalendar
-                plugins={[dayGridPlugin]}
-                initialView="dayGridMonth"
-                events={events}
-                headerToolbar={{
-                  left: "title",
-                  center: "",
-                  right: "today prev,next",
-                }}
-                buttonText={{
-                  today: "Today",
-                }}
-                height="100%"
-                contentHeight="auto"
-                expandRows={true}
-              />
-            </div>
+          <div className="w-full overflow-x-auto rounded-xl border border-[var(--border)] p-2 sm:p-4 shadow-sm mb-6">
+            <FullCalendar
+              plugins={[dayGridPlugin]}
+              initialView="dayGridMonth"
+              events={events}
+              headerToolbar={{
+                left: "title",
+                center: "",
+                right: "today prev,next",
+              }}
+              buttonText={{
+                today: "Today",
+              }}
+              height="100%"
+              contentHeight="auto"
+              expandRows={true}
+            />
           </div>
 
           {/* --- TABLE SECTION --- */}
-          <div className="bg-[var(--card)] rounded-xl border border-[var(--border)] p-3 sm:p-4 shadow-sm w-full">
+          <div className="rounded-xl border border-[var(--border)] p-3 sm:p-4 shadow-sm w-full">
             <h2 className="text-lg font-semibold mb-3">All Leaves</h2>
 
             <div className="w-full overflow-x-auto">
               <table className="min-w-[520px] w-full text-xs sm:text-sm border border-[var(--border)]">
                 <thead>
                   <tr className="border-b border border-[var(--border)] ">
-                    {["Name", "Role", "Leave Type", "Period", "Status"].map(
-                      (head) => (
-                        <th
-                          key={head}
-                          className="px-3 py-3 text-left text-[10px] sm:text-xs font-bold uppercase tracking-wide whitespace-nowrap"
-                        >
-                          {head}
-                        </th>
-                      )
-                    )}
+                    {[
+                      "Name",
+                      "Role",
+                      "Leave Type",
+                      "Period",
+                      "Status",
+                      "Actions",
+                    ].map((head) => (
+                      <th
+                        key={head}
+                        className="px-3 py-3 text-left text-[10px] sm:text-xs font-bold uppercase tracking-wide whitespace-nowrap"
+                      >
+                        {head}
+                      </th>
+                    ))}
                   </tr>
                 </thead>
 
@@ -224,7 +227,24 @@ export default function LeaveDashboard() {
                             {l.status}
                           </span>
 
+                          {/* APPROVED BY */}
+                          {l.status === "APPROVED" && l.approvedBy && (
+                            <span className="ml-2 text-xs text-gray-600">
+                              → {l.approvedBy.name}
+                            </span>
+                          )}
+
+                          {/* REJECTED BY */}
+                          {l.status === "REJECTED" && l.rejectedBy && (
+                            <span className="ml-2 text-xs text-red-600">
+                              → {l.rejectedBy.name}
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          {/* DELETE BUTTON FOR FUTURE APPROVED LEAVES */}
                           {l.status === "APPROVED" &&
+                            new Date(l.startDate) > new Date() &&
                             ["ADMIN", "HR_MANAGER", "HR"].includes(
                               currentRole
                             ) && (
