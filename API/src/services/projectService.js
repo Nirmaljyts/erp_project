@@ -470,9 +470,6 @@ export async function removeEmployeeFromProjectService(projectId, employeeId) {
   // Resolve reviewer (HR if benched)
   const newReviewer = await resolveReviewer(eid);
 
-  console.log("Removed employee:", eid, "from project:", pid);
-  console.log("New reviewer:", newReviewer);
-
   // Update pending leaves
   await prisma.leave.updateMany({
     where: { userId: eid, status: "PENDING", deletedAt: null },

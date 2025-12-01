@@ -49,8 +49,6 @@ export default function Leaves() {
   };
 
   const handleCancel = async (id: number) => {
-    console.log(id);
-
     try {
       await cancelLeave(id);
       toast.success("Leave request cancelled");
