@@ -97,42 +97,6 @@ const menu = [
         icon: Kanban,
         roles: ["ADMIN", "HR_MANAGER", "HR"],
       },
-      {
-        label: "Timesheet Approvals",
-        path: "/timesheets/approvals",
-        icon: CalendarCheck2,
-        roles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER"],
-      },
-      {
-        label: "Timesheet Reports",
-        path: "/timesheets/reports",
-        icon: Kanban,
-        roles: ["ADMIN", "HR_MANAGER", "HR"],
-      },
-      {
-        label: "Timesheet Approvals",
-        path: "/timesheets/approvals",
-        icon: CalendarCheck2,
-        roles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER"],
-      },
-      {
-        label: "Timesheet Reports",
-        path: "/timesheets/reports",
-        icon: Kanban,
-        roles: ["ADMIN", "HR_MANAGER", "HR"],
-      },
-      {
-        label: "Timesheet Approvals",
-        path: "/timesheets/approvals",
-        icon: CalendarCheck2,
-        roles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER"],
-      },
-      {
-        label: "Timesheet Reports",
-        path: "/timesheets/reports",
-        icon: Kanban,
-        roles: ["ADMIN", "HR_MANAGER", "HR"],
-      },
     ],
   },
 ];
@@ -153,11 +117,7 @@ export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
   );
 
   const handleToggleDropdown = (label: string) => {
-    // if (openDropdown === label) {
-    //   dispatch(toggleSidebarDropdown(null));
-    // } else {
     dispatch(toggleSidebarDropdown(label));
-    // }
   };
 
   return (
@@ -183,7 +143,7 @@ export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
               }
             `}
               >
-                <item.icon size={18} />
+                <item.icon size={18} className="cursor-pointer" />
                 {item.label}
               </Link>
             );
@@ -198,8 +158,8 @@ export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
                 onClick={() => handleToggleDropdown(item.label)}
                 className={`flex w-full items-center justify-between p-2 rounded-lg transition text-[var(--text)]`}
               >
-                <div className="w-full flex items-center gap-2">
-                  <item.icon size={18} />
+                <div className="w-full flex items-center gap-2 cursor-pointer">
+                  <item.icon size={18} className="cursor-pointer" />
                   {item.label}
                 </div>
 
@@ -232,7 +192,7 @@ export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
                         }
                       `}
                         >
-                          <child.icon size={18} />
+                          <child.icon size={18} className="cursor-pointer" />
                           {child.label}
                         </Link>
                       );
