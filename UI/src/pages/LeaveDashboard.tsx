@@ -11,6 +11,7 @@ import {
 } from "../services/leaveService";
 import { RootState } from "../store/store";
 import { Trash, Trash2 } from "lucide-react";
+import Tooltip from "../components/Tooltip";
 
 export default function LeaveDashboard() {
   const user = useSelector((state: RootState) => state.auth.user);
@@ -106,7 +107,7 @@ export default function LeaveDashboard() {
       ) : (
         <>
           {/* --- STATS GRID --- */}
-          <div className="grid  sx:grid-cols-1 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mb-3">
+          <div className="grid  sx:grid-cols-1 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mb-2">
             {["TOTAL", "APPROVED", "PENDING", "REJECTED", "CANCELLED"].map(
               (key) => {
                 const count =
@@ -133,17 +134,17 @@ export default function LeaveDashboard() {
           </div>
 
           {/* --- REQUEST BUTTON --- */}
-          <div className="flex justify-end mb-3 sm:mb-4">
+          <div className="flex justify-end mb-2 sm:mb-2">
             <button
               onClick={leaveRequest}
-              className="px-4 py-2 text-sm rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
+              className="px-4 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
             >
               Request Leave
             </button>
           </div>
 
           {/* --- CALENDAR WRAPPER --- */}
-          <div className="w-full overflow-x-auto rounded-xl border border-[var(--border)] p-2 sm:p-4 shadow-sm mb-6">
+          <div className="w-full overflow-x-auto rounded-xl border border-[var(--border)] p-2 sm:p-4 shadow-sm mb-4">
             <FullCalendar
               plugins={[dayGridPlugin]}
               initialView="dayGridMonth"
@@ -164,7 +165,7 @@ export default function LeaveDashboard() {
 
           {/* --- TABLE SECTION --- */}
           <div className="rounded-xl border border-[var(--border)] p-3 sm:p-4 shadow-sm w-full">
-            <h2 className="text-lg font-semibold mb-3">All Leaves</h2>
+            <h2 className="text-lg font-semibold mb-2">All Leaves</h2>
 
             <div className="w-full overflow-x-auto">
               <table className="min-w-[520px] w-full text-xs sm:text-sm border border-[var(--border)]">
@@ -244,7 +245,6 @@ export default function LeaveDashboard() {
                         <td>
                           {/* DELETE BUTTON FOR FUTURE APPROVED LEAVES */}
                           {l.status === "APPROVED" &&
-                            new Date(l.startDate) > new Date() &&
                             ["ADMIN", "HR_MANAGER", "HR"].includes(
                               currentRole
                             ) && (
@@ -252,7 +252,12 @@ export default function LeaveDashboard() {
                                 onClick={() => handleDeleteApproved(l.id)}
                                 className="ml-3 text-red-500 hover:text-red-700"
                               >
-                                <Trash2 size={18} />
+                                <Tooltip text="Delete Approved Leave">
+                                  <Trash2
+                                    size={18}
+                                    className="cursor-pointer"
+                                  />
+                                </Tooltip>
                               </button>
                             )}
                         </td>

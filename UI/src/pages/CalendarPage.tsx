@@ -149,32 +149,34 @@ export default function CalendarPage() {
 
   return (
     <div className="max-h-auto">
-      <div className="flex justify-between items-center pb-4">
-        <h2 className="font-semibold text-md md:text-2xl lg:text-2xl">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0 pb-4">
+        <h2 className="font-semibold text-2xl md:text-2xl lg:text-2xl">
           Holidays - {currentYear}
         </h2>
 
         {(user?.role === "ADMIN" ||
           user?.role === "HR_MANAGER" ||
           user?.role === "HR") && (
-          <label className="px-4 py-2 text-sm sm:text-base rounded-lg bg-[#2f4f82] text-white cursor-pointer font-medium hover:bg-[#1b335a]">
-            <span>Upload Holidays</span>
-            <input
-              type="file"
-              accept=".csv"
-              className="hidden"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) handleUpload(file);
-              }}
-            />
-          </label>
+          <div className="w-full sm:w-auto flex justify-end">
+            <label className="px-4 py-2 text-sm sm:text-sm rounded-lg bg-[#2f4f82] text-white cursor-pointer font-medium hover:bg-[#1b335a]">
+              <span className="cursor-pointer">Upload Holidays</span>
+              <input
+                type="file"
+                accept=".csv"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleUpload(file);
+                }}
+              />
+            </label>
+          </div>
         )}
       </div>
 
       {/* Calendar */}
       <div className="flex flex-col flex-1 border border-[var(--border)] rounded-lg p-3">
-        <div className="w-full flex items-end justify-end gap-6 mb-3 mt-2">
+        <div className="w-full flex items-end justify-end gap-6 mb-3">
           <div className="flex items-center gap-2">
             <span
               className="w-4 h-4 rounded-sm"

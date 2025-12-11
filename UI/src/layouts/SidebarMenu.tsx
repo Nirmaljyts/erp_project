@@ -5,18 +5,16 @@ import {
   Users2,
   Calendar,
   CalendarDays,
-  Hourglass,
   ChevronDown,
   ChevronRight,
   CalendarClock,
-  CalendarCog,
   CalendarCheck2,
   Kanban,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "../store/store";
-import { setOpenSidebarDropdown } from "../store/authSlice";
+import { toggleSidebarDropdown } from "../store/authSlice";
 
 const menu = [
   {
@@ -76,6 +74,67 @@ const menu = [
       },
     ],
   },
+  {
+    label: "Timesheet",
+    icon: CalendarClock,
+    roles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER", "EMPLOYEE"],
+    children: [
+      {
+        label: "My Timesheet",
+        path: "/timesheets/my",
+        icon: CalendarClock,
+        roles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER", "EMPLOYEE"],
+      },
+      {
+        label: "Timesheet Approvals",
+        path: "/timesheets/approvals",
+        icon: CalendarCheck2,
+        roles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER"],
+      },
+      {
+        label: "Timesheet Reports",
+        path: "/timesheets/reports",
+        icon: Kanban,
+        roles: ["ADMIN", "HR_MANAGER", "HR"],
+      },
+      {
+        label: "Timesheet Approvals",
+        path: "/timesheets/approvals",
+        icon: CalendarCheck2,
+        roles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER"],
+      },
+      {
+        label: "Timesheet Reports",
+        path: "/timesheets/reports",
+        icon: Kanban,
+        roles: ["ADMIN", "HR_MANAGER", "HR"],
+      },
+      {
+        label: "Timesheet Approvals",
+        path: "/timesheets/approvals",
+        icon: CalendarCheck2,
+        roles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER"],
+      },
+      {
+        label: "Timesheet Reports",
+        path: "/timesheets/reports",
+        icon: Kanban,
+        roles: ["ADMIN", "HR_MANAGER", "HR"],
+      },
+      {
+        label: "Timesheet Approvals",
+        path: "/timesheets/approvals",
+        icon: CalendarCheck2,
+        roles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER"],
+      },
+      {
+        label: "Timesheet Reports",
+        path: "/timesheets/reports",
+        icon: Kanban,
+        roles: ["ADMIN", "HR_MANAGER", "HR"],
+      },
+    ],
+  },
 ];
 
 type SidebarMenuProps = {
@@ -89,16 +148,16 @@ export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
   const user = useSelector((state: RootState) => state.auth.user);
   const userRole = user?.role || "";
 
-  const openDropdown = useSelector(
-    (state: RootState) => state.auth.openSidebarDropdown || null
+  const openDropdowns = useSelector(
+    (state: RootState) => state.auth.openSidebarDropdowns || null
   );
 
   const handleToggleDropdown = (label: string) => {
-    if (openDropdown === label) {
-      dispatch(setOpenSidebarDropdown(null));
-    } else {
-      dispatch(setOpenSidebarDropdown(label));
-    }
+    // if (openDropdown === label) {
+    //   dispatch(toggleSidebarDropdown(null));
+    // } else {
+    dispatch(toggleSidebarDropdown(label));
+    // }
   };
 
   return (
@@ -116,7 +175,7 @@ export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
                 key={item.path}
                 to={item.path}
                 onClick={() => onNavigate && onNavigate()}
-                className={`flex items-center gap-3 p-2 rounded-lg transition
+                className={`flex items-center gap-2 p-2 rounded-lg transition
               ${
                 active
                   ? "bg-[#1b335a] text-white font-semibold shadow-md"
@@ -131,24 +190,23 @@ export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
           }
 
           // ------------------ DROPDOWN ITEM ------------------
-          const isOpen = openDropdown === item.label;
+          const isOpen = openDropdowns.includes(item.label);
 
           return (
             <div key={item.label}>
-              {/* Parent button */}
               <button
                 onClick={() => handleToggleDropdown(item.label)}
                 className={`flex w-full items-center justify-between p-2 rounded-lg transition text-[var(--text)]`}
               >
-                <div className="flex items-center gap-3">
+                <div className="w-full flex items-center gap-2">
                   <item.icon size={18} />
                   {item.label}
                 </div>
 
                 {isOpen ? (
-                  <ChevronDown size={16} />
+                  <ChevronDown size={16} className="cursor-pointer" />
                 ) : (
-                  <ChevronRight size={16} />
+                  <ChevronRight size={16} className="cursor-pointer" />
                 )}
               </button>
 
@@ -166,7 +224,7 @@ export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
                           to={child.path}
                           onClick={() => onNavigate && onNavigate()}
                           className={`
-                        flex items-center gap-3 p-2 rounded-lg transition
+                        flex items-center gap-2 p-2 rounded-lg transition
                         ${
                           childActive
                             ? "bg-[#1b335a] text-white font-semibold shadow-md"

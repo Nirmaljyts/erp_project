@@ -17,6 +17,10 @@ import LeaveApprovals from "./pages/LeaveApprovals";
 
 import { RootState } from "./store/store";
 import LeaveDashboard from "./pages/LeaveDashboard";
+import Timesheet from "./pages/Timesheet";
+import TimesheetApprovals from "./pages/TimesheetApprovals";
+import TimesheetReports from "./pages/TimesheetReports";
+import TimesheetDefinitions from "./pages/TimesheetDefinitions";
 
 function PrivateRoute({ children }: { children: JSX.Element }) {
   const token = useSelector((state: RootState) => state?.auth?.token);
@@ -102,7 +106,9 @@ export default function App() {
           <Route
             path="projects"
             element={
-              <RoleGuard allowedRoles={["ADMIN", "HR_MANAGER", "MANAGER", "EMPLOYEE"]}>
+              <RoleGuard
+                allowedRoles={["ADMIN", "HR_MANAGER", "MANAGER", "EMPLOYEE"]}
+              >
                 <Projects />
               </RoleGuard>
             }
@@ -192,6 +198,54 @@ export default function App() {
                 allowedRoles={["ADMIN", "HR_MANAGER", "HR", "MANAGER"]}
               >
                 <LeaveApprovals />
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="/timesheets/my"
+            element={
+              <RoleGuard
+                allowedRoles={[
+                  "ADMIN",
+                  "HR_MANAGER",
+                  "HR",
+                  "MANAGER",
+                  "EMPLOYEE",
+                ]}
+              >
+                <Timesheet />
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="/timesheets/approvals"
+            element={
+              <RoleGuard
+                allowedRoles={["ADMIN", "HR_MANAGER", "HR", "MANAGER"]}
+              >
+                <TimesheetApprovals />
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="/timesheets/definitions"
+            element={
+              <RoleGuard allowedRoles={["ADMIN", "HR_MANAGER"]}>
+                <TimesheetDefinitions />
+              </RoleGuard>
+            }
+          />
+
+          <Route
+            path="/timesheets/reports"
+            element={
+              <RoleGuard
+                allowedRoles={["ADMIN", "HR_MANAGER", "HR", "MANAGER"]}
+              >
+                <TimesheetReports />
               </RoleGuard>
             }
           />

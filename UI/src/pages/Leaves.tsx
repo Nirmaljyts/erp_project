@@ -107,7 +107,7 @@ export default function Leaves() {
                   </span>
                 </div>
 
-                <div className="mt-2 text-sm">
+                <div className="mt-2 text-sm flex items-center">
                   <Calendar size={14} className="inline-block mr-1" />
                   {new Date(l.startDate).toLocaleDateString()} -{" "}
                   {new Date(l.endDate).toLocaleDateString()}
@@ -117,24 +117,46 @@ export default function Leaves() {
 
                 {/* APPROVED BY / REJECTED BY */}
                 {l.status === "APPROVED" && l.approvedBy && (
-                  <p className="text-sm text-gray-600 mt-2">
+                  <p className="text-sm text-gray-600 mt-1">
                     Approved by:{" "}
-                    <span className="font-semibold">{l.approvedBy.name}</span>
+                    <span className="font-semibold">
+                      {l.approvedBy.name} on{" "}
+                    </span>
+                    <span className="font-semibold">
+                      {l.decidedAt
+                        ? new Date(l.decidedAt).toLocaleDateString()
+                        : "—"}
+                    </span>
                   </p>
                 )}
 
                 {l.status === "REJECTED" && l.rejectedBy && (
-                  <p className="text-sm mt-2">
+                  <p className="text-sm text-gray-600 mt-1">
                     Rejected by:{" "}
-                    <span className="font-semibold">{l.rejectedBy.name}</span>
+                    <span className="font-semibold">
+                      {l.rejectedBy.name} on{" "}
+                    </span>
+                    <span className="font-semibold">
+                      {l.decidedAt
+                        ? new Date(l.decidedAt).toLocaleDateString()
+                        : "—"}
+                    </span>
                   </p>
                 )}
+
+                {/* Leave Applied On */}
+                <p className="text-sm text-gray-600 mt-1">
+                  Applied On:{" "}
+                  <span className="font-semibold">
+                    {new Date(l.createdAt).toLocaleDateString()}
+                  </span>
+                </p>
 
                 {/* CANCEL BUTTON */}
                 {l.status === "PENDING" && (
                   <button
                     onClick={() => handleCancel(l.id)}
-                    className="mt-3 px-3 py-1 text-sm rounded bg-red-600 text-white hover:bg-red-700"
+                    className="mt-3 px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700"
                   >
                     Cancel
                   </button>
@@ -214,7 +236,7 @@ export default function Leaves() {
 
                   <button
                     onClick={handleSubmit}
-                    className="w-full mt-2 bg-[#2f4f82] text-white py-2 rounded-lg hover:bg-[#1b335a]"
+                    className="w-full bg-[#2f4f82] text-white py-2 rounded-lg hover:bg-[#1b335a]"
                   >
                     Submit Leave
                   </button>

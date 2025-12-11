@@ -8,6 +8,7 @@ import clientRoutes from "./routes/clientRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
 import holidayRoutes from "./routes/holidayRoutes.js";
 import leaveRoutes from "./routes/leaveRoutes.js";
+import timesheetRoutes from "./routes/timesheetRoutes.js";
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use("/api/clients", clientRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/holidays", holidayRoutes);
 app.use("/api/leaves", leaveRoutes);
+app.use("/api/timesheets", timesheetRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

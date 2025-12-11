@@ -11,6 +11,7 @@ import {
 import Pagination from "../components/Pagination";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
+import Tooltip from "../components/Tooltip";
 
 interface Client {
   id: number;
@@ -192,7 +193,7 @@ export default function ClientsPage() {
 
   return (
     <div className="max-h-auto">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-2">
         <h1 className="text-2xl font-semibold">Clients</h1>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
@@ -265,16 +266,21 @@ export default function ClientsPage() {
                   <h2 className="text-lg font-semibold truncate">{c.name}</h2>
                   {(user?.role === "ADMIN" || user?.role === "MANAGER") && (
                     <div className="flex items-center gap-2">
-                      <Edit2
-                        size={18}
-                        className="cursor-pointer text-gray-500 hover:text-gray-700"
-                        onClick={() => openEdit(c)}
-                      />
-                      <Trash2
-                        size={18}
-                        className="cursor-pointer text-red-500 hover:text-red-600"
-                        onClick={() => handleDelete(c.id)}
-                      />
+                      <Tooltip text="Edit Client">
+                        <Edit2
+                          size={18}
+                          className="cursor-pointer text-gray-500 hover:text-gray-700"
+                          onClick={() => openEdit(c)}
+                        />
+                      </Tooltip>
+
+                      <Tooltip text="Delete Client">
+                        <Trash2
+                          size={18}
+                          className="cursor-pointer text-red-500 hover:text-red-600"
+                          onClick={() => handleDelete(c.id)}
+                        />
+                      </Tooltip>
                     </div>
                   )}
                 </div>
@@ -318,12 +324,14 @@ export default function ClientsPage() {
             <button
               type="button"
               onClick={closeModal}
-              className="absolute right-4 top-4"
+              className="absolute right-4 top-4 cursor-pointer"
             >
-              <X size={22} className="text-[var(--text)]" />
+              <Tooltip text="Close">
+                <X size={22} className="text-[var(--text)] cursor-pointer" />
+              </Tooltip>
             </button>
 
-            <h2 className="text-xl font-semibold mb-6 text-[var(--text)]">
+            <h2 className="text-xl font-semibold mb-4 text-[var(--text)]">
               {editingClient ? "Edit Client" : "Create Client"}
             </h2>
 
@@ -388,7 +396,7 @@ export default function ClientsPage() {
             {/* SUBMIT BUTTON */}
             <button
               type="submit"
-              className="mt-6 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
+              className="mt-2 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
             >
               {editingClient ? "Update" : "Create"}
             </button>

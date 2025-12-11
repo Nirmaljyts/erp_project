@@ -10,17 +10,19 @@ interface User {
 interface AuthState {
   token: string | null;
   user: User | null;
-  openSidebarDropdown: string | null;
+  openSidebarDropdowns: string[];
 }
 
 const savedToken = localStorage.getItem("token");
 const savedUser = localStorage.getItem("user");
-const savedDropdown = localStorage.getItem("openSidebarDropdown") || null;
+const savedDropdowns = JSON.parse(
+  localStorage.getItem("openSidebarDropdowns") || "[]"
+);
 
 const initialState: AuthState = {
   token: savedToken || null,
   user: savedUser ? JSON.parse(savedUser) : null,
-  openSidebarDropdown: savedDropdown || null,
+  openSidebarDropdowns: savedDropdowns,
 };
 
 const authSlice = createSlice({
@@ -39,32 +41,39 @@ const authSlice = createSlice({
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
-      state.openSidebarDropdown = null;
-      localStorage.removeItem("openSidebarDropdown");
+      // Reset dropdowns on login
+      state.openSidebarDropdowns = [];
+      localStorage.setItem("openSidebarDropdowns", "[]");
     },
-    setOpenSidebarDropdown(state, action: PayloadAction<string | null>) {
-      state.openSidebarDropdown = action.payload;
 
-      if (action.payload) {
-        localStorage.setItem("openSidebarDropdown", action.payload);
+    toggleSidebarDropdown(state, action: PayloadAction<string>) {
+      const label = action.payload;
+
+      if (state.openSidebarDropdowns.includes(label)) {
+        state.openSidebarDropdowns = state.openSidebarDropdowns.filter(
+          (x) => x !== label
+        );
       } else {
-        localStorage.removeItem("openSidebarDropdown");
+        state.openSidebarDropdowns.push(label);
       }
+
+      localStorage.setItem(
+        "openSidebarDropdowns",
+        JSON.stringify(state.openSidebarDropdowns)
+      );
     },
 
     logout(state) {
       state.token = null;
       state.user = null;
-      state.openSidebarDropdown = null;
+      state.openSidebarDropdowns = [];
 
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
       localStorage.clear();
     },
   },
 });
 
-export const { setCredentials, setOpenSidebarDropdown, logout } =
+export const { setCredentials, toggleSidebarDropdown, logout } =
   authSlice.actions;
 
 export default authSlice.reducer;

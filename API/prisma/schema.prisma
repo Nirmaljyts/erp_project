@@ -15,6 +15,13 @@ enum Role {
   EMPLOYEE
 }
 
+enum TimesheetStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
 model User {
   id        Int       @id @default(autoincrement())
   name      String
@@ -36,13 +43,8 @@ model User {
   // ======================
   // LEAVE RELATIONS
   // ======================
-  // Leaves requested by this user
   leaveRequests Leave[] @relation("UserLeaves")
-
-  // Leaves approved by this user
   leaveApproved Leave[] @relation("LeaveApprovedBy")
-
-  // Leaves rejected by this user
   leaveRejected Leave[] @relation("LeaveRejectedBy")
 
   // ======================
@@ -50,6 +52,12 @@ model User {
   // ======================
   projectsManaged Project[]         @relation("ProjectManager")
   projects        ProjectEmployee[]
+
+  // ======================
+  // TIMESHEET RELATIONS
+  // ======================
+  timesheets         TimesheetWeek[] @relation("UserTimesheets")
+  timesheetApprovals TimesheetWeek[] @relation("TimesheetApprover")
 
   // ======================
   // MISC
@@ -66,7 +74,9 @@ model Client {
   deletedAt   DateTime? // <--- soft delete
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  projects    Project[]
+
+  projects         Project[]
+  timesheetEntries TimesheetEntry[]
 }
 
 model Project {
@@ -86,7 +96,9 @@ model Project {
   managerId Int?
   manager   User? @relation("ProjectManager", fields: [managerId], references: [id])
 
-  employees ProjectEmployee[]
+  employees            ProjectEmployee[]
+  timesheetEntries     TimesheetEntry[]
+  timesheetDefinitions TimesheetDefinition[]
 }
 
 model ProjectEmployee {
@@ -130,7 +142,7 @@ model OtpCode {
 }
 
 model Leave {
-  id           Int       @id @default(autoincrement())
+  id           Int  @id @default(autoincrement())
   userId       Int
   approvedById Int?
   rejectedById Int?
@@ -146,9 +158,9 @@ model Leave {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user        User @relation("UserLeaves", fields: [userId], references: [id])
-  approvedBy  User? @relation("LeaveApprovedBy", fields: [approvedById], references: [id])
-  rejectedBy  User? @relation("LeaveRejectedBy", fields: [rejectedById], references: [id])
+  user       User  @relation("UserLeaves", fields: [userId], references: [id])
+  approvedBy User? @relation("LeaveApprovedBy", fields: [approvedById], references: [id])
+  rejectedBy User? @relation("LeaveRejectedBy", fields: [rejectedById], references: [id])
 }
 
 enum LeaveType {
@@ -164,4 +176,75 @@ enum LeaveStatus {
   APPROVED
   REJECTED
   CANCELLED
+}
+
+model TimesheetWeek {
+  id            Int             @id @default(autoincrement())
+  userId        Int
+  approverId    Int?
+  weekStartDate DateTime        @db.Date
+  status        TimesheetStatus @default(DRAFT)
+  submittedAt   DateTime?
+  decidedAt     DateTime?
+  deletedAt     DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  user     User             @relation("UserTimesheets", fields: [userId], references: [id])
+  approver User?            @relation("TimesheetApprover", fields: [approverId], references: [id])
+  entries  TimesheetEntry[]
+
+  @@unique([userId, weekStartDate], name: "user_week_unique")
+}
+
+model TimesheetEntry {
+  id          Int  @id @default(autoincrement())
+  timesheetId Int
+  projectId   Int?
+  clientId    Int?
+
+  mon Float @default(0)
+  tue Float @default(0)
+  wed Float @default(0)
+  thu Float @default(0)
+  fri Float @default(0)
+  sat Float @default(0)
+  sun Float @default(0)
+
+  isBillable  Boolean   @default(true)
+  description String?
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  timesheet TimesheetWeek @relation(fields: [timesheetId], references: [id])
+  project   Project?      @relation(fields: [projectId], references: [id])
+  client    Client?       @relation(fields: [clientId], references: [id])
+
+  // OLD (causing your error):
+  // @@unique([timesheetId, projectId, clientId])
+
+  // NEW: allows multiple special rows per week because description differs
+  @@unique([timesheetId, projectId, clientId, description])
+}
+
+enum AppliesTo {
+  ALL
+  EMPLOYEE
+  HR
+  MANAGER
+}
+
+model TimesheetDefinition {
+  id          Int       @id @default(autoincrement())
+  type        String
+  projectId   Int?
+  description String?
+  appliesTo   String
+  deletedAt   DateTime?
+
+  project Project? @relation(fields: [projectId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

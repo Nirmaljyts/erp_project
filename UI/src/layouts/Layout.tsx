@@ -58,7 +58,7 @@ export default function Layout() {
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0 lg:static`}
       >
-        <div className="p-0">
+        <div className="h-screen flex flex-col p-0">
           <div className="flex w-full items-center justify-between p-[13.5px] border-[var(--border)] border-b hover:cursor-pointer">
             <h1
               className="text-xl font-bold text-[#2f4f82] tracking-tight cursor-pointer"
@@ -76,16 +76,18 @@ export default function Layout() {
             </span>
           </div>
 
-          <SidebarMenu onNavigate={() => setSidebarOpen(false)} />
-        </div>
+          <div className="overflow-y-auto flex-1">
+            <SidebarMenu onNavigate={() => setSidebarOpen(false)} />
+          </div>
 
-        <div className="border-t border-[var(--border)] py-2 px-4">
-          <button
-            className="flex items-center gap-2 text-lg text-red-500 hover:text-red-600 hover:font-semibold"
-            onClick={handleLogout}
-          >
-            Logout
-          </button>
+          <div className="border-t border-[var(--border)] py-2 px-4">
+            <button
+              className="flex items-center gap-2 text-lg text-red-500 hover:text-red-600 hover:font-semibold"
+              onClick={handleLogout}
+            >
+              Logout
+            </button>
+          </div>
         </div>
       </aside>
 

@@ -18,6 +18,7 @@ import {
 import Pagination from "../components/Pagination";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
+import Tooltip from "../components/Tooltip";
 
 interface Manager {
   id: number;
@@ -201,44 +202,43 @@ export default function Projects() {
   };
 
   const projectAssign = async () => {
-  try {
-    if (!assignProject) return;
+    try {
+      if (!assignProject) return;
 
-    // detect removed employees
-    const removed = originalEmployees.filter(
-      (id) => !assignedEmployees.includes(id)
-    );
+      // detect removed employees
+      const removed = originalEmployees.filter(
+        (id) => !assignedEmployees.includes(id)
+      );
 
-    // call remove API for each removed employee
-    for (const empId of removed) {
-      await removeEmployee(assignProject.id, empId);
+      // call remove API for each removed employee
+      for (const empId of removed) {
+        await removeEmployee(assignProject.id, empId);
+      }
+
+      // update manager + add new employees
+      await assignUsers(assignProject.id, {
+        managerId: selectedManager,
+        employees: assignedEmployees,
+      });
+
+      toast.success("User assignment updated");
+      setShowAssignModal(false);
+      loadProjects(pagination.page, search);
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Failed to assign users";
+
+      Swal.fire({
+        icon: "error",
+        title: "Assignment Error",
+        text: message,
+        confirmButtonColor: "#d33",
+      });
     }
-
-    // update manager + add new employees
-    await assignUsers(assignProject.id, {
-      managerId: selectedManager,
-      employees: assignedEmployees,
-    });
-
-    toast.success("User assignment updated");
-    setShowAssignModal(false);
-    loadProjects(pagination.page, search);
-  } catch (err: any) {
-    const message =
-      err?.response?.data?.message ||
-      err?.response?.data?.error ||
-      err?.message ||
-      "Failed to assign users";
-
-    Swal.fire({
-      icon: "error",
-      title: "Assignment Error",
-      text: message,
-      confirmButtonColor: "#d33",
-    });
-  }
-};
-
+  };
 
   async function handleProjectSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -295,24 +295,23 @@ export default function Projects() {
 
     try {
       if (editingProject) {
-  // detect removed employees
-  const removed = originalEmployees.filter(
-    (id) => !assignedEmployees.includes(id)
-  );
+        // detect removed employees
+        const removed = originalEmployees.filter(
+          (id) => !assignedEmployees.includes(id)
+        );
 
-  // remove via API → updates reviewers properly
-  for (const empId of removed) {
-    await removeEmployee(editingProject.id, empId);
-  }
+        // remove via API → updates reviewers properly
+        for (const empId of removed) {
+          await removeEmployee(editingProject.id, empId);
+        }
 
-  // now update project normally
-  await updateProject(editingProject.id, payload);
-  toast.success("Project updated");
-} else {
-  await createProject(payload);
-  toast.success("Project created");
-}
-
+        // now update project normally
+        await updateProject(editingProject.id, payload);
+        toast.success("Project updated");
+      } else {
+        await createProject(payload);
+        toast.success("Project created");
+      }
 
       closeProjectModal();
       loadProjects(pagination.page, search);
@@ -419,22 +418,30 @@ export default function Projects() {
                   <h2 className="text-lg font-semibold truncate">{p.name}</h2>
                   {(user?.role === "ADMIN" || user?.role === "MANAGER") && (
                     <div className="flex items-center gap-2">
-                      <Users
-                        size={18}
-                        className="cursor-pointer text-[#2f4f82] hover:text-[#1b335a]"
-                        onClick={() => openAssign(p)}
-                      />
-                      <Edit2
-                        size={18}
-                        className="cursor-pointer text-gray-500 hover:text-gray-700"
-                        onClick={() => openEdit(p)}
-                      />
-                      {user?.role === "ADMIN" && (
-                        <Trash2
+                      <Tooltip text="Assign Employees">
+                        <Users
                           size={18}
-                          className="cursor-pointer text-red-500 hover:text-red-600"
-                          onClick={() => handleDeleteProject(p.id)}
+                          className="cursor-pointer text-[#2f4f82] hover:text-[#1b335a]"
+                          onClick={() => openAssign(p)}
                         />
+                      </Tooltip>
+
+                      <Tooltip text="Edit Employees">
+                        <Edit2
+                          size={18}
+                          className="cursor-pointer text-gray-500 hover:text-gray-700"
+                          onClick={() => openEdit(p)}
+                        />
+                      </Tooltip>
+
+                      {user?.role === "ADMIN" && (
+                        <Tooltip text="Delete Employees">
+                          <Trash2
+                            size={18}
+                            className="cursor-pointer text-red-500 hover:text-red-600"
+                            onClick={() => handleDeleteProject(p.id)}
+                          />
+                        </Tooltip>
                       )}
                     </div>
                   )}
@@ -514,12 +521,14 @@ export default function Projects() {
             <button
               type="button"
               onClick={closeProjectModal}
-              className="absolute right-4 top-4"
+              className="absolute right-4 top-4 cursor-pointer"
             >
-              <X size={22} className="text-[var(--text)]" />
+              <Tooltip text="Close">
+                <X size={22} className="text-[var(--text)] cursor-pointer" />
+              </Tooltip>
             </button>
 
-            <h2 className="text-xl font-semibold mb-6 text-[var(--text)]">
+            <h2 className="text-xl font-semibold mb-4 text-[var(--text)]">
               {editingProject ? "Edit Project" : "Create Project"}
             </h2>
 
@@ -548,7 +557,7 @@ export default function Projects() {
               />
 
               {/* Start Date & End Date */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 m-0">
                 <DatePicker
                   selected={formStartDate}
                   onChange={(date: Date | null) => {
@@ -589,9 +598,6 @@ export default function Projects() {
 
               {/* Manager */}
               <div>
-                <h3 className="font-semibold mb-1 text-[var(--text)]">
-                  Select Manager
-                </h3>
                 <select
                   value={selectedManager ?? ""}
                   onChange={(e) => {
@@ -650,7 +656,7 @@ export default function Projects() {
 
             <button
               type="submit"
-              className="mt-6 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
+              className="mt-2 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
             >
               {editingProject ? "Update" : "Create"}
             </button>
@@ -666,16 +672,18 @@ export default function Projects() {
               onClick={() => setShowAssignModal(false)}
               className="absolute right-4 top-4"
             >
-              <X size={22} />
+              <Tooltip text="Close">
+                <X size={22} />
+              </Tooltip>
             </button>
 
-            <h2 className="text-xl font-semibold mb-6">
+            <h2 className="text-xl font-semibold mb-4">
               Assign Manager & Employees
             </h2>
 
             {/* Manager */}
             <h3 className="font-semibold mb-2">Select Manager (Required)</h3>
-            <div className="border p-3 rounded-xl mb-6 space-y-2">
+            <div className="border p-3 rounded-xl mb-2 space-y-2">
               {managers.map((m) => (
                 <label key={m.id} className="flex gap-3 items-center">
                   <input
@@ -717,7 +725,7 @@ export default function Projects() {
 
             <button
               onClick={projectAssign}
-              className="mt-6 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
+              className="mt-2 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
             >
               Update Users
             </button>

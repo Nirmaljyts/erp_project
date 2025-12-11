@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 import { useEffect, useState } from "react";
 import { getDashboardData } from "../services/dashboardServices";
+import Tooltip from "../components/Tooltip";
 
 export default function Dashboard() {
   const user = useSelector((state: RootState) => state?.auth?.user);
@@ -87,7 +88,7 @@ export default function Dashboard() {
               👋 Welcome back, {user?.name}
             </h1>
 
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <p className="text-gray-600 dark:text-gray-400">
               {role === "ADMIN" &&
                 "Admin panel — full control over users, clients, and projects."}
 
@@ -124,9 +125,11 @@ export default function Dashboard() {
                     <div className={`font-bold mb-4 ${c.style}`}>{c.count}</div>
 
                     <Link to={c.link}>
-                      <button className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-[#2f4f82] font-medium">
-                        View details →
-                      </button>
+                      <Tooltip text={`Go to ${c.label}`} position="right">
+                        <button className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-[#2f4f82] font-medium">
+                          View details →
+                        </button>
+                      </Tooltip>
                     </Link>
                   </div>
                 ))}

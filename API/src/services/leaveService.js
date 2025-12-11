@@ -151,7 +151,11 @@ export async function getLeaveDashboardService(user) {
 
   // 3️⃣ HR → only own
   else if (user.role === "HR") {
-    where.userId = user.id;
+    where.OR = [
+      { userId: user.id }, // HR's own leaves
+      { approvedById: user.id }, // HR approved
+      { rejectedById: user.id }, // HR rejected
+    ];
   }
 
   // 4️⃣ HR_MANAGER → own + HR + MANAGER + bench employees

@@ -11,6 +11,7 @@ import {
 import Pagination from "../components/Pagination";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
+import Tooltip from "../components/Tooltip";
 
 interface User {
   id: number;
@@ -402,14 +403,18 @@ export default function UsersPage() {
                               onClick={() => openEdit(user)}
                               className="text-gray-500 hover:text-gray-700"
                             >
-                              <Edit2 size={18} />
+                              <Tooltip text="Edit User">
+                                <Edit2 size={18} />
+                              </Tooltip>
                             </button>
                             <button
                               type="button"
                               onClick={() => handleDelete(user.id)}
                               className="text-red-500 hover:text-red-600"
                             >
-                              <Trash2 size={18} />
+                              <Tooltip text="Delete User">
+                                <Trash2 size={18} />
+                              </Tooltip>
                             </button>
                           </div>
                         </td>
@@ -441,16 +446,18 @@ export default function UsersPage() {
             <button
               type="button"
               onClick={closeUserModal}
-              className="absolute right-4 top-4"
+              className="absolute right-4 top-4 cursor-pointer"
             >
-              <X size={22} className="text-[var(--text)]" />
+              <Tooltip text="Close" position="left">
+                <X size={22} className="text-[var(--text)] cursor-pointer" />
+              </Tooltip>
             </button>
 
-            <h2 className="text-xl font-semibold mb-6 text-[var(--text)]">
+            <h2 className="text-xl font-semibold mb-4 text-[var(--text)]">
               {editingUser ? "Edit User" : "Add User"}
             </h2>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               {/* Name */}
               <div>
                 <input
@@ -564,7 +571,7 @@ export default function UsersPage() {
 
             <button
               type="submit"
-              className="w-full mt-6 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
+              className="w-full mt-2 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
             >
               {editingUser ? "Update User" : "Create User"}
             </button>

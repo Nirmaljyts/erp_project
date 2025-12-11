@@ -7,7 +7,20 @@ import type { RootState } from "../store/store";
 
 export default function ProfilePopover() {
   const user = useSelector((state: RootState) => state.auth.user);
-  const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : "U";
+  const userInitial = (() => {
+    if (!user?.name) return "U";
+
+    const parts = user.name.trim().split(/\s+/);
+
+    // If full name (first + last)
+    if (parts.length > 1) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+
+    // Only first name
+    const first = parts[0];
+    return first.slice(0, 1).toUpperCase();
+  })();
 
   const [open, setOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement | null>(null);
