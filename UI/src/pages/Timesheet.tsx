@@ -299,7 +299,7 @@ export default function Timesheet() {
                                     Math.max(0, Number(e.target.value))
                                   )
                                 }
-                                className="w-14 border border-[var(--border)] rounded p-1 text-center mr-2"
+                                className="w-14 bg-[var(--card)] text-[var(--text)] border border-[var(--border)] rounded p-1 text-center mr-2"
                               />
                             </div>
                           </td>
@@ -368,7 +368,7 @@ export default function Timesheet() {
               </table>
 
               {isCurrentWeek && (
-                <div className="flex justify-end p-2 mt-4 gap-2">
+                <div className="flex justify-end p-2 mt-2 gap-2">
                   <button
                     onClick={handleSave}
                     className="px-4 py-2 rounded border border-[#2f4f82]"

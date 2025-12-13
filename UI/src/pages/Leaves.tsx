@@ -165,6 +165,12 @@ export default function Leaves() {
             ))}
           </div>
 
+          {leaves.length === 0 && (
+            <div className="h-max-full text-center w-full text-gray-500 py-10">
+              No leaves
+            </div>
+          )}
+
           {/* MODAL */}
           {showModal && (
             <div className="fixed inset-0 bg-black/40 flex justify-center items-center p-4 z-50">
@@ -242,12 +248,6 @@ export default function Leaves() {
                   </button>
                 </div>
               </div>
-            </div>
-          )}
-
-          {leaves.length === 0 && (
-            <div className="h-max-full text-center w-full text-gray-500 py-10">
-              No leaves
             </div>
           )}
         </>
