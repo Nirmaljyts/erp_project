@@ -43,7 +43,9 @@ export default function TimesheetApprovals() {
 
   return (
     <div className="max-h-auto">
-      <h1 className="text-2xl font-semibold mb-4">Timesheet Approvals</h1>
+      <div className="flex justify-between mb-4">
+        <h1 className="text-2xl font-semibold">Timesheet Approvals</h1>
+      </div>
 
       {loading ? (
         <div className="loader-overlay">

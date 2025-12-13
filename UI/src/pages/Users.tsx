@@ -308,16 +308,17 @@ export default function UsersPage() {
       ) : (
         <>
           {/* TABLE */}
-          <div className="border border-[var(--border)] rounded-2xl bg-[var(--card)]">
-            <table className="text-xs md:text-sm border-collapse">
-              <thead>
+          <div className="border border-[var(--border)] rounded-xl bg-[var(--card)]">
+            <table className="table text-xs md:text-sm border-collapse">
+              <thead className="t_head table_th">
                 <tr>
-                  <th className="w-[10%] px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
+                  <th className="min-w-[10%] px-4 py-3 text-left text-xs font-bold uppercase">
                     #
                   </th>
+
                   <th
                     onClick={() => toggleSort("name")}
-                    className="w-[18%] px-4 py-3 text-left text-xs font-bold uppercase tracking-wide cursor-pointer"
+                    className="min-w-[18%] px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer"
                   >
                     Name{" "}
                     {sortBy === "name" && (sortOrder === "asc" ? "▲" : "▼")}
@@ -325,7 +326,7 @@ export default function UsersPage() {
 
                   <th
                     onClick={() => toggleSort("email")}
-                    className="w-[20%] px-4 py-3 text-left text-xs font-bold uppercase tracking-wide cursor-pointer"
+                    className="min-w-[20%] px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer"
                   >
                     Email{" "}
                     {sortBy === "email" && (sortOrder === "asc" ? "▲" : "▼")}
@@ -333,7 +334,7 @@ export default function UsersPage() {
 
                   <th
                     onClick={() => toggleSort("role")}
-                    className="w-[18%] px-4 py-3 text-left text-xs font-bold uppercase tracking-wide cursor-pointer"
+                    className="min-w-[18%] px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer"
                   >
                     Role{" "}
                     {sortBy === "role" && (sortOrder === "asc" ? "▲" : "▼")}
@@ -341,7 +342,7 @@ export default function UsersPage() {
 
                   <th
                     onClick={() => toggleSort("isActive")}
-                    className="w-[18%] px-4 py-3 text-left text-xs font-bold uppercase tracking-wide cursor-pointer"
+                    className="min-w-[18%] px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer"
                   >
                     Status{" "}
                     {sortBy === "isActive" && (sortOrder === "asc" ? "▲" : "▼")}
@@ -350,18 +351,19 @@ export default function UsersPage() {
                   {(currentRole === "ADMIN" ||
                     currentRole === "HR_MANAGER" ||
                     currentRole === "HR") && (
-                    <th className="w-[18%] px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide">
+                    <th className="min-w-[20%] px-4 py-3 text-right text-xs font-semibold uppercase">
                       Actions
                     </th>
                   )}
                 </tr>
               </thead>
+
               <tbody>
                 {users.length === 0 ? (
                   <tr className="border-t-2">
                     <td
-                      colSpan={5}
-                      className="px-4 py-6 text-center text-gray-500"
+                      colSpan={6}
+                      className="table_td px-4 py-6 text-center text-gray-500"
                     >
                       No Data
                     </td>
@@ -372,17 +374,36 @@ export default function UsersPage() {
                       key={user.id}
                       className="border-t border-[var(--border)]"
                     >
-                      <td className="w-[10%] px-4 py-2 text-sm">{index + 1}</td>
-                      <td className="w-[18%] px-4 py-2 text-sm">{user.name}</td>
-                      <td className="w-[20%] px-4 py-2 text-sm">
+                      <td
+                        className="table_td min-w-[10%] px-4 py-2 text-sm"
+                        data-label="#"
+                      >
+                        {index + 1}
+                      </td>
+                      <td
+                        className="table_td min-w-[18%] px-4 py-2 text-sm truncate"
+                        data-label="Name"
+                      >
+                        {user.name}
+                      </td>
+                      <td
+                        className="table_td min-w-[20%] px-4 py-2 text-sm truncate"
+                        data-label="Email"
+                      >
                         {user.email}
                       </td>
-                      <td className="w-[18%] px-4 py-2 text-sm">
+                      <td
+                        className="table_td min-w-[18%] px-4 py-2 text-sm"
+                        data-label="Role"
+                      >
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
                           {user.role}
                         </span>
                       </td>
-                      <td className="w-[18%] px-4 py-2 text-sm">
+                      <td
+                        className="table_td min-w-[18%] px-4 py-2 text-sm"
+                        data-label="Status"
+                      >
                         {user.isActive ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
                             Active
@@ -396,24 +417,25 @@ export default function UsersPage() {
                       {(currentRole === "ADMIN" ||
                         currentRole === "HR_MANAGER" ||
                         currentRole === "HR") && (
-                        <td className="w-[18%] px-4 py-2 text-sm text-right">
-                          <div className="flex justify-end gap-3">
+                        <td className="table_td min-w-[18%] px-4 py-2 text-sm text-right">
+                          <div className="flex justify-end gap-2">
                             <button
                               type="button"
                               onClick={() => openEdit(user)}
                               className="text-gray-500 hover:text-gray-700"
                             >
-                              <Tooltip text="Edit User">
-                                <Edit2 size={18} />
+                              <Tooltip text="Edit User" position="left">
+                                <Edit2 size={18} className="cursor-pointer" />
                               </Tooltip>
                             </button>
+
                             <button
                               type="button"
                               onClick={() => handleDelete(user.id)}
                               className="text-red-500 hover:text-red-600"
                             >
-                              <Tooltip text="Delete User">
-                                <Trash2 size={18} />
+                              <Tooltip text="Delete User" position="left">
+                                <Trash2 size={18} className="cursor-pointer" />
                               </Tooltip>
                             </button>
                           </div>

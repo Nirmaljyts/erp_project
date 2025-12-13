@@ -198,10 +198,14 @@ model TimesheetWeek {
 }
 
 model TimesheetEntry {
-  id          Int  @id @default(autoincrement())
+  id          Int @id @default(autoincrement())
   timesheetId Int
+
   projectId   Int?
   clientId    Int?
+  description String?
+
+  rowKey      String   // REQUIRED, canonical row identity
 
   mon Float @default(0)
   tue Float @default(0)
@@ -211,21 +215,17 @@ model TimesheetEntry {
   sat Float @default(0)
   sun Float @default(0)
 
-  isBillable  Boolean   @default(true)
-  description String?
-  deletedAt   DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  isBillable Boolean @default(true)
+  deletedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   timesheet TimesheetWeek @relation(fields: [timesheetId], references: [id])
   project   Project?      @relation(fields: [projectId], references: [id])
   client    Client?       @relation(fields: [clientId], references: [id])
 
-  // OLD (causing your error):
-  // @@unique([timesheetId, projectId, clientId])
-
-  // NEW: allows multiple special rows per week because description differs
-  @@unique([timesheetId, projectId, clientId, description])
+  @@unique([timesheetId, rowKey], name: "timesheet_rowkey_unique")
 }
 
 enum AppliesTo {
@@ -247,4 +247,6 @@ model TimesheetDefinition {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([type, description, appliesTo], name: "unique_system_definition")
 }

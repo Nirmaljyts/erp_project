@@ -95,7 +95,6 @@ export default function LeaveDashboard() {
 
   return (
     <div className="max-h-auto">
-      {/* PAGE TITLE */}
       <h1 className="text-xl sm:text-2xl font-semibold mb-4">
         Leave Dashboard
       </h1>
@@ -167,10 +166,10 @@ export default function LeaveDashboard() {
           <div className="rounded-xl border border-[var(--border)] p-3 sm:p-4 shadow-sm w-full">
             <h2 className="text-lg font-semibold mb-2">All Leaves</h2>
 
-            <div className="w-full overflow-x-auto">
-              <table className="min-w-[520px] w-full text-xs sm:text-sm border border-[var(--border)]">
-                <thead>
-                  <tr className="border-b border border-[var(--border)] ">
+            <div className="border border-[var(--border)] rounded-xl bg-[var(--card)]">
+              <table className="table text-xs md:text-sm border-collapse">
+                <thead className="t_head table_th">
+                  <tr>
                     {[
                       "Name",
                       "Role",
@@ -181,7 +180,7 @@ export default function LeaveDashboard() {
                     ].map((head) => (
                       <th
                         key={head}
-                        className="px-3 py-3 text-left text-[10px] sm:text-xs font-bold uppercase tracking-wide whitespace-nowrap"
+                        className="px-3 py-3 text-left text-[7px] sm:text-xs font-bold uppercase"
                       >
                         {head}
                       </th>
@@ -189,12 +188,12 @@ export default function LeaveDashboard() {
                   </tr>
                 </thead>
 
-                <tbody>
+                <tbody className="">
                   {leaves.length === 0 ? (
-                    <tr className="border-t-2 border border-[var(--border)] ">
+                    <tr className="border-t-0">
                       <td
-                        colSpan={4}
-                        className="px-4 py-6 text-center text-gray-500"
+                        colSpan={6}
+                        className="table_td px-4 py-6 text-center text-gray-500"
                       >
                         No Leave Data
                       </td>
@@ -203,16 +202,42 @@ export default function LeaveDashboard() {
                     leaves.map((l: any) => (
                       <tr
                         key={l.id}
-                        className="border-b border border-[var(--border)] "
+                        className="border-t border-[var(--border)] p-1"
+                        data-label="#"
                       >
-                        <td className="p-2 whitespace-nowrap">{l.user.name}</td>
-                        <td className="p-2 whitespace-nowrap">{l.user.role}</td>
-                        <td className="p-2 whitespace-nowrap">{l.type}</td>
-                        <td className="p-2 whitespace-nowrap">
+                        <td
+                          className="table_td text-[10px] sm:text-xs p-2"
+                          data-label="Name"
+                        >
+                          {l.user.name}
+                        </td>
+
+                        <td
+                          className="table_td text-[10px] sm:text-xs p-2"
+                          data-label="Role"
+                        >
+                          {l.user.role}
+                        </td>
+
+                        <td
+                          className="table_td text-[10px] sm:text-xs p-2"
+                          data-label="Leave Type"
+                        >
+                          {l.type}
+                        </td>
+
+                        <td
+                          className="table_td text-[10px] sm:text-xs p-2"
+                          data-label="Period"
+                        >
                           {new Date(l.startDate).toLocaleDateString()} →{" "}
                           {new Date(l.endDate).toLocaleDateString()}
                         </td>
-                        <td className="p-2 whitespace-nowrap font-semibold">
+
+                        <td
+                          className="table_td text-[10px] sm:text-xs p-2 font-semibold"
+                          data-label="Status"
+                        >
                           <span
                             style={{
                               color:
@@ -242,7 +267,8 @@ export default function LeaveDashboard() {
                             </span>
                           )}
                         </td>
-                        <td>
+
+                        <td className="table_td text-[10px] sm:text-xs">
                           {/* DELETE BUTTON FOR FUTURE APPROVED LEAVES */}
                           {l.status === "APPROVED" &&
                             ["ADMIN", "HR_MANAGER", "HR"].includes(
@@ -252,7 +278,10 @@ export default function LeaveDashboard() {
                                 onClick={() => handleDeleteApproved(l.id)}
                                 className="ml-3 text-red-500 hover:text-red-700"
                               >
-                                <Tooltip text="Delete Approved Leave">
+                                <Tooltip
+                                  text="Delete Approved Leave"
+                                  position="right"
+                                >
                                   <Trash2
                                     size={18}
                                     className="cursor-pointer"

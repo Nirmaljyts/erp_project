@@ -125,11 +125,11 @@ export default function Dashboard() {
                     <div className={`font-bold mb-4 ${c.style}`}>{c.count}</div>
 
                     <Link to={c.link}>
-                      <Tooltip text={`Go to ${c.label}`} position="right">
-                        <button className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-[#2f4f82] font-medium">
-                          View details →
-                        </button>
-                      </Tooltip>
+                      <button className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-[#2f4f82] font-medium">
+                        <Tooltip text={`Go to ${c.label}`} position="right">
+                          <span className="cursor-pointer">View details →</span>
+                        </Tooltip>
+                      </button>
                     </Link>
                   </div>
                 ))}

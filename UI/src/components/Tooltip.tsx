@@ -21,7 +21,7 @@ export default function Tooltip({
   };
 
   return (
-    <div className="relative group inline-flex items-center">
+    <div className="relative group flex items-center justify-center">
       {children}
 
       <span

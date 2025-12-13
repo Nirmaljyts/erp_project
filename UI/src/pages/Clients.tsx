@@ -266,7 +266,7 @@ export default function ClientsPage() {
                   <h2 className="text-lg font-semibold truncate">{c.name}</h2>
                   {(user?.role === "ADMIN" || user?.role === "MANAGER") && (
                     <div className="flex items-center gap-2">
-                      <Tooltip text="Edit Client">
+                      <Tooltip text="Edit Client" position="left">
                         <Edit2
                           size={18}
                           className="cursor-pointer text-gray-500 hover:text-gray-700"
@@ -274,7 +274,7 @@ export default function ClientsPage() {
                         />
                       </Tooltip>
 
-                      <Tooltip text="Delete Client">
+                      <Tooltip text="Delete Client" position="left">
                         <Trash2
                           size={18}
                           className="cursor-pointer text-red-500 hover:text-red-600"
@@ -326,7 +326,7 @@ export default function ClientsPage() {
               onClick={closeModal}
               className="absolute right-4 top-4 cursor-pointer"
             >
-              <Tooltip text="Close">
+              <Tooltip text="Close" position="left">
                 <X size={22} className="text-[var(--text)] cursor-pointer" />
               </Tooltip>
             </button>

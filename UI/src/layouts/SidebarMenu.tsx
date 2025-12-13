@@ -10,6 +10,7 @@ import {
   CalendarClock,
   CalendarCheck2,
   Kanban,
+  PrinterCheck,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
@@ -92,9 +93,15 @@ const menu = [
         roles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER"],
       },
       {
+        label: "Timesheet Definitions",
+        path: "/timesheets/definitions",
+        icon: Kanban,
+        roles: ["ADMIN", "HR_MANAGER", "HR"],
+      },
+      {
         label: "Timesheet Reports",
         path: "/timesheets/reports",
-        icon: Kanban,
+        icon: PrinterCheck,
         roles: ["ADMIN", "HR_MANAGER", "HR"],
       },
     ],
@@ -121,7 +128,7 @@ export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
   };
 
   return (
-    <nav className="space-y-1 p-2">
+    <nav className="max-w-56 space-y-1 p-2">
       {menu
         .filter((item) => item.roles.includes(userRole))
         .map((item) => {

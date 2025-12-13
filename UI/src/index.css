@@ -41,6 +41,10 @@ summary {
   font-weight: 500;
 }
 
+.Toastify__close-button svg {
+  pointer-events: none;
+}
+
 input,
 textarea {
   cursor: text;
@@ -143,5 +147,48 @@ textarea {
   .fc .fc-daygrid-day-number {
     font-size: 0.75rem !important;
     padding: 2px !important;
+  }
+}
+
+/* TABLE COMMON CSS */
+.table {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.table_th,
+.table_td {
+  overflow: hidden;
+}
+
+@media screen and (max-width: 425px) {
+  .table .t_head {
+    display: none;
+  }
+
+  .table tr {
+    display: block;
+  }
+
+  .table .table_td {
+    display: block;
+    font-size: 12px !important;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .table .table_td::before {
+    content: attr(data-label);
+    float: left;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+
+  .table tr:first-child {
+    border-top: 0;
   }
 }

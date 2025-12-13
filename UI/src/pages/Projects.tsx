@@ -418,7 +418,7 @@ export default function Projects() {
                   <h2 className="text-lg font-semibold truncate">{p.name}</h2>
                   {(user?.role === "ADMIN" || user?.role === "MANAGER") && (
                     <div className="flex items-center gap-2">
-                      <Tooltip text="Assign Employees">
+                      <Tooltip text="Assign Employees" position="bottom">
                         <Users
                           size={18}
                           className="cursor-pointer text-[#2f4f82] hover:text-[#1b335a]"
@@ -426,7 +426,7 @@ export default function Projects() {
                         />
                       </Tooltip>
 
-                      <Tooltip text="Edit Employees">
+                      <Tooltip text="Edit Employees" position="bottom">
                         <Edit2
                           size={18}
                           className="cursor-pointer text-gray-500 hover:text-gray-700"
@@ -435,7 +435,7 @@ export default function Projects() {
                       </Tooltip>
 
                       {user?.role === "ADMIN" && (
-                        <Tooltip text="Delete Employees">
+                        <Tooltip text="Delete Employees" position="bottom">
                           <Trash2
                             size={18}
                             className="cursor-pointer text-red-500 hover:text-red-600"
@@ -523,7 +523,7 @@ export default function Projects() {
               onClick={closeProjectModal}
               className="absolute right-4 top-4 cursor-pointer"
             >
-              <Tooltip text="Close">
+              <Tooltip text="Close" position="left">
                 <X size={22} className="text-[var(--text)] cursor-pointer" />
               </Tooltip>
             </button>
@@ -672,8 +672,8 @@ export default function Projects() {
               onClick={() => setShowAssignModal(false)}
               className="absolute right-4 top-4"
             >
-              <Tooltip text="Close">
-                <X size={22} />
+              <Tooltip text="Close" position="left">
+                <X size={22} className="text-[var(--text)] cursor-pointer" />
               </Tooltip>
             </button>
 

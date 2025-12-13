@@ -6,6 +6,9 @@ import {
   deleteDefinition,
 } from "../services/timesheetServices";
 import { toast } from "react-toastify";
+import Tooltip from "../components/Tooltip";
+import { Edit2, Trash2 } from "lucide-react";
+import Swal from "sweetalert2";
 
 export default function TimesheetDefinitions() {
   const [definitions, setDefinitions] = useState<any[]>([]);
@@ -92,7 +95,19 @@ export default function TimesheetDefinitions() {
   }
 
   async function handleDelete(id: number) {
-    if (!confirm("Delete this definition?")) return;
+    const result = await Swal.fire({
+      title: "Delete Definition?",
+      text: "This action cannot be reversed.",
+      icon: "warning",
+      showCancelButton: true,
+      reverseButtons: true,
+      confirmButtonColor: "#d33",
+      confirmButtonText: "Delete",
+      cancelButtonColor: "#1b335a",
+    });
+
+    if (!result.isConfirmed) return;
+
     try {
       await deleteDefinition(id);
       toast.success("Deleted");
@@ -103,14 +118,14 @@ export default function TimesheetDefinitions() {
   }
 
   return (
-    <div className="p-4">
+    <div className="max-h-auto">
       <div className="flex justify-between mb-4">
-        <h1 className="text-xl font-bold">Timesheet Definitions</h1>
+        <h1 className="text-2xl font-semibold">Timesheet Definitions</h1>
         <button
           onClick={openCreateModal}
-          className="px-4 py-2 bg-blue-600 text-white rounded"
+          className="px-4 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
         >
-          + Add Definition
+          Add Definition
         </button>
       </div>
 
@@ -118,34 +133,51 @@ export default function TimesheetDefinitions() {
       <table className="w-full border">
         <thead className="bg-gray-100">
           <tr>
-            <th className="p-2 text-left">Type</th>
-            <th className="p-2 text-left">Project</th>
-            <th className="p-2 text-left">Description</th>
-            <th className="p-2 text-left">Applies To</th>
-            <th className="p-2 text-center">Actions</th>
+            <th className="p-2 text-xs uppercase font-bold text-left">Type</th>
+            <th className="p-2 text-xs uppercase font-bold text-left">
+              Project
+            </th>
+            <th className="p-2 text-xs uppercase font-bold text-left">
+              Description
+            </th>
+            <th className="p-2 text-xs uppercase font-bold text-left">
+              Applies To
+            </th>
+            <th className="p-2 text-xs uppercase font-bold text-left">
+              Actions
+            </th>
           </tr>
         </thead>
 
         <tbody>
           {definitions.map((d) => (
             <tr key={d.id} className="border-t">
-              <td className="p-2">{d.type}</td>
-              <td className="p-2">{d.project?.name || "-"}</td>
-              <td className="p-2">{d.description || "-"}</td>
-              <td className="p-2">{d.appliesTo}</td>
-              <td className="p-2 text-center">
-                <button
-                  onClick={() => openEditModal(d)}
-                  className="px-3 py-1 bg-yellow-500 text-white rounded mr-2"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(d.id)}
-                  className="px-3 py-1 bg-red-600 text-white rounded"
-                >
-                  Delete
-                </button>
+              <td className="p-2 text-sm">{d.type}</td>
+              <td className="p-2 text-sm">{d.project?.name || "-"}</td>
+              <td className="p-2 text-sm">{d.description || "-"}</td>
+              <td className="p-2 text-sm">{d.appliesTo}</td>
+              <td className="p-2">
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => openEditModal(d)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <Tooltip text="Edit Definition" position="left">
+                      <Edit2 size={18} className="cursor-pointer" />
+                    </Tooltip>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(d.id)}
+                    className="text-red-500 hover:text-red-600"
+                  >
+                    <Tooltip text="Delete Definition" position="left">
+                      <Trash2 size={18} className="cursor-pointer" />
+                    </Tooltip>
+                  </button>
+                </div>
               </td>
             </tr>
           ))}

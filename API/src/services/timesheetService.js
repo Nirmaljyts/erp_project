@@ -22,7 +22,7 @@ function addDays(date, days) {
 }
 
 export async function findOrCreateWeek(userId, dateInput) {
-  const weekStart = getWeekStart(dateInput); // normalized pure date
+  const weekStart = getWeekStart(dateInput);
 
   let week = await prisma.timesheetWeek.findFirst({
     where: { userId, weekStartDate: weekStart },
@@ -75,290 +75,217 @@ export async function findOrCreateWeek(userId, dateInput) {
   }
 }
 
+function normalizeDesc(desc) {
+  return desc ? desc.trim().toUpperCase() : null;
+}
+
+function buildRowKey(def) {
+  if (def.type === "PROJECT") {
+    if (!def.projectId) {
+      throw new Error("PROJECT row without projectId");
+    }
+    return `PROJECT-${def.projectId}`;
+  }
+
+  if (!def.description) {
+    throw new Error("SPECIAL row without description");
+  }
+
+  return `SPECIAL-${normalizeDesc(def.description)}`;
+}
+
+function getMonday(d) {
+  const local = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day = local.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  local.setDate(local.getDate() + diff);
+  return local;
+}
+
+function isCurrentOrFutureWeek(weekStart) {
+  const now = new Date();
+  const currentMonday = getMonday(now);
+  return weekStart >= currentMonday;
+}
+
 export async function getMyTimesheetWeekService(userId, weekStartParam) {
   const date = weekStartParam ? new Date(weekStartParam) : new Date();
-  let week = await findOrCreateWeek(userId, date);
+
+  const week = await findOrCreateWeek(userId, date);
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
-      projects: { include: { project: true } },
-      projectsManaged: true,
+      projects: {
+        where: { project: { deletedAt: null } },
+        include: { project: true },
+      },
+      projectsManaged: {
+        where: { deletedAt: null },
+      },
     },
   });
 
   if (!user) throw new Error("User not found");
+
   const role = user.role;
 
-  // ---------------------------------------------------------
-  // 1) LOAD ADMIN/HR-MANAGER CREATED DEFINITIONS
-  // ---------------------------------------------------------
-  const defs = await prisma.timesheetDefinition.findMany({
+  const weekStart = new Date(week.weekStartDate);
+  const isDraft = week.status === "DRAFT";
+  const isCurrentOrFuture = isCurrentOrFutureWeek(weekStart);
+
+  // Get all definitions applicable by role (INCLUDING deleted)
+  const allDefs = await prisma.timesheetDefinition.findMany({
     where: {
-      deletedAt: null,
-      OR: [{ appliesTo: "ALL" }, { appliesTo: role }],
+      appliesTo: { in: ["ALL", role] },
     },
-    include: { project: true },
   });
 
-  // ---------------------------------------------------------
-  // 2) BUILD UNIFIED ROW DEFINITIONS
-  // ---------------------------------------------------------
-  let rowDefs = [];
+  // Get rowKeys already present in this timesheet
+  const existingEntries = await prisma.timesheetEntry.findMany({
+    where: {
+      timesheetId: week.id,
+      deletedAt: null,
+    },
+    select: { rowKey: true },
+  });
 
-  // From definitions
+  const existingRowKeys = new Set(existingEntries.map((e) => e.rowKey));
+
+  // Final visible definitions
+  const defs = allDefs.filter((def) => {
+    // Always show active definitions
+    if (!def.deletedAt) return true;
+
+    // If timesheet is submitted → freeze snapshot
+    if (!isDraft) return true;
+
+    // If previous week → keep history
+    if (!isCurrentOrFuture) return true;
+
+    // Draft + current/future → only if already used
+    const rowKey =
+      def.type === "PROJECT"
+        ? `PROJECT-${def.projectId}`
+        : `SPECIAL-${normalizeDesc(def.description)}`;
+
+    return existingRowKeys.has(rowKey);
+  });
+
+  const rowDefs = [];
+
+  /* ---------------- SPECIAL DEFINITIONS (DEDUPED) ---------------- */
+
+  const seenSpecial = new Set();
+
   for (const d of defs) {
-    if (d.type === "PROJECT") {
-      if (!d.projectId) continue;
+    if (d.type !== "SPECIAL" || !d.description) continue;
+
+    const desc = normalizeDesc(d.description);
+    if (seenSpecial.has(desc)) continue;
+
+    seenSpecial.add(desc);
+
+    rowDefs.push({
+      type: "SPECIAL",
+      description: desc,
+    });
+  }
+
+  /* ---------------- PROJECT ROWS (ROLE-BASED) ---------------- */
+
+  // ADMIN / HR → PROJECT definitions
+  if (role === "ADMIN" || role === "HR") {
+    for (const d of defs) {
+      if (d.type === "PROJECT" && d.projectId) {
+        rowDefs.push({
+          type: "PROJECT",
+          projectId: d.projectId,
+          clientId: d.project?.clientId ?? null,
+          description: null,
+        });
+      }
+    }
+  }
+
+  // MANAGER / HR_MANAGER → managed projects
+  if (role === "MANAGER" || role === "HR_MANAGER") {
+    for (const p of user.projectsManaged) {
+      if (!p?.id) continue;
 
       rowDefs.push({
-        key: `PROJECT-${d.projectId}`,
         type: "PROJECT",
-        projectId: d.projectId,
-        clientId: d.project?.clientId ?? null,
+        projectId: p.id,
+        clientId: p.clientId ?? null,
         description: null,
       });
-    } else {
-      if (!d.description) continue;
+    }
+  }
+
+  // EMPLOYEE → assigned projects
+  if (role === "EMPLOYEE") {
+    for (const p of user.projects) {
+      if (!p?.project || !p.projectId) continue;
 
       rowDefs.push({
-        key: `SPECIAL-${d.description}`,
-        type: "SPECIAL",
-        description: d.description,
-        projectId: null,
-        clientId: null,
+        type: "PROJECT",
+        projectId: p.projectId,
+        clientId: p.project.clientId ?? null,
+        description: null,
       });
     }
   }
 
-  // Role-based system rows
-  if (role === "HR" || role === "HR_MANAGER") {
-    rowDefs.push({
-      key: "SPECIAL-HR Tasks",
-      type: "SPECIAL",
-      description: "HR Tasks",
-    });
-  }
+  /* ---------------- DEDUPE BY ROWKEY ---------------- */
 
-  if (role === "ADMIN") {
-    rowDefs.push({
-      key: "SPECIAL-Administration",
-      type: "SPECIAL",
-      description: "Administration",
-    });
-  }
-
-  if (role === "MANAGER" || role === "HR_MANAGER") {
-    rowDefs.push(
-      ...user.projectsManaged
-        .filter((p) => ["ACTIVE", "ON_HOLD"].includes(p.status))
-        .map((p) => ({
-          key: `PROJECT-${p.id}`,
-          type: "PROJECT",
-          projectId: p.id,
-          clientId: p.clientId,
-        }))
-    );
-  }
-
-  if (role === "EMPLOYEE" || role === "HR_MANAGER") {
-    rowDefs.push(
-      ...user.projects
-        .filter((p) => ["ACTIVE", "ON_HOLD"].includes(p.project.status))
-        .map((p) => ({
-          key: `PROJECT-${p.projectId}`,
-          type: "PROJECT",
-          projectId: p.projectId,
-          clientId: p.project.clientId,
-        }))
-    );
-  }
-
-  // Common "system" rows
-  rowDefs.push({
-    key: "SPECIAL-HR_ACTIVITIES",
-    type: "SPECIAL",
-    description: "HR_ACTIVITIES",
-  });
-
-  rowDefs.push({
-    key: "BENCH",
-    type: "BENCH",
-    description: "Bench",
-  });
-
-  // Deduplicate definitions
-  rowDefs = rowDefs.filter(
-    (r, i, arr) => i === arr.findIndex((x) => x.key === r.key)
+  const uniqueDefs = Array.from(
+    new Map(
+      rowDefs
+        .filter(
+          (d) =>
+            d &&
+            (d.type === "PROJECT"
+              ? Number.isInteger(d.projectId)
+              : typeof d.description === "string")
+        )
+        .map((d) => {
+          const key = buildRowKey(d);
+          return [key, { ...d, rowKey: key }];
+        })
+    ).values()
   );
 
-  // ---------------------------------------------------------
-  // 3) LOAD EXISTING WEEK ENTRIES
-  // ---------------------------------------------------------
-  let existing = week.entries ?? [];
+  /* ---------------- UPSERT SAFELY ---------------- */
 
-  // ---------------------------------------------------------
-  // Helper to compute unique key from entry
-  // ---------------------------------------------------------
-  function entryKey(e) {
-    if (e.projectId) return `PROJECT-${e.projectId}`;
-    if (e.description === "Bench") return "BENCH";
-    if (e.description) return `SPECIAL-${e.description}`;
-    return null;
-  }
-
-  // ---------------------------------------------------------
-  // 4) CONVERT INVALID PROJECT ROWS → BENCH
-  // ---------------------------------------------------------
-  const validProjectIds = rowDefs
-    .filter((r) => r.type === "PROJECT")
-    .map((r) => r.projectId);
-
-  const convertOps = [];
-
-  for (const e of existing) {
-    if (e.projectId && !validProjectIds.includes(e.projectId)) {
-      convertOps.push(
-        prisma.timesheetEntry.update({
-          where: { id: e.id },
-          data: {
-            projectId: null,
-            clientId: null,
-            description: "Bench",
-            isBillable: false,
-          },
-        })
-      );
-    }
-  }
-
-  if (convertOps.length) await Promise.all(convertOps);
-
-  // Reload existing
-  week = await prisma.timesheetWeek.findUnique({
-    where: { id: week.id },
-    include: {
-      entries: {
-        where: { deletedAt: null },
-        include: { project: true, client: true },
-        orderBy: { id: "asc" },
-      },
-      approver: true,
-    },
-  });
-  existing = week.entries ?? [];
-
-  // ---------------------------------------------------------
-  // 5) REMOVE SPECIAL ROWS THAT ARE NOT IN DEFINITIONS
-  // ---------------------------------------------------------
-  const validSpecialKeys = rowDefs
-    .filter((r) => r.type === "SPECIAL")
-    .map((r) => r.key);
-
-  const removeOps = [];
-
-  for (const e of existing) {
-    const key = entryKey(e);
-
-    if (
-      key?.startsWith("SPECIAL-") &&
-      !validSpecialKeys.includes(key) // removed definition
-    ) {
-      removeOps.push(
-        prisma.timesheetEntry.update({
-          where: { id: e.id },
-          data: { deletedAt: new Date() },
-        })
-      );
-    }
-  }
-
-  if (removeOps.length) await Promise.all(removeOps);
-
-  // Reload after removing invalid special rows
-  week = await prisma.timesheetWeek.findUnique({
-    where: { id: week.id },
-    include: {
-      entries: { where: { deletedAt: null }, include: { project: true } },
-    },
-  });
-  existing = week.entries ?? [];
-
-  // ---------------------------------------------------------
-  // 6) REMOVE DUPLICATES
-  // ---------------------------------------------------------
-  const seen = new Set();
-  const dupOps = [];
-
-  for (const e of existing) {
-    const key = entryKey(e);
-
-    if (!key) continue;
-
-    if (seen.has(key)) {
-      dupOps.push(
-        prisma.timesheetEntry.update({
-          where: { id: e.id },
-          data: { deletedAt: new Date() },
-        })
-      );
-    } else {
-      seen.add(key);
-    }
-  }
-
-  if (dupOps.length) await Promise.all(dupOps);
-
-  // Reload after dedupe
-  week = await prisma.timesheetWeek.findUnique({
-    where: { id: week.id },
-    include: {
-      entries: { where: { deletedAt: null }, include: { project: true } },
-    },
-  });
-
-  existing = week.entries ?? [];
-
-  // ---------------------------------------------------------
-  // 7) CREATE MISSING ROWS
-  // ---------------------------------------------------------
-  const createOps = [];
-
-  for (const def of rowDefs) {
-    const hasRow = existing.some((e) => entryKey(e) === def.key);
-
-    if (!hasRow) {
-      createOps.push(
-        prisma.timesheetEntry.create({
-          data: {
+  await prisma.$transaction(
+    uniqueDefs.map((def) =>
+      prisma.timesheetEntry.upsert({
+        where: {
+          timesheet_rowkey_unique: {
             timesheetId: week.id,
-            projectId: def.projectId ?? null,
-            clientId: def.clientId ?? null,
-            description:
-              def.type === "SPECIAL"
-                ? def.description
-                : def.type === "BENCH"
-                ? "Bench"
-                : null,
-            mon: 0,
-            tue: 0,
-            wed: 0,
-            thu: 0,
-            fri: 0,
-            sat: 0,
-            sun: 0,
-            isBillable: def.type === "PROJECT",
+            rowKey: def.rowKey,
           },
-        })
-      );
-    }
-  }
+        },
+        update: {},
+        create: {
+          timesheetId: week.id,
+          rowKey: def.rowKey,
+          projectId: def.projectId ?? null,
+          clientId: def.clientId ?? null,
+          description: def.type === "PROJECT" ? null : def.description,
+          isBillable: def.type === "PROJECT",
+          mon: 0,
+          tue: 0,
+          wed: 0,
+          thu: 0,
+          fri: 0,
+          sat: 0,
+          sun: 0,
+        },
+      })
+    )
+  );
 
-  if (createOps.length) await Promise.all(createOps);
-
-  // ---------------------------------------------------------
-  // FINAL RETURN
-  // ---------------------------------------------------------
   return prisma.timesheetWeek.findUnique({
     where: { id: week.id },
     include: {
@@ -366,13 +293,9 @@ export async function getMyTimesheetWeekService(userId, weekStartParam) {
         where: { deletedAt: null },
         include: { project: true, client: true },
         orderBy: [
-          {
-            project: {
-              name: "asc", // 🔥 Sort by project.name
-            },
-          },
-          { description: "asc" }, // sorts SPECIAL rows alphabetically
-          { id: "asc" }, // stable fallback order
+          { project: { name: "asc" } },
+          { description: "asc" },
+          { id: "asc" },
         ],
       },
       approver: true,
@@ -447,7 +370,7 @@ export async function saveTimesheetWeekService(userId, weekId, entries) {
 
   if (!week) throw new Error("Timesheet not found");
   if (week.userId !== userId) throw new Error("Not your timesheet");
-  if (week.status !== "DRAFT") throw new Error("Cannot edit submitted week");
+  if (week.status !== "DRAFT") throw new Error("Cannot save submitted week");
 
   return prisma.$transaction(async (tx) => {
     for (const e of entries) {
@@ -600,23 +523,64 @@ export async function submitTimesheetWeekService(
     include: { approver: true },
   });
 }
+// ----------------------------------------- TIMESHEET DEFINITION -----------------------------------------
 
 export async function createTimesheetDefinition(req, res) {
   const { name, appliesTo } = req.body;
+
+  if (!name || typeof name !== "string") {
+    return res.status(400).json({ message: "Name is required" });
+  }
 
   if (!["ALL", "EMPLOYEE", "HR", "MANAGER"].includes(appliesTo)) {
     return res.status(400).json({ message: "Invalid appliesTo" });
   }
 
   const role = req.user.role;
-
   if (role !== "ADMIN" && role !== "HR_MANAGER") {
     return res.status(403).json({ message: "Not allowed" });
   }
 
+  const normalizedName = name.trim().toUpperCase();
+  const SYSTEM_NAMES = ["BENCH", "HR_ACTIVITIES"];
+
+  if (SYSTEM_NAMES.includes(normalizedName)) {
+    return res.status(403).json({
+      message: "System definitions cannot be created manually",
+    });
+  }
+
+  // 🔍 Find existing (including soft-deleted)
+  const existing = await prisma.timesheetDefinition.findFirst({
+    where: {
+      type: "SPECIAL",
+      description: normalizedName,
+      appliesTo,
+    },
+  });
+
+  // ✅ Exists & active → error
+  if (existing && !existing.deletedAt) {
+    return res.status(409).json({
+      message: "Definition name already exists",
+    });
+  }
+
+  // ♻️ Exists but soft-deleted → restore
+  if (existing && existing.deletedAt) {
+    const restored = await prisma.timesheetDefinition.update({
+      where: { id: existing.id },
+      data: { deletedAt: null },
+    });
+
+    return res.json(restored);
+  }
+
+  // ➕ Fresh create
   const def = await prisma.timesheetDefinition.create({
     data: {
-      name,
+      type: "SPECIAL",
+      description: normalizedName,
       appliesTo,
       createdById: req.user.id,
     },
@@ -626,22 +590,63 @@ export async function createTimesheetDefinition(req, res) {
 }
 
 export async function createDefinitionService(data) {
-  const { type, projectId, description, appliesTo } = data;
+  const { type, projectId, description, appliesTo, createdById } = data;
 
-  if (type === "PROJECT" && !projectId) {
-    throw new Error("projectId required for PROJECT type");
+  if (!["ALL", "EMPLOYEE", "HR", "MANAGER"].includes(appliesTo)) {
+    throw new Error("Invalid appliesTo");
   }
 
-  if (type !== "PROJECT" && !description) {
-    throw new Error("description required for non-project type");
+  if (type === "PROJECT") {
+    if (!projectId) {
+      throw new Error("projectId required for PROJECT type");
+    }
+  } else {
+    if (!description) {
+      throw new Error("description required for non-project type");
+    }
   }
 
+  const normalizedDesc = type === "PROJECT" ? null : normalizeDesc(description);
+
+  // 🚫 Block system definitions
+  // const SYSTEM_NAMES = ["BENCH", "HR_ACTIVITIES"];
+  // if (normalizedDesc && SYSTEM_NAMES.includes(normalizedDesc)) {
+  //   throw new Error("System definitions cannot be created manually");
+  // }
+
+  // 🔍 Find existing (including soft-deleted)
+  const existing = await prisma.timesheetDefinition.findFirst({
+    where: {
+      type,
+      description: normalizedDesc,
+      appliesTo,
+    },
+  });
+
+  // ✅ Exists & active → error
+  if (existing && !existing.deletedAt) {
+    throw new Error("Definition name already exists");
+  }
+
+  // ♻️ Exists but soft-deleted → restore
+  if (existing && existing.deletedAt) {
+    return prisma.timesheetDefinition.update({
+      where: { id: existing.id },
+      data: {
+        deletedAt: null,
+        projectId: type === "PROJECT" ? projectId : null,
+      },
+    });
+  }
+
+  // ➕ Fresh create
   return prisma.timesheetDefinition.create({
     data: {
       type,
-      projectId: projectId ?? null,
-      description: description ?? null,
+      projectId: type === "PROJECT" ? projectId : null,
+      description: normalizedDesc,
       appliesTo,
+      createdById,
     },
   });
 }

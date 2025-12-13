@@ -233,7 +233,7 @@ export default function App() {
           <Route
             path="/timesheets/definitions"
             element={
-              <RoleGuard allowedRoles={["ADMIN", "HR_MANAGER"]}>
+              <RoleGuard allowedRoles={["ADMIN", "HR_MANAGER", "HR"]}>
                 <TimesheetDefinitions />
               </RoleGuard>
             }

@@ -16,7 +16,7 @@ function getMonday(d: Date) {
   const day = local.getDay();
   const diff = day === 0 ? -6 : 1 - day;
   local.setDate(local.getDate() + diff);
-  return new Date(local.getFullYear(), local.getMonth(), local.getDate());
+  return local;
 }
 
 function formatISO(d: Date) {
@@ -75,28 +75,31 @@ export default function Timesheet() {
   const [week, setWeek] = useState<TimesheetWeek | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const [currentMonday, setCurrentMonday] = useState(() =>
+  const [selectedMonday, setSelectedMonday] = useState(() =>
     getMonday(new Date())
   );
 
-  const weekEnd = new Date(currentMonday);
+  const todayMonday = getMonday(new Date());
+
+  const isPastWeek = selectedMonday < todayMonday;
+  const isFutureWeek = selectedMonday > todayMonday;
+  const isCurrentWeek = selectedMonday.getTime() === todayMonday.getTime();
+
+  const weekEnd = new Date(selectedMonday);
   weekEnd.setDate(weekEnd.getDate() + 6);
 
   function formatDate(d: Date) {
     return d.toLocaleDateString("en-GB");
   }
 
-  // ------------------------------------------------------------
-  // LOAD WEEK
-  // ------------------------------------------------------------
   useEffect(() => {
     loadWeek();
-  }, [currentMonday]);
+  }, [selectedMonday]);
 
   async function loadWeek() {
     try {
       setLoading(true);
-      const res = await getMyTimesheet(formatISO(currentMonday));
+      const res = await getMyTimesheet(formatISO(selectedMonday));
       setWeek(res.data);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to load timesheet");
@@ -139,12 +142,12 @@ export default function Timesheet() {
   }
 
   function toggleBillable(row: TimesheetEntry) {
-    if (!row.projectId) return; // prevent billable for special rows
+    if (!row.projectId) return;
     updateEntry(row, "isBillable", !row.isBillable);
   }
 
   function saveDescription(row: TimesheetEntry, desc: string) {
-    if (row.projectId) return; // description only for special rows
+    if (row.projectId) return;
     updateEntry(row, "description", desc);
   }
 
@@ -173,7 +176,7 @@ export default function Timesheet() {
     if (!week) return;
 
     try {
-      await submitTimesheet(week.id, week.entries); // send latest UI edits
+      await submitTimesheet(week.id, week.entries);
       toast.success("Submitted");
       loadWeek();
     } catch (err: any) {
@@ -185,105 +188,110 @@ export default function Timesheet() {
   // CHANGE WEEK — FIXED VERSION
   // ------------------------------------------------------------
   function changeWeek(offset: number) {
-    const base = new Date(
-      currentMonday.getFullYear(),
-      currentMonday.getMonth(),
-      currentMonday.getDate()
-    );
-    base.setDate(base.getDate() + offset * 7);
-    setCurrentMonday(getMonday(base));
+    const next = new Date(selectedMonday);
+    next.setDate(next.getDate() + offset * 7);
+    setSelectedMonday(next);
   }
 
   return (
-    <div>
+    <div className="max-h-auto">
       {/* HEADER */}
-      <div className="mb-4 flex justify-between">
+      <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Weekly Timesheet</h1>
-          <p className="text-sm text-gray-500">
-            Week of {formatDate(currentMonday)} - {formatDate(weekEnd)}
+
+          <p className="text-md text-gray-700 mt-2">
+            Week of {formatDate(selectedMonday)} - {formatDate(weekEnd)}
           </p>
 
-          {week?.approver && (
-            <p className="text-xs text-gray-500">
-              Approver: {week.approver.name}
-            </p>
-          )}
+          <p className="text-sm text-gray-700">
+            {week?.approver && <span>Approved By: {week.approver.name}</span>}
+          </p>
         </div>
 
-        <div className="flex gap-2">
-          <button onClick={() => changeWeek(-1)} className="btn">
-            Prev Week
+        <div className="flex gap-3">
+          <button
+            onClick={() => changeWeek(-1)}
+            className="btn rounded outline p-2 h-8 flex items-center justify-center"
+          >
+            Previous Week
           </button>
 
           <button
-            onClick={() => setCurrentMonday(getMonday(new Date()))}
-            className="btn"
+            onClick={() => setSelectedMonday(getMonday(new Date()))}
+            className="btn rounded outline p-2 h-8 flex items-center justify-center"
           >
-            This Week
+            Current Week
           </button>
 
-          {/* <button onClick={() => changeWeek(1)} className="btn">
-            {" "}
-            Next Week{" "}
-          </button> */}
+          <button
+            onClick={() => changeWeek(1)}
+            className="btn btn rounded outline p-2 h-8 flex items-center justify-center"
+          >
+            Next Week
+          </button>
         </div>
       </div>
 
       {/* TABLE */}
       {week && (
-        <div className="overflow-x-auto">
+        <div className="w-auto overflow-x-auto">
           <table className="w-full border">
             <thead>
               <tr className="bg-gray-100">
-                <th className="p-2 text-left">Project/Task</th>
+                <th className="w-auto p-2 text-left uppercase">Project/Task</th>
+
                 {days.map((d) => (
-                  <th key={d} className="p-2 text-center uppercase">
+                  <th key={d} className="w-auto p-2 text-left uppercase">
                     {d}
                   </th>
                 ))}
+
                 {canSeeBillable && (
-                  <th className="p-2 text-center">Billable</th>
+                  <th className="w-auto p-2 text-left uppercase">Billable</th>
                 )}
-                <th className="p-2 text-center">Notes</th>
+
+                <th className="w-auto p-2 text-left uppercase">Notes</th>
               </tr>
             </thead>
 
             <tbody>
               {week.entries.map((row) => {
                 const isSpecial = !row.projectId;
-                const isPastWeek = isPast(week.weekStartDate);
 
                 return (
                   <tr key={row.id} className="border-t">
-                    <td className="p-2 font-semibold">
-                      {row.project?.name ||
-                        row.client?.name ||
-                        row.description ||
-                        "Row"}
+                    <td className="w-auto p-2 text-left font-semibold whitespace-nowrap">
+                      {row.project?.name || row.client?.name || row.description}
                     </td>
 
                     {days.map((d) => (
-                      <td key={d} className="p-1 text-center">
-                        <input
-                          type="number"
-                          disabled={week.status !== "DRAFT" || isPastWeek}
-                          min={0}
-                          value={row[d]}
-                          onChange={(e) =>
-                            updateEntry(
-                              row,
-                              d,
-                              Math.max(0, Number(e.target.value))
-                            )
-                          }
-                          className="w-16 border rounded p-1 text-center"
-                        />
+                      <td key={d} className="w-auto p-0 text-left">
+                        <div className="w-full">
+                          <input
+                            type="number"
+                            disabled={
+                              week.status !== "DRAFT" ||
+                              isPastWeek ||
+                              isFutureWeek
+                            }
+                            min={0}
+                            value={row[d]}
+                            onChange={(e) =>
+                              updateEntry(
+                                row,
+                                d,
+                                Math.max(0, Number(e.target.value))
+                              )
+                            }
+                            className="w-14 border rounded p-1 text-center mr-2"
+                          />
+                        </div>
                       </td>
                     ))}
 
                     {canSeeBillable && (
-                      <td className="p-2 text-center">
+                      <td className="w-auto p-2 text-left">
                         <button
                           disabled={isPastWeek || isSpecial}
                           onClick={() => toggleBillable(row)}
@@ -298,7 +306,7 @@ export default function Timesheet() {
                       </td>
                     )}
 
-                    <td className="p-2 text-center">
+                    <td className="w-auto p-2 text-left">
                       {isSpecial ? (
                         <input
                           type="text"
@@ -316,36 +324,46 @@ export default function Timesheet() {
               })}
             </tbody>
 
+            <div className="my-3"></div>
+
             <tfoot>
-              <tr className="bg-gray-100 font-semibold">
-                <td className="p-2">Total</td>
+              <tr className="font-semibold">
+                <td className="w-auto p-2">Total</td>
+
                 {days.map((d) => (
-                  <td key={d} className="p-2 text-center">
-                    {totals ? totals[d] : 0}
+                  <td key={d} className="w-auto p-0 text-left">
+                    <input
+                      type="number"
+                      disabled
+                      className="w-14 border rounded p-1 text-center"
+                      value={totals ? totals[d] : 0}
+                    />
                   </td>
                 ))}
 
-                {canSeeBillable && <td></td>}
+                <td className="w-auto p-2 text-left px-5">
+                  {canSeeBillable && <td> - </td>}
+                </td>
 
-                <td className="p-2 text-center">{weeklyTotal}</td>
+                <td className="w-auto p-2 text-left">{weeklyTotal}</td>
               </tr>
             </tfoot>
           </table>
 
-          {/* BUTTONS */}
-          {week.status === "DRAFT" && (
+          {isCurrentWeek && (
             <div className="flex justify-end mt-4 gap-2">
               <button
                 onClick={handleSave}
-                className="px-4 py-2 bg-gray-200 rounded"
+                className="px-4 py-2 rounded border border-[#2f4f82]"
               >
                 Save
               </button>
+
               <button
                 onClick={handleSubmit}
-                className="px-4 py-2 bg-blue-600 text-white rounded"
+                className="px-4 py-2 bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a] rounded"
               >
-                Submit Week
+                Submit
               </button>
             </div>
           )}
