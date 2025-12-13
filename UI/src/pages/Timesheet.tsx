@@ -200,11 +200,11 @@ export default function Timesheet() {
         <div>
           <h1 className="text-2xl font-semibold">Weekly Timesheet</h1>
 
-          <p className="text-md text-gray-700 mt-2">
+          <p className="text-md text-gray-700 mt-2 dark:text-[var(--text)]">
             Week of {formatDate(selectedMonday)} - {formatDate(weekEnd)}
           </p>
 
-          <p className="text-sm text-gray-700">
+          <p className="text-sm text-gray-700 dark:text-[var(--text)]">
             {week?.approver && <span>Approved By: {week.approver.name}</span>}
           </p>
         </div>
@@ -212,162 +212,181 @@ export default function Timesheet() {
         <div className="flex gap-3">
           <button
             onClick={() => changeWeek(-1)}
-            className="btn rounded outline p-2 h-8 flex items-center justify-center"
+            className="btn rounded border border-[var(--border)] p-2 h-9 flex items-center justify-center"
           >
             Previous Week
           </button>
 
           <button
             onClick={() => setSelectedMonday(getMonday(new Date()))}
-            className="btn rounded outline p-2 h-8 flex items-center justify-center"
+            className="btn rounded border border-[var(--border)] p-2 h-9 flex items-center justify-center"
           >
             Current Week
           </button>
 
           <button
             onClick={() => changeWeek(1)}
-            className="btn btn rounded outline p-2 h-8 flex items-center justify-center"
+            className="btn btn rounded border border-[var(--border)] p-2 h-9 flex items-center justify-center"
           >
             Next Week
           </button>
         </div>
       </div>
 
-      {/* TABLE */}
-      {week && (
-        <div className="w-auto overflow-x-auto">
-          <table className="w-full border">
-            <thead>
-              <tr className="bg-gray-100">
-                <th className="w-auto p-2 text-left uppercase">Project/Task</th>
-
-                {days.map((d) => (
-                  <th key={d} className="w-auto p-2 text-left uppercase">
-                    {d}
-                  </th>
-                ))}
-
-                {canSeeBillable && (
-                  <th className="w-auto p-2 text-left uppercase">Billable</th>
-                )}
-
-                <th className="w-auto p-2 text-left uppercase">Notes</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {week.entries.map((row) => {
-                const isSpecial = !row.projectId;
-
-                return (
-                  <tr key={row.id} className="border-t">
-                    <td className="w-auto p-2 text-left font-semibold whitespace-nowrap">
-                      {row.project?.name || row.client?.name || row.description}
-                    </td>
+      {loading ? (
+        <div className="loader-overlay">
+          <div className="loader-all"></div>
+        </div>
+      ) : (
+        <>
+          {/* TABLE */}
+          {week && (
+            <div className="w-auto overflow-x-auto border border-[var(--border)] rounded-xl bg-[var(--card)]">
+              <table className="w-full">
+                <thead>
+                  <tr>
+                    <th className="w-auto p-2 text-left uppercase">
+                      Project/Task
+                    </th>
 
                     {days.map((d) => (
-                      <td key={d} className="w-auto p-0 text-left">
-                        <div className="w-full">
-                          <input
-                            type="number"
-                            disabled={
-                              week.status !== "DRAFT" ||
-                              isPastWeek ||
-                              isFutureWeek
-                            }
-                            min={0}
-                            value={row[d]}
-                            onChange={(e) =>
-                              updateEntry(
-                                row,
-                                d,
-                                Math.max(0, Number(e.target.value))
-                              )
-                            }
-                            className="w-14 border rounded p-1 text-center mr-2"
-                          />
-                        </div>
-                      </td>
+                      <th key={d} className="w-auto p-2 text-left uppercase">
+                        {d}
+                      </th>
                     ))}
 
                     {canSeeBillable && (
-                      <td className="w-auto p-2 text-left">
-                        <button
-                          disabled={isPastWeek || isSpecial}
-                          onClick={() => toggleBillable(row)}
-                          className={`px-2 py-1 rounded ${
-                            row.isBillable
-                              ? "bg-green-200 text-green-800"
-                              : "bg-gray-300 text-gray-700"
-                          }`}
-                        >
-                          {row.isBillable ? "Yes" : "No"}
-                        </button>
-                      </td>
+                      <th className="w-auto p-2 text-left uppercase">
+                        Billable
+                      </th>
                     )}
 
-                    <td className="w-auto p-2 text-left">
-                      {isSpecial ? (
-                        <input
-                          type="text"
-                          disabled={week.status !== "DRAFT" || isPastWeek}
-                          className="border rounded p-1 w-full"
-                          defaultValue={row.description || ""}
-                          onBlur={(e) => saveDescription(row, e.target.value)}
-                        />
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </td>
+                    <th className="w-auto p-2 text-left uppercase">Notes</th>
                   </tr>
-                );
-              })}
-            </tbody>
+                </thead>
 
-            <div className="my-3"></div>
+                <tbody>
+                  {week.entries.map((row) => {
+                    const isSpecial = !row.projectId;
 
-            <tfoot>
-              <tr className="font-semibold">
-                <td className="w-auto p-2">Total</td>
+                    return (
+                      <tr
+                        key={row.id}
+                        className="border-t border-[var(--border)]"
+                      >
+                        <td className="w-auto p-2 text-left font-semibold whitespace-nowrap">
+                          {row.project?.name ||
+                            row.client?.name ||
+                            row.description}
+                        </td>
 
-                {days.map((d) => (
-                  <td key={d} className="w-auto p-0 text-left">
-                    <input
-                      type="number"
-                      disabled
-                      className="w-14 border rounded p-1 text-center"
-                      value={totals ? totals[d] : 0}
-                    />
-                  </td>
-                ))}
+                        {days.map((d) => (
+                          <td key={d} className="w-auto p-0 text-left">
+                            <div className="w-full">
+                              <input
+                                type="number"
+                                disabled={
+                                  week.status !== "DRAFT" ||
+                                  isPastWeek ||
+                                  isFutureWeek
+                                }
+                                min={0}
+                                value={row[d]}
+                                onChange={(e) =>
+                                  updateEntry(
+                                    row,
+                                    d,
+                                    Math.max(0, Number(e.target.value))
+                                  )
+                                }
+                                className="w-14 border border-[var(--border)] rounded p-1 text-center mr-2"
+                              />
+                            </div>
+                          </td>
+                        ))}
 
-                <td className="w-auto p-2 text-left px-5">
-                  {canSeeBillable && <td> - </td>}
-                </td>
+                        {canSeeBillable && (
+                          <td className="w-auto p-2 text-left">
+                            <button
+                              disabled={isPastWeek || isSpecial}
+                              onClick={() => toggleBillable(row)}
+                              className={`px-2 py-1 rounded ${
+                                row.isBillable
+                                  ? "bg-green-200 text-green-800"
+                                  : "bg-gray-300 text-gray-700"
+                              }`}
+                            >
+                              {row.isBillable ? "Yes" : "No"}
+                            </button>
+                          </td>
+                        )}
 
-                <td className="w-auto p-2 text-left">{weeklyTotal}</td>
-              </tr>
-            </tfoot>
-          </table>
+                        <td className="w-auto p-2 text-left">
+                          {isSpecial ? (
+                            <input
+                              type="text"
+                              disabled={week.status !== "DRAFT" || isPastWeek}
+                              className="border border-[var(--border)] rounded p-1 w-full"
+                              defaultValue={row.description || ""}
+                              onBlur={(e) =>
+                                saveDescription(row, e.target.value)
+                              }
+                            />
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
 
-          {isCurrentWeek && (
-            <div className="flex justify-end mt-4 gap-2">
-              <button
-                onClick={handleSave}
-                className="px-4 py-2 rounded border border-[#2f4f82]"
-              >
-                Save
-              </button>
+                <div className="my-3"></div>
 
-              <button
-                onClick={handleSubmit}
-                className="px-4 py-2 bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a] rounded"
-              >
-                Submit
-              </button>
+                <tfoot>
+                  <tr className="font-semibold border-t">
+                    <td className="w-auto p-2">Total</td>
+
+                    {days.map((d) => (
+                      <td key={d} className="w-auto p-0 text-left">
+                        <input
+                          type="number"
+                          disabled
+                          className="w-14 border border-[var(--border)] rounded p-1 text-center"
+                          value={totals ? totals[d] : 0}
+                        />
+                      </td>
+                    ))}
+
+                    <td className="w-auto p-2 text-left px-5">
+                      {canSeeBillable && <td> - </td>}
+                    </td>
+
+                    <td className="w-auto p-2 text-left">{weeklyTotal}</td>
+                  </tr>
+                </tfoot>
+              </table>
+
+              {isCurrentWeek && (
+                <div className="flex justify-end p-2 mt-4 gap-2">
+                  <button
+                    onClick={handleSave}
+                    className="px-4 py-2 rounded border border-[#2f4f82]"
+                  >
+                    Save
+                  </button>
+
+                  <button
+                    onClick={handleSubmit}
+                    className="px-4 py-2 bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a] rounded"
+                  >
+                    Submit
+                  </button>
+                </div>
+              )}
             </div>
           )}
-        </div>
+        </>
       )}
     </div>
   );

@@ -190,7 +190,7 @@ export default function LeaveDashboard() {
 
                 <tbody className="">
                   {leaves.length === 0 ? (
-                    <tr className="border-t-0">
+                    <tr className="border-t">
                       <td
                         colSpan={6}
                         className="table_td px-4 py-6 text-center text-gray-500"
