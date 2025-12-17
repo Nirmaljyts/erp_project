@@ -62,7 +62,6 @@ export default function ProfilePopover() {
 
   return (
     <div className="relative" ref={popoverRef}>
-      {/* Profile Button */}
       <button
         onClick={() => setOpen((prev) => !prev)}
         className="
@@ -79,7 +78,6 @@ export default function ProfilePopover() {
         {userInitial}
       </button>
 
-      {/* Dropdown */}
       {open && (
         <div
           className="

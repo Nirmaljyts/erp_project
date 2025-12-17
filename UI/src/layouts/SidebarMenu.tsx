@@ -49,7 +49,7 @@ const menu = [
     roles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER", "EMPLOYEE"],
   },
 
-  // GROUPED DROPDOWN
+  // GROUPED DROPDOWNS
   {
     label: "Leaves",
     icon: CalendarDays,
@@ -135,7 +135,7 @@ export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
           const active = location.pathname === item.path;
           const hasChildren = !!item.children;
 
-          // ------------------ SIMPLE ITEM ------------------
+          // ------------------ SINGLE MENU ITEM ------------------
           if (!hasChildren) {
             return (
               <Link
@@ -156,7 +156,7 @@ export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
             );
           }
 
-          // ------------------ DROPDOWN ITEM ------------------
+          // ------------------ DROPDOWN MENU ITEM ------------------
           const isOpen = openDropdowns.includes(item.label);
 
           return (
@@ -177,7 +177,7 @@ export default function SidebarMenu({ onNavigate }: SidebarMenuProps) {
                 )}
               </button>
 
-              {/* Children */}
+              {/* DROPDOWN MENU ITEM CHILDREN */}
               {isOpen && (
                 <div className="ml-4 mt-1 space-y-1">
                   {item.children

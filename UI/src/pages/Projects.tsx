@@ -51,39 +51,32 @@ export default function Projects() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Select lists
   const [managers, setManagers] = useState<Manager[]>([]);
   const [employees, setEmployees] = useState<SimpleEmployee[]>([]);
 
-  // Create/Edit modal
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [showProjectModal, setShowProjectModal] = useState(false);
 
-  // Assign modal
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [assignProject, setAssignProject] = useState<Project | null>(null);
 
-  // Shared assignment state (used in both modals)
   const [selectedManager, setSelectedManager] = useState<number | null>(null);
   const [assignedEmployees, setAssignedEmployees] = useState<number[]>([]);
 
   const [originalEmployees, setOriginalEmployees] = useState<number[]>([]);
 
-  // Form fields
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formStatus, setFormStatus] = useState("ACTIVE");
   const [formStartDate, setFormStartDate] = useState<Date | null>(null);
   const [formEndDate, setFormEndDate] = useState<Date | null>(null);
 
-  // Error handling
   const [nameError, setNameError] = useState("");
   const [managerError, setManagerError] = useState("");
   const [dateError, setDateError] = useState("");
 
   const user = useSelector((state: RootState) => state?.auth?.user);
 
-  // ---------------- FETCH PROJECTS ----------------
   async function loadProjects(page = 1, searchValue = search) {
     const limit = 12;
 
@@ -136,7 +129,6 @@ export default function Projects() {
     }
   }
 
-  // ---------------- OPEN MODALS ----------------
   const openCreate = async () => {
     setEditingProject(null);
 
@@ -146,7 +138,6 @@ export default function Projects() {
     setAssignedEmployees([]);
     setSelectedManager(null);
 
-    // Load managers + free employees
     const [mgr, emp] = await Promise.all([getManagers(), getEmployees()]);
 
     setManagers(mgr);
@@ -167,13 +158,11 @@ export default function Projects() {
     setFormStartDate(p.startDate ? new Date(p.startDate) : null);
     setFormEndDate(p.endDate ? new Date(p.endDate) : null);
 
-    // Fetch fresh available managers + employees
     const [mgr, emp] = await Promise.all([getManagers(), getEmployees(p.id)]);
 
     setManagers(mgr);
     setEmployees(emp);
 
-    // Set selected manager
     setSelectedManager(p.manager?.id ?? (mgr.length > 0 ? mgr[0].id : null));
 
     const assigned = Array.isArray(p.employees)
@@ -248,7 +237,6 @@ export default function Projects() {
     const cleanName = formName.trim();
     const cleanManager = selectedManager;
 
-    // Validate Project Name
     if (!cleanName) {
       setNameError("Project name is required");
       valid = false;
@@ -259,7 +247,6 @@ export default function Projects() {
       setNameError("");
     }
 
-    // Date Validation
     if (!formStartDate || !formEndDate) {
       setDateError("Select both start and end dates");
       return;
@@ -273,7 +260,6 @@ export default function Projects() {
       setDateError("");
     }
 
-    // Validate Manager
     if (!cleanManager) {
       setManagerError("Manager is required");
       valid = false;
@@ -295,17 +281,14 @@ export default function Projects() {
 
     try {
       if (editingProject) {
-        // detect removed employees
         const removed = originalEmployees.filter(
           (id) => !assignedEmployees.includes(id)
         );
 
-        // remove via API → updates reviewers properly
         for (const empId of removed) {
           await removeEmployee(editingProject.id, empId);
         }
 
-        // now update project normally
         await updateProject(editingProject.id, payload);
         toast.success("Project updated");
       } else {
@@ -336,7 +319,6 @@ export default function Projects() {
     setFormEndDate(null);
   };
 
-  // ---------------- PAGINATION ----------------
   const handlePaginate = (page: number) => {
     if (page > 0 && page <= pagination.totalPages) {
       loadProjects(page, search);
@@ -369,14 +351,13 @@ export default function Projects() {
               onPaste={(e) => {
                 const pasted = e.clipboardData.getData("text");
                 if (/^\s*$/.test(pasted)) {
-                  e.preventDefault(); // block whitespace-only paste
+                  e.preventDefault();
                 }
               }}
               className="w-full px-3 py-2 pr-10 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--text)] 
                  focus:outline-none focus:ring-2 focus:ring-[#2f4f82]"
             />
 
-            {/* CLEAR BUTTON */}
             {search && (
               <button
                 onClick={() => {
@@ -385,7 +366,7 @@ export default function Projects() {
                 }}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-500"
               >
-                <X size={18} />
+                <X size={18} className="cursor-pointer" />
               </button>
             )}
           </div>
@@ -407,7 +388,6 @@ export default function Projects() {
         </div>
       ) : (
         <>
-          {/* GRID SECTION */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-2">
             {projects.map((p) => (
               <div
@@ -511,7 +491,7 @@ export default function Projects() {
         </>
       )}
 
-      {/* ------------ CREATE / EDIT MODAL ------------ */}
+      {/* ------------ PROJECT CREATE/EDIT MODAL ------------ */}
       {showProjectModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <form
@@ -533,7 +513,6 @@ export default function Projects() {
             </h2>
 
             <div className="space-y-2">
-              {/* Name */}
               <input
                 value={formName}
                 onChange={(e) => {
@@ -547,7 +526,6 @@ export default function Projects() {
               />
               {nameError && <p className="text-red-500 text-sm">{nameError}</p>}
 
-              {/* Description */}
               <textarea
                 rows={3}
                 value={formDescription}
@@ -556,7 +534,6 @@ export default function Projects() {
                 className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
               />
 
-              {/* Start Date & End Date */}
               <div className="flex items-center gap-4 m-0">
                 <DatePicker
                   selected={formStartDate}
@@ -584,7 +561,6 @@ export default function Projects() {
 
               {dateError && <p className="text-red-500 text-sm">{dateError}</p>}
 
-              {/* Status */}
               <select
                 value={formStatus}
                 onChange={(e) => setFormStatus(e.target.value)}
@@ -596,7 +572,6 @@ export default function Projects() {
                 <option value="CANCELLED">Cancelled</option>
               </select>
 
-              {/* Manager */}
               <div>
                 <select
                   value={selectedManager ?? ""}
@@ -622,7 +597,6 @@ export default function Projects() {
                 )}
               </div>
 
-              {/* Employees */}
               <div>
                 <h3 className="font-semibold mb-2 text-[var(--text)]">
                   Select Employees
@@ -664,7 +638,7 @@ export default function Projects() {
         </div>
       )}
 
-      {/* ------------ ASSIGN MODAL ------------ */}
+      {/* ------------ USER ASSIGN MODAL ------------ */}
       {showAssignModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 w-full max-w-2xl relative">
@@ -681,7 +655,6 @@ export default function Projects() {
               Assign Manager & Employees
             </h2>
 
-            {/* Manager */}
             <h3 className="font-semibold mb-2">Select Manager (Required)</h3>
             <div className="border p-3 rounded-xl mb-2 space-y-2">
               {managers.map((m) => (
@@ -696,7 +669,6 @@ export default function Projects() {
               ))}
             </div>
 
-            {/* Employees */}
             <h3 className="font-semibold mb-2">Select Employees</h3>
             <div className="border p-3 rounded-xl max-h-40 overflow-y-auto space-y-2">
               {employees.length === 0 ? (

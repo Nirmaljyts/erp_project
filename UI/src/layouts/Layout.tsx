@@ -70,11 +70,11 @@ export default function Layout() {
 
             <span className="cursor-pointer lg:hidden hover:text-gray-600 hover:cursor-pointer">
               <Tooltip text="Close" position="bottom">
-              <X
-                className="cursor-pointer"
-                size={20}
-                onClick={() => setSidebarOpen(false)}
-              />
+                <X
+                  className="cursor-pointer"
+                  size={20}
+                  onClick={() => setSidebarOpen(false)}
+                />
               </Tooltip>
             </span>
           </div>
@@ -96,7 +96,7 @@ export default function Layout() {
 
       {/* Main Section */}
       <div className="flex-1 flex flex-col">
-        {/* Navvigation Bar */}
+        {/* Top Navigation Bar */}
         <header className="h-14 bg-[var(--card)] border-b border-[var(--border)] flex items-center justify-between lg:justify-end px-2 lg:px-4 gap-4">
           <button
             className="lg:hidden p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm hover:bg-gray-300 dark:hover:bg-gray-600 transition"
@@ -127,6 +127,7 @@ export default function Layout() {
           </div>
         </header>
 
+        {/* Main Contents */}
         <main className="flex-1 w-full min-w-0 overflow-y-auto p-2 sm:p-4">
           <Outlet />
         </main>

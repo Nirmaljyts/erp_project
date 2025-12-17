@@ -30,7 +30,6 @@ export default function UsersPage() {
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
-  // form fields
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formRole, setFormRole] = useState<
@@ -39,7 +38,6 @@ export default function UsersPage() {
   const [formActive, setFormActive] = useState(true);
   const [formPassword, setFormPassword] = useState("");
 
-  // validation errors
   const [nameError, setNameError] = useState("");
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
@@ -51,7 +49,6 @@ export default function UsersPage() {
   const user = useSelector((state: RootState) => state?.auth?.user);
   const currentRole = user?.role;
 
-  // ---------------- FETCH USERS ----------------
   async function loadUsers(page = 1, searchValue = search) {
     const limit = 15;
     try {
@@ -85,7 +82,6 @@ export default function UsersPage() {
     }
   }
 
-  // ---------------- VALIDATION HELPERS ----------------
   function validateName(name: string) {
     return name.trim().length >= 3;
   }
@@ -100,7 +96,6 @@ export default function UsersPage() {
     return password.length >= 6;
   }
 
-  // ---------------- MODAL OPEN/CLOSE ----------------
   const openCreate = () => {
     setEditingUser(null);
     setFormName("");
@@ -134,7 +129,6 @@ export default function UsersPage() {
     setPasswordError("");
   };
 
-  // ---------------- SUBMIT HANDLER ----------------
   async function handleUserSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -209,7 +203,6 @@ export default function UsersPage() {
     }
   }
 
-  // ---------------- DELETE USER ----------------
   async function handleDelete(id: number) {
     const result = await Swal.fire({
       title: "Delete User?",
@@ -241,7 +234,6 @@ export default function UsersPage() {
     }
   }
 
-  // ---------------- PAGINATION ----------------
   const handlePaginate = (page: number) => {
     if (page > 0 && page <= pagination.totalPages) {
       loadUsers(page, search);
@@ -307,7 +299,6 @@ export default function UsersPage() {
         </div>
       ) : (
         <>
-          {/* TABLE */}
           <div className="border border-[var(--border)] rounded-xl bg-[var(--card)]">
             <table className="table text-xs md:text-sm border-collapse">
               <thead className="t_head table_th">
@@ -458,7 +449,7 @@ export default function UsersPage() {
         </>
       )}
 
-      {/* ------------ CREATE / EDIT USER MODAL ------------ */}
+      {/* ------------ USER CREATE/EDIT MODAL ------------ */}
       {showUserModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <form
@@ -480,7 +471,6 @@ export default function UsersPage() {
             </h2>
 
             <div className="space-y-2">
-              {/* Name */}
               <div>
                 <input
                   value={formName}
@@ -498,7 +488,6 @@ export default function UsersPage() {
                 )}
               </div>
 
-              {/* Email */}
               <div>
                 <input
                   type="email"
@@ -517,7 +506,6 @@ export default function UsersPage() {
                 )}
               </div>
 
-              {/* Password */}
               {!editingUser && (
                 <div className="relative">
                   <input
@@ -551,7 +539,6 @@ export default function UsersPage() {
                 </div>
               )}
 
-              {/* Role */}
               <div>
                 <select
                   value={formRole}
@@ -566,7 +553,6 @@ export default function UsersPage() {
                 </select>
               </div>
 
-              {/* Active toggle */}
               <div className="flex items-center">
                 <button
                   type="button"

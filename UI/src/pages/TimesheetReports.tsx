@@ -33,7 +33,6 @@ export default function TimesheetReports() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Load dropdown data in parallel
     Promise.all([
       getUsers(1, 100, "", "name", "asc"),
       getProjects(1, 100, "", "name", "asc"),
@@ -45,7 +44,7 @@ export default function TimesheetReports() {
         setClients(c.data || c.data?.data || c.data?.clients || []);
       })
       .catch(() => {
-        // ignore – report pulls will still work if dropdowns fail
+        console.log("ERROR TIMESHEET REPORT");
       });
   }, []);
 
@@ -85,7 +84,6 @@ export default function TimesheetReports() {
     <div className="max-h-auto">
       <h1 className="text-2xl font-semibold mb-4">Timesheet Reports</h1>
 
-      {/* Filters */}
       <div className="border border-[var(--border)] bg-[var(--card)] rounded-xl p-3 sm:p-4 mb-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <select
@@ -160,7 +158,6 @@ export default function TimesheetReports() {
         </div>
       </div>
 
-      {/* Summary */}
       {loading ? (
         <div className="loader-overlay">
           <div className="loader-all"></div>
@@ -169,14 +166,19 @@ export default function TimesheetReports() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
           <div className="p-3 border border-[var(--border)] rounded-xl bg-[var(--card)]">
             <p className="text-xs text-gray-500">Total Hours</p>
+
             <p className="text-xl font-bold">{summary.totalHours}</p>
           </div>
+
           <div className="p-3 border border-[var(--border)] rounded-xl bg-[var(--card)]">
             <p className="text-xs text-gray-500">Billable Hours</p>
+
             <p className="text-xl font-bold">{summary.billableHours}</p>
           </div>
+
           <div className="p-3 border border-[var(--border)] rounded-xl bg-[var(--card)]">
             <p className="text-xs text-gray-500">Non-Billable Hours</p>
+
             <p className="text-xl font-bold">{summary.nonBillableHours}</p>
           </div>
         </div>
@@ -202,7 +204,6 @@ export default function TimesheetReports() {
         </div>
       )}
 
-      {/* Entries table */}
       {entries.length > 0 && (
         <div className="w-full overflow-x-auto border border-[var(--border)] rounded-xl bg-[var(--card)]">
           <table className="min-w-[600px] w-full text-xs sm:text-sm">
@@ -224,19 +225,24 @@ export default function TimesheetReports() {
                 ))}
               </tr>
             </thead>
+
             <tbody>
               {entries.map((e) => (
                 <tr key={e.id} className="border-t border-[var(--border)]">
                   <td className="px-3 py-2 whitespace-nowrap">
                     {e.timesheet.user.name}
                   </td>
+
                   <td className="px-3 py-2 whitespace-nowrap">
                     {new Date(e.entryDate).toLocaleDateString()}
                   </td>
+
                   <td className="px-3 py-2 whitespace-nowrap">
                     {e.project?.name || e.client?.name || "-"}
                   </td>
+
                   <td className="px-3 py-2 whitespace-nowrap">{e.hours}</td>
+
                   <td className="px-3 py-2 whitespace-nowrap">
                     {e.isBillable ? "Billable" : "Non-billable"}
                   </td>

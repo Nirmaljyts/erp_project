@@ -3,17 +3,33 @@ import { resolveReviewer } from "../utils/resolveReviewer.js";
 
 // CREATE LEAVE
 export async function createLeaveService(userId, body) {
-  const { type, startDate, endDate, reason } = body;
+  const { type, startDate, endDate, reason, dayType } = body;
 
   if (!type || !startDate || !endDate)
     throw new Error("Type, start date and end date are required");
 
-  if (new Date(startDate) > new Date(endDate))
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+
+  if (start > end)
     throw new Error("End date cannot be earlier than start date");
 
-  // 🔥 Resolve reviewer based on role + project logic
-  const reviewerId = await resolveReviewer(userId);
+  // ✅ Validate dayType
+  let finalDayType = "FULL";
 
+  if (["CASUAL", "SICK"].includes(type)) {
+    if (!dayType) {
+      throw new Error("Day type is required for Casual and Sick leave");
+    }
+
+    if (dayType === "HALF" && start.toDateString() !== end.toDateString()) {
+      throw new Error("Half day leave must be for a single day");
+    }
+
+    finalDayType = dayType;
+  }
+
+  const reviewerId = await resolveReviewer(userId);
   if (!reviewerId)
     throw new Error("No valid reviewer found for this leave request");
 
@@ -21,19 +37,17 @@ export async function createLeaveService(userId, body) {
     data: {
       userId,
       type,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      dayType: finalDayType, // ✅ saved
+      startDate: start,
+      endDate: end,
       reason: reason || null,
       status: "PENDING",
-
-      // Assign reviewer here
       approvedById: reviewerId,
-
-      // Leave rejectedById empty
       rejectedById: null,
     },
   });
 }
+
 
 // GET MY LEAVES
 export function getMyLeavesService(userId) {

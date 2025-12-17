@@ -41,7 +41,6 @@ const authSlice = createSlice({
       localStorage.setItem("token", token);
       localStorage.setItem("user", JSON.stringify(user));
 
-      // Reset dropdowns on login
       state.openSidebarDropdowns = [];
       localStorage.setItem("openSidebarDropdowns", "[]");
     },

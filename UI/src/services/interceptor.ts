@@ -8,7 +8,6 @@ export const axiosInstance = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-// REQUEST
 axiosInstance.interceptors.request.use((request) => {
   const access = localStorage.getItem("token");
   if (access) request.headers.Authorization = `Bearer ${access}`;
@@ -23,7 +22,6 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
-// RESPONSE
 axiosInstance.interceptors.response.use(
   (res) => res,
   async (error) => {

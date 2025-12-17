@@ -56,16 +56,27 @@ export default function LeaveApprovals() {
                 className="border border-[var(--border)] p-4 rounded-xl bg-[var(--card)] shadow-sm"
               >
                 <div className="font-semibold">{l.user?.name}</div>
-                <div className="text-sm text-gray-500">{l.type}</div>
+
+                <div className="text-sm text-gray-500 uppercase">
+                  {l.type} - {l.dayType === "HALF" ? "Half Day" : "Full Day"}
+                </div>
 
                 <div className="mt-2 text-sm">
                   {new Date(l.startDate).toLocaleDateString()} -{" "}
                   {new Date(l.endDate).toLocaleDateString()}
                 </div>
 
-                <p className="text-gray-600 text-sm mt-1">{l.reason || "-"}</p>
+                <p className="text-gray-600 text-sm mt-1">
+                  {l.reason || "Reason Not Specified"}
+                </p>
 
-                {/* WHO DECIDED – will show only after approved/rejected */}
+                <p className="text-sm text-gray-600 mt-1">
+                  Applied On:{" "}
+                  <span className="font-semibold">
+                    {new Date(l.createdAt).toLocaleDateString()}
+                  </span>
+                </p>
+
                 {l.status === "APPROVED" && l.approvedBy && (
                   <p className="mt-1 text-sm text-green-600">
                     Approved by:{" "}

@@ -32,7 +32,6 @@ export default function ForgotPassword() {
 
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-white">
-      {/* LEFT SIDE IMAGE */}
       <div className="hidden lg:flex items-center justify-center bg-[#2f4f82]">
         <img
           src={forgotPassword}
@@ -41,7 +40,6 @@ export default function ForgotPassword() {
         />
       </div>
 
-      {/* RIGHT SIDE */}
       <div className="flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <h1 className="text-3xl font-bold text-gray-900 mb-6 text-center">
@@ -54,7 +52,6 @@ export default function ForgotPassword() {
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Email */}
             <div>
               <label className="block text-sm text-gray-700 mb-1">Email</label>
               <input
@@ -66,21 +63,18 @@ export default function ForgotPassword() {
               />
             </div>
 
-            {/* Error */}
             {error && (
               <p className="text-sm text-red-600 bg-red-100 border border-red-300 rounded-md px-3 py-2">
                 {error}
               </p>
             )}
 
-            {/* Success */}
             {msg && (
               <p className="text-sm text-green-600 bg-green-100 border border-green-300 rounded-md px-3 py-2">
                 {msg}
               </p>
             )}
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
@@ -93,7 +87,6 @@ export default function ForgotPassword() {
             </button>
           </form>
 
-          {/* Back to Login */}
           <p className="text-center text-sm mt-4">
             <button
               onClick={() => navigate("/login")}

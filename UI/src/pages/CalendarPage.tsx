@@ -24,7 +24,6 @@ export default function CalendarPage() {
   const [events, setEvents] = useState<any[]>([]);
   const [errors, setErrors] = useState({ name: "" });
 
-  // Unified Modal State
   const [modal, setModal] = useState({
     open: false,
     mode: "create",
@@ -81,7 +80,6 @@ export default function CalendarPage() {
     setErrors({ name: "" });
   };
 
-  // Save or Update
   const handleSave = async () => {
     if (!modal.name.trim()) {
       setErrors({ name: "Holiday name is required" });
@@ -124,7 +122,6 @@ export default function CalendarPage() {
     }
   };
 
-  // Delete handler
   const handleDelete = async () => {
     if (modal.id === null) {
       toast.error("Invalid holiday ID");
@@ -174,7 +171,6 @@ export default function CalendarPage() {
         )}
       </div>
 
-      {/* Calendar */}
       <div className="flex flex-col flex-1 border border-[var(--border)] rounded-lg p-3">
         <div className="w-full flex items-end justify-end gap-6 mb-3">
           <div className="flex items-center gap-2">
@@ -198,7 +194,6 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        {/* HOLIDAY COLOR LEGEND */}
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, interactionPlugin]}
@@ -265,7 +260,7 @@ export default function CalendarPage() {
         />
       </div>
 
-      {/* Modal */}
+      {/* ADD/EDIT HOLIDAY MODAL */}
       {modal.open && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-[var(--card)] p-4 rounded-lg w-80 space-y-2 relative">
@@ -274,7 +269,7 @@ export default function CalendarPage() {
               onClick={closeModal}
               className="absolute right-4 top-4"
             >
-              <X size={22} className="text-[var(--text)]" />
+              <X size={22} className="text-[var(--text)] cursor-pointer" />
             </button>
 
             <h3 className="text-lg font-semibold">

@@ -147,7 +147,9 @@ model Leave {
   approvedById Int?
   rejectedById Int?
 
-  type      String
+  type      LeaveType
+  dayType  LeaveDayType @default(FULL)
+  
   startDate DateTime
   endDate   DateTime
   reason    String?
@@ -163,8 +165,14 @@ model Leave {
   rejectedBy User? @relation("LeaveRejectedBy", fields: [rejectedById], references: [id])
 }
 
+enum LeaveDayType {
+  FULL
+  HALF
+}
+
 enum LeaveType {
   ANNUAL
+  CASUAL
   SICK
   UNPAID
   WFH

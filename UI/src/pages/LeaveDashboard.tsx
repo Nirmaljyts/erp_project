@@ -5,12 +5,12 @@ import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
+import { Trash2 } from "lucide-react";
 import {
   getLeaveDashboard,
   deleteApprovedLeave,
 } from "../services/leaveService";
 import { RootState } from "../store/store";
-import { Trash, Trash2 } from "lucide-react";
 import Tooltip from "../components/Tooltip";
 
 export default function LeaveDashboard() {
@@ -105,7 +105,6 @@ export default function LeaveDashboard() {
         </div>
       ) : (
         <>
-          {/* --- STATS GRID --- */}
           <div className="grid  sx:grid-cols-1 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mb-2">
             {["TOTAL", "APPROVED", "PENDING", "REJECTED", "CANCELLED"].map(
               (key) => {
@@ -132,7 +131,6 @@ export default function LeaveDashboard() {
             )}
           </div>
 
-          {/* --- REQUEST BUTTON --- */}
           <div className="flex justify-end mb-2 sm:mb-2">
             <button
               onClick={leaveRequest}
@@ -142,7 +140,6 @@ export default function LeaveDashboard() {
             </button>
           </div>
 
-          {/* --- CALENDAR WRAPPER --- */}
           <div className="w-full overflow-x-auto rounded-xl border border-[var(--border)] p-2 sm:p-4 shadow-sm mb-4">
             <FullCalendar
               plugins={[dayGridPlugin]}
@@ -162,7 +159,6 @@ export default function LeaveDashboard() {
             />
           </div>
 
-          {/* --- TABLE SECTION --- */}
           <div className="rounded-xl border border-[var(--border)] p-3 sm:p-4 shadow-sm w-full">
             <h2 className="text-lg font-semibold mb-2">All Leaves</h2>
 
@@ -253,14 +249,12 @@ export default function LeaveDashboard() {
                             {l.status}
                           </span>
 
-                          {/* APPROVED BY */}
                           {l.status === "APPROVED" && l.approvedBy && (
                             <span className="ml-2 text-xs text-gray-600">
                               → {l.approvedBy.name}
                             </span>
                           )}
 
-                          {/* REJECTED BY */}
                           {l.status === "REJECTED" && l.rejectedBy && (
                             <span className="ml-2 text-xs text-red-600">
                               → {l.rejectedBy.name}
@@ -269,7 +263,6 @@ export default function LeaveDashboard() {
                         </td>
 
                         <td className="table_td text-[10px] sm:text-xs">
-                          {/* DELETE BUTTON FOR FUTURE APPROVED LEAVES */}
                           {l.status === "APPROVED" &&
                             ["ADMIN", "HR_MANAGER", "HR"].includes(
                               currentRole

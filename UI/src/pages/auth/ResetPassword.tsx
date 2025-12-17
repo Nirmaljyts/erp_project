@@ -19,11 +19,6 @@ export default function ResetPassword() {
   const [msg, setMsg] = useState("");
   const [loading, setLoading] = useState(false);
 
-  //   if (!email) {
-  //     navigate("/forgot-password");
-  //     return null;
-  //   }
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
@@ -58,12 +53,10 @@ export default function ResetPassword() {
 
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-white">
-      {/* LEFT SIDE IMAGE */}
       <div className="hidden lg:flex items-center justify-center bg-[#2f4f82]">
         <img src={resetImage} alt="Reset Password" className="w-3/4 max-w-lg" />
       </div>
 
-      {/* RIGHT SIDE */}
       <div className="flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <h1 className="text-3xl font-bold text-gray-900 mb-6 text-center">
@@ -71,7 +64,6 @@ export default function ResetPassword() {
           </h1>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* New Password */}
             <div>
               <label className="block text-sm text-gray-700 mb-1">
                 New Password
@@ -95,7 +87,6 @@ export default function ResetPassword() {
               </div>
             </div>
 
-            {/* Confirm Password */}
             <div>
               <label className="block text-sm text-gray-700 mb-1">
                 Confirm Password
@@ -119,14 +110,12 @@ export default function ResetPassword() {
               </div>
             </div>
 
-            {/* Error */}
             {error && (
               <p className="text-sm text-red-600 bg-red-100 border border-red-300 rounded-md px-3 py-2">
                 {error}
               </p>
             )}
 
-            {/* Success */}
             {msg && (
               <p className="text-sm text-green-600 bg-green-100 border border-green-300 rounded-md px-3 py-2">
                 {msg}

@@ -181,7 +181,6 @@ export default function TimesheetDefinitions() {
         </button>
       </div>
 
-      {/* TABLE */}
       <div className="border border-[var(--border)] rounded-xl bg-[var(--card)]">
         <table className="w-full">
           <thead>
@@ -251,7 +250,7 @@ export default function TimesheetDefinitions() {
         </table>
       </div>
 
-      {/* ADD/EDIT MODAL */}
+      {/* TIMESHEET DEFINITION ADD/EDIT MODAL */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <form

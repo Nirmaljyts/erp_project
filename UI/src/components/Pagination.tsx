@@ -45,7 +45,6 @@ export default function Pagination({
 
   return (
     <div className="flex items-center justify-center py-2 gap-2">
-      {/* Prev Button */}
       <button
         disabled={page === 1}
         onClick={() => onPageChange(page - 1)}

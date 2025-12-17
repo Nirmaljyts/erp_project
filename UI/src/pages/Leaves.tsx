@@ -12,6 +12,7 @@ export default function Leaves() {
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({
     type: "ANNUAL",
+    dayType: "FULL",
     startDate: "",
     endDate: "",
     reason: "",
@@ -64,7 +65,6 @@ export default function Leaves() {
 
   return (
     <div className="max-h-auto">
-      {/* HEADER */}
       <div className="flex justify-between mb-4">
         <h1 className="text-2xl font-semibold">My Leaves</h1>
 
@@ -82,7 +82,6 @@ export default function Leaves() {
         </div>
       ) : (
         <>
-          {/* LIST */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {leaves.map((l: any) => (
               <div
@@ -90,7 +89,10 @@ export default function Leaves() {
                 className="border border-[var(--border)] bg-[var(--card)] rounded-xl p-4 shadow-sm"
               >
                 <div className="flex justify-between">
-                  <span className="font-semibold">{l.type}</span>
+                  <span className="font-semibold uppercase">
+                    {l.type} - {l.dayType === "HALF" ? "Half Day" : "Full Day"}
+                  </span>
+
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-semibold ${
                       (
@@ -113,9 +115,10 @@ export default function Leaves() {
                   {new Date(l.endDate).toLocaleDateString()}
                 </div>
 
-                <p className="text-sm text-gray-500 mt-1">{l.reason || "-"}</p>
+                <p className="text-sm text-gray-500 mt-1">
+                  {l.reason || "Reason Not Specified"}
+                </p>
 
-                {/* APPROVED BY / REJECTED BY */}
                 {l.status === "APPROVED" && l.approvedBy && (
                   <p className="text-sm text-gray-600 mt-1">
                     Approved by:{" "}
@@ -144,7 +147,6 @@ export default function Leaves() {
                   </p>
                 )}
 
-                {/* Leave Applied On */}
                 <p className="text-sm text-gray-600 mt-1">
                   Applied On:{" "}
                   <span className="font-semibold">
@@ -152,7 +154,6 @@ export default function Leaves() {
                   </span>
                 </p>
 
-                {/* CANCEL BUTTON */}
                 {l.status === "PENDING" && (
                   <button
                     onClick={() => handleCancel(l.id)}
@@ -171,7 +172,7 @@ export default function Leaves() {
             </div>
           )}
 
-          {/* MODAL */}
+          {/* LEAVE CREATE/EDIT MODAL */}
           {showModal && (
             <div className="fixed inset-0 bg-black/40 flex justify-center items-center p-4 z-50">
               <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 w-full max-w-2xl relative">
@@ -191,11 +192,25 @@ export default function Leaves() {
                     onChange={(e) => setForm({ ...form, type: e.target.value })}
                   >
                     <option value="ANNUAL">Annual</option>
+                    <option value="CASUAL">Casual</option>
                     <option value="SICK">Sick</option>
-                    <option value="UNPAID">Unpaid</option>
-                    <option value="WFH">Work From Home</option>
+                    <option value="UNPAID">LOP (Loss of Pay)</option>
+                    <option value="WFH">WFH (Work From Home)</option>
                     <option value="OTHER">Other</option>
                   </select>
+
+                  {["CASUAL", "SICK"].includes(form.type) && (
+                    <select
+                      className="border border-[var(--border)] p-2 rounded bg-[var(--card)] text-[var(--text)]"
+                      value={form.dayType}
+                      onChange={(e) =>
+                        setForm({ ...form, dayType: e.target.value })
+                      }
+                    >
+                      <option value="FULL">Full Day</option>
+                      <option value="HALF">Half Day</option>
+                    </select>
+                  )}
 
                   <DatePicker
                     selected={form.startDate ? new Date(form.startDate) : null}
@@ -204,8 +219,10 @@ export default function Leaves() {
                         ...form,
                         startDate: date ? date.toISOString().split("T")[0] : "",
                         endDate:
-                          form.endDate && date && new Date(form.endDate) < date
-                            ? ""
+                          form.dayType === "HALF"
+                            ? date
+                              ? date.toISOString().split("T")[0]
+                              : ""
                             : form.endDate,
                       })
                     }
@@ -223,6 +240,7 @@ export default function Leaves() {
                         endDate: date ? date.toISOString().split("T")[0] : "",
                       })
                     }
+                    disabled={form.dayType === "HALF"}
                     dateFormat="dd/MM/yyyy"
                     minDate={
                       form.startDate ? new Date(form.startDate) : new Date()

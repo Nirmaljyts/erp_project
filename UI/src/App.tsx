@@ -14,7 +14,6 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import Page404 from "./pages/common/Page404";
 import Leaves from "./pages/Leaves";
 import LeaveApprovals from "./pages/LeaveApprovals";
-
 import { RootState } from "./store/store";
 import LeaveDashboard from "./pages/LeaveDashboard";
 import Timesheet from "./pages/Timesheet";
@@ -251,7 +250,6 @@ export default function App() {
           />
         </Route>
 
-        {/* UNKNOWN PAGE 404 */}
         <Route path="/404" element={<Page404 />} />
         <Route path="*" element={<Navigate to="/404" replace />} />
       </Routes>

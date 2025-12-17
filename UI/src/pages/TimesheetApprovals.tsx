@@ -71,7 +71,7 @@ export default function TimesheetApprovals() {
 
       for (const [day, value] of map) {
         if (!value) continue;
-        if (leaveMap[day.toLowerCase()]) continue; // 🚫 ignore leave days
+        if (leaveMap[day.toLowerCase()]) continue;
         days[day] += value;
       }
     }
@@ -122,10 +122,12 @@ export default function TimesheetApprovals() {
               <div className="flex justify-between mb-1">
                 <div>
                   <p className="font-semibold">{w.user?.name}</p>
+
                   <p className="text-xs text-gray-500">
                     Week of {new Date(w.weekStartDate).toLocaleDateString()}
                   </p>
                 </div>
+
                 <span className="h-6 flex items-center justify-center px-2 py-1 rounded-full text-xs bg-yellow-200 text-gray-700">
                   {w.status}
                 </span>
@@ -147,6 +149,7 @@ export default function TimesheetApprovals() {
                           <span>
                             {label} ({date.toLocaleDateString()})
                           </span>
+
                           <span className="font-medium">
                             {w.leaveMap[label.toLowerCase()]
                               ? "Leave"
@@ -158,6 +161,7 @@ export default function TimesheetApprovals() {
 
                     <div className="mt-2 pt-2 border-t flex justify-between text-sm font-semibold">
                       <span>Total</span>
+
                       <span>{total}h</span>
                     </div>
                   </>
@@ -171,6 +175,7 @@ export default function TimesheetApprovals() {
                 >
                   Reject
                 </button>
+
                 <button
                   onClick={() => handleAction(w.id, "APPROVE")}
                   className="flex-1 bg-[#2f4f82] text-white text-sm py-1 rounded hover:bg-[#1b335a]"

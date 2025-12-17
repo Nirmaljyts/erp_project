@@ -8,9 +8,6 @@ import {
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 
-// ------------------------------------------------------------
-// UTILITIES — FIXED TIMEZONE & DATE LOGIC
-// ------------------------------------------------------------
 function getMonday(d: Date) {
   const local = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const day = local.getDay();
@@ -32,9 +29,6 @@ function isPast(dateStr: string) {
   return weekStart < thisMon; // ONLY compares YYYY-MM-DD safely
 }
 
-// ------------------------------------------------------------
-// TYPES
-// ------------------------------------------------------------
 interface TimesheetEntry {
   id?: number;
   projectId?: number | null;
@@ -64,9 +58,6 @@ interface TimesheetWeek {
   approver?: { name: string } | null;
 }
 
-// ------------------------------------------------------------
-// COMPONENT
-// ------------------------------------------------------------
 export default function Timesheet() {
   const user = useSelector((state: RootState) => state.auth.user);
   const canSeeBillable = ["ADMIN", "MANAGER", "HR_MANAGER"].includes(
@@ -112,9 +103,7 @@ export default function Timesheet() {
 
   const days = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
-  // ------------------------------------------------------------
   // CALCULATE TOTALS
-  // ------------------------------------------------------------
   const totals = week
     ? days.reduce((acc, d) => {
         acc[d] = week.entries.reduce((sum, r) => sum + (r[d] || 0), 0);
@@ -129,9 +118,7 @@ export default function Timesheet() {
       )
     : 0;
 
-  // ------------------------------------------------------------
   // LOCAL UPDATE FUNCTIONS
-  // ------------------------------------------------------------
   function updateEntry(row: TimesheetEntry, field: string, value: any) {
     if (!week) return;
 
@@ -153,9 +140,7 @@ export default function Timesheet() {
     updateEntry(row, "description", desc);
   }
 
-  // ------------------------------------------------------------
   // SAVE WEEK
-  // ------------------------------------------------------------
   async function handleSave() {
     if (!week) return;
 
@@ -171,9 +156,7 @@ export default function Timesheet() {
     }
   }
 
-  // ------------------------------------------------------------
   // SUBMIT WEEK (now sends entries for auto-save)
-  // ------------------------------------------------------------
   async function handleSubmit() {
     if (!week) return;
 
@@ -186,9 +169,7 @@ export default function Timesheet() {
     }
   }
 
-  // ------------------------------------------------------------
   // CHANGE WEEK — FIXED VERSION
-  // ------------------------------------------------------------
   function changeWeek(offset: number) {
     const next = new Date(selectedMonday);
     next.setDate(next.getDate() + offset * 7);
@@ -197,7 +178,6 @@ export default function Timesheet() {
 
   return (
     <div className="max-h-auto">
-      {/* HEADER */}
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Weekly Timesheet</h1>
@@ -244,7 +224,6 @@ export default function Timesheet() {
         </div>
       ) : (
         <>
-          {/* TABLE */}
           {week && (
             <div className="w-auto overflow-x-auto border border-[var(--border)] rounded-xl bg-[var(--card)]">
               <table className="w-full">

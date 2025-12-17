@@ -31,7 +31,6 @@ export default function ClientsPage() {
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [showClientModal, setShowClientModal] = useState(false);
 
-  // Form fields
   const [formName, setFormName] = useState("");
   const [formContactedBy, setFormContactedBy] = useState("");
   const [formEmail, setFormEmail] = useState("");
@@ -41,7 +40,6 @@ export default function ClientsPage() {
   const [emailError, setEmailError] = useState("");
   const [phoneError, setPhoneError] = useState("");
 
-  // ---------------- FETCH CLIENTS ----------------
   async function loadClients(page = 1, searchText = "") {
     const limit = 16;
     try {
@@ -68,7 +66,6 @@ export default function ClientsPage() {
     loadClients(1, search);
   }, []);
 
-  // ---------------- DELETE ----------------
   async function handleDelete(id: number) {
     const result = await Swal.fire({
       title: "Delete Client?",
@@ -88,7 +85,6 @@ export default function ClientsPage() {
     }
   }
 
-  // ---------------- OPEN MODALS ----------------
   const openCreate = () => {
     setEditingClient(null);
     setFormName("");
@@ -117,7 +113,7 @@ export default function ClientsPage() {
   }
 
   function validatePhone(phone: string) {
-    const phoneRegex = /^[0-9]{10,15}$/; // only digits, length between 10-15
+    const phoneRegex = /^[0-9]{10,15}$/;
     return phoneRegex.test(phone);
   }
 
@@ -184,7 +180,6 @@ export default function ClientsPage() {
     setShowClientModal(false);
   };
 
-  // ---------------- PAGINATION ----------------
   const handlePaginate = (page: number) => {
     if (page > 0 && page <= pagination.totalPages) {
       loadClients(page, search);
@@ -217,14 +212,13 @@ export default function ClientsPage() {
               onPaste={(e) => {
                 const pasted = e.clipboardData.getData("text");
                 if (/^\s*$/.test(pasted)) {
-                  e.preventDefault(); // block whitespace-only paste
+                  e.preventDefault();
                 }
               }}
               className="w-full px-3 py-2 pr-10 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--text)] 
                  focus:outline-none focus:ring-2 focus:ring-[#2f4f82]"
             />
 
-            {/* CLEAR BUTTON */}
             {search && (
               <button
                 onClick={() => {
@@ -233,7 +227,7 @@ export default function ClientsPage() {
                 }}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-500"
               >
-                <X size={18} />
+                <X size={18} className="cursor-pointer" />
               </button>
             )}
           </div>
@@ -255,7 +249,6 @@ export default function ClientsPage() {
         </div>
       ) : (
         <>
-          {/* GRID */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-2">
             {clients.map((c) => (
               <div
@@ -314,7 +307,7 @@ export default function ClientsPage() {
         </>
       )}
 
-      {/* ------------ CREATE / EDIT MODAL ------------ */}
+      {/* ------------ CLIENT CREATE/EDIT MODAL ------------ */}
       {showClientModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <form
@@ -335,7 +328,6 @@ export default function ClientsPage() {
               {editingClient ? "Edit Client" : "Create Client"}
             </h2>
 
-            {/* FORM INPUTS */}
             <div className="space-y-2">
               <input
                 value={formName}
@@ -393,7 +385,6 @@ export default function ClientsPage() {
               )}
             </div>
 
-            {/* SUBMIT BUTTON */}
             <button
               type="submit"
               className="mt-2 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
