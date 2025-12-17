@@ -238,15 +238,21 @@ enum AppliesTo {
 model TimesheetDefinition {
   id          Int       @id @default(autoincrement())
   type        String
+
+  // PROJECT only
   projectId   Int?
+  project     Project?  @relation(fields: [projectId], references: [id])
+
+  // SPECIAL only
   description String?
-  appliesTo   String
+  appliesTo   String?   // ⬅MUST be nullable
+
   deletedAt   DateTime?
 
-  project Project? @relation(fields: [projectId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([type, description, appliesTo], name: "unique_system_definition")
+  // Best-effort uniqueness (service still enforces rules)
+  @@unique([type, projectId], name: "uniq_project_definition")
+  @@unique([type, description, appliesTo], name: "uniq_special_definition")
 }

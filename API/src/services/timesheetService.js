@@ -134,36 +134,39 @@ export async function getMyTimesheetWeekService(userId, weekStartParam) {
   const isDraft = week.status === "DRAFT";
   const isCurrentOrFuture = isCurrentOrFutureWeek(weekStart);
 
-  // Get all definitions applicable by role (INCLUDING deleted)
+  /* ---------------- LOAD DEFINITIONS ---------------- */
+
   const allDefs = await prisma.timesheetDefinition.findMany({
     where: {
       appliesTo: { in: ["ALL", role] },
     },
+    include: { project: true },
   });
 
-  // Get rowKeys already present in this timesheet
   const existingEntries = await prisma.timesheetEntry.findMany({
     where: {
       timesheetId: week.id,
       deletedAt: null,
     },
-    select: { rowKey: true },
+    select: {
+      id: true,
+      rowKey: true,
+    },
   });
+
+  const existingRowKeyMap = new Map(
+    existingEntries.map((e) => [e.rowKey, e.id])
+  );
+
+  /* ---------------- FILTER DEFINITIONS ---------------- */
 
   const existingRowKeys = new Set(existingEntries.map((e) => e.rowKey));
 
-  // Final visible definitions
   const defs = allDefs.filter((def) => {
-    // Always show active definitions
     if (!def.deletedAt) return true;
-
-    // If timesheet is submitted → freeze snapshot
     if (!isDraft) return true;
-
-    // If previous week → keep history
     if (!isCurrentOrFuture) return true;
 
-    // Draft + current/future → only if already used
     const rowKey =
       def.type === "PROJECT"
         ? `PROJECT-${def.projectId}`
@@ -194,7 +197,6 @@ export async function getMyTimesheetWeekService(userId, weekStartParam) {
 
   /* ---------------- PROJECT ROWS (ROLE-BASED) ---------------- */
 
-  // ADMIN / HR → PROJECT definitions
   if (role === "ADMIN" || role === "HR") {
     for (const d of defs) {
       if (d.type === "PROJECT" && d.projectId) {
@@ -208,7 +210,6 @@ export async function getMyTimesheetWeekService(userId, weekStartParam) {
     }
   }
 
-  // MANAGER / HR_MANAGER → managed projects
   if (role === "MANAGER" || role === "HR_MANAGER") {
     for (const p of user.projectsManaged) {
       if (!p?.id) continue;
@@ -222,7 +223,6 @@ export async function getMyTimesheetWeekService(userId, weekStartParam) {
     }
   }
 
-  // EMPLOYEE → assigned projects
   if (role === "EMPLOYEE") {
     for (const p of user.projects) {
       if (!p?.project || !p.projectId) continue;
@@ -241,12 +241,10 @@ export async function getMyTimesheetWeekService(userId, weekStartParam) {
   const uniqueDefs = Array.from(
     new Map(
       rowDefs
-        .filter(
-          (d) =>
-            d &&
-            (d.type === "PROJECT"
-              ? Number.isInteger(d.projectId)
-              : typeof d.description === "string")
+        .filter((d) =>
+          d.type === "PROJECT"
+            ? Number.isInteger(d.projectId)
+            : typeof d.description === "string"
         )
         .map((d) => {
           const key = buildRowKey(d);
@@ -255,36 +253,54 @@ export async function getMyTimesheetWeekService(userId, weekStartParam) {
     ).values()
   );
 
-  /* ---------------- UPSERT SAFELY ---------------- */
+  /* ---------------- DEADLOCK-SAFE WRITE ---------------- */
 
-  await prisma.$transaction(
-    uniqueDefs.map((def) =>
-      prisma.timesheetEntry.upsert({
+  /* ---------------- CONCURRENCY-SAFE WRITE ---------------- */
+
+  await prisma.$transaction(async (tx) => {
+    // 1) Create any missing rows (skipDuplicates handles concurrent creates safely)
+    const rowsToCreate = uniqueDefs.map((def) => ({
+      timesheetId: week.id,
+      rowKey: def.rowKey,
+      projectId: def.projectId ?? null,
+      clientId: def.clientId ?? null,
+      description: def.type === "PROJECT" ? null : def.description,
+      isBillable: def.type === "PROJECT",
+      mon: 0,
+      tue: 0,
+      wed: 0,
+      thu: 0,
+      fri: 0,
+      sat: 0,
+      sun: 0,
+    }));
+
+    await tx.timesheetEntry.createMany({
+      data: rowsToCreate,
+      skipDuplicates: true, // ✅ key part
+    });
+
+    // 2) OPTIONAL but recommended:
+    // Ensure structural fields are correct (if definitions changed over time)
+    // This does not touch hours.
+    for (const def of uniqueDefs) {
+      await tx.timesheetEntry.updateMany({
         where: {
-          timesheet_rowkey_unique: {
-            timesheetId: week.id,
-            rowKey: def.rowKey,
-          },
-        },
-        update: {},
-        create: {
           timesheetId: week.id,
           rowKey: def.rowKey,
+          deletedAt: null,
+        },
+        data: {
           projectId: def.projectId ?? null,
           clientId: def.clientId ?? null,
           description: def.type === "PROJECT" ? null : def.description,
           isBillable: def.type === "PROJECT",
-          mon: 0,
-          tue: 0,
-          wed: 0,
-          thu: 0,
-          fri: 0,
-          sat: 0,
-          sun: 0,
         },
-      })
-    )
-  );
+      });
+    }
+  });
+
+  /* ---------------- RETURN FINAL WEEK ---------------- */
 
   return prisma.timesheetWeek.findUnique({
     where: { id: week.id },
@@ -324,7 +340,6 @@ export async function saveSingleEntryService(userId, data) {
 
   if (week.status !== "DRAFT") throw new Error("Cannot edit submitted week");
 
-  // UPDATE
   if (id) {
     return prisma.timesheetEntry.update({
       where: { id },
@@ -344,10 +359,14 @@ export async function saveSingleEntryService(userId, data) {
     });
   }
 
-  // CREATE
+  const rowKey = projectId
+    ? `PROJECT-${projectId}`
+    : `SPECIAL-${normalizeDesc(description)}`;
+
   return prisma.timesheetEntry.create({
     data: {
       timesheetId: week.id,
+      rowKey, // ✅ REQUIRED
       projectId,
       clientId,
       mon,
@@ -374,25 +393,38 @@ export async function saveTimesheetWeekService(userId, weekId, entries) {
 
   return prisma.$transaction(async (tx) => {
     for (const e of entries) {
-      await tx.timesheetEntry.upsert({
-        where: { id: e.id ?? 0 },
-        update: {
-          projectId: e.projectId,
-          clientId: e.clientId,
-          mon: e.mon,
-          tue: e.tue,
-          wed: e.wed,
-          thu: e.thu,
-          fri: e.fri,
-          sat: e.sat,
-          sun: e.sun,
-          isBillable: e.isBillable,
-          description: e.description,
-        },
-        create: {
+      // ---------------- UPDATE ----------------
+      if (e.id) {
+        await tx.timesheetEntry.update({
+          where: { id: e.id },
+          data: {
+            projectId: e.projectId,
+            clientId: e.clientId,
+            mon: e.mon,
+            tue: e.tue,
+            wed: e.wed,
+            thu: e.thu,
+            fri: e.fri,
+            sat: e.sat,
+            sun: e.sun,
+            isBillable: e.isBillable,
+            description: e.description,
+          },
+        });
+        continue;
+      }
+
+      // ---------------- CREATE ----------------
+      const rowKey = e.projectId
+        ? `PROJECT-${e.projectId}`
+        : `SPECIAL-${normalizeDesc(e.description)}`;
+
+      await tx.timesheetEntry.create({
+        data: {
           timesheetId: weekId,
-          projectId: e.projectId,
-          clientId: e.clientId,
+          rowKey, // ✅ REQUIRED
+          projectId: e.projectId ?? null,
+          clientId: e.clientId ?? null,
           mon: e.mon,
           tue: e.tue,
           wed: e.wed,
@@ -523,6 +555,7 @@ export async function submitTimesheetWeekService(
     include: { approver: true },
   });
 }
+
 // ----------------------------------------- TIMESHEET DEFINITION -----------------------------------------
 
 export async function createTimesheetDefinition(req, res) {
@@ -544,11 +577,11 @@ export async function createTimesheetDefinition(req, res) {
   const normalizedName = name.trim().toUpperCase();
   const SYSTEM_NAMES = ["BENCH", "HR_ACTIVITIES"];
 
-  if (SYSTEM_NAMES.includes(normalizedName)) {
-    return res.status(403).json({
-      message: "System definitions cannot be created manually",
-    });
-  }
+  // if (SYSTEM_NAMES.includes(normalizedName)) {
+  //   return res.status(403).json({
+  //     message: "System definitions cannot be created manually",
+  //   });
+  // }
 
   // 🔍 Find existing (including soft-deleted)
   const existing = await prisma.timesheetDefinition.findFirst({
@@ -592,58 +625,92 @@ export async function createTimesheetDefinition(req, res) {
 export async function createDefinitionService(data) {
   const { type, projectId, description, appliesTo, createdById } = data;
 
-  if (!["ALL", "EMPLOYEE", "HR", "MANAGER"].includes(appliesTo)) {
-    throw new Error("Invalid appliesTo");
+  if (!["PROJECT", "SPECIAL"].includes(type)) {
+    throw new Error("Invalid type");
   }
 
+  // -------------------------
+  // PROJECT
+  // -------------------------
   if (type === "PROJECT") {
     if (!projectId) {
       throw new Error("projectId required for PROJECT type");
     }
-  } else {
-    if (!description) {
-      throw new Error("description required for non-project type");
+
+    // 🔍 Check existing (by projectId only)
+    const existing = await prisma.timesheetDefinition.findFirst({
+      where: {
+        type: "PROJECT",
+        projectId,
+      },
+    });
+
+    if (existing && !existing.deletedAt) {
+      throw new Error("Project definition already exists");
     }
+
+    if (existing && existing.deletedAt) {
+      return prisma.timesheetDefinition.update({
+        where: { id: existing.id },
+        data: {
+          deletedAt: null,
+          appliesTo: null,
+        },
+      });
+    }
+
+    return prisma.timesheetDefinition.create({
+      data: {
+        type: "PROJECT",
+        projectId,
+        description: null,
+        appliesTo: null,
+        createdById,
+      },
+    });
   }
 
-  const normalizedDesc = type === "PROJECT" ? null : normalizeDesc(description);
+  // -------------------------
+  // SPECIAL
+  // -------------------------
+  if (!description) {
+    throw new Error("description required for SPECIAL type");
+  }
 
-  // 🚫 Block system definitions
-  // const SYSTEM_NAMES = ["BENCH", "HR_ACTIVITIES"];
-  // if (normalizedDesc && SYSTEM_NAMES.includes(normalizedDesc)) {
+  if (!["ALL", "EMPLOYEE", "HR", "MANAGER"].includes(appliesTo)) {
+    throw new Error("Invalid appliesTo");
+  }
+
+  const normalizedDesc = normalizeDesc(description);
+
+  const SYSTEM_NAMES = ["BENCH", "HR_ACTIVITIES"];
+  // if (SYSTEM_NAMES.includes(normalizedDesc)) {
   //   throw new Error("System definitions cannot be created manually");
   // }
 
-  // 🔍 Find existing (including soft-deleted)
   const existing = await prisma.timesheetDefinition.findFirst({
     where: {
-      type,
+      type: "SPECIAL",
       description: normalizedDesc,
       appliesTo,
     },
   });
 
-  // ✅ Exists & active → error
   if (existing && !existing.deletedAt) {
-    throw new Error("Definition name already exists");
+    throw new Error("Definition already exists");
   }
 
-  // ♻️ Exists but soft-deleted → restore
   if (existing && existing.deletedAt) {
     return prisma.timesheetDefinition.update({
       where: { id: existing.id },
-      data: {
-        deletedAt: null,
-        projectId: type === "PROJECT" ? projectId : null,
-      },
+      data: { deletedAt: null },
     });
   }
 
-  // ➕ Fresh create
   return prisma.timesheetDefinition.create({
     data: {
-      type,
-      projectId: type === "PROJECT" ? projectId : null,
+      type: "SPECIAL",
+      projectId: null,
       description: normalizedDesc,
       appliesTo,
       createdById,
@@ -662,13 +729,42 @@ export async function listDefinitionsService() {
 export async function updateDefinitionService(id, data) {
   const { type, projectId, description, appliesTo } = data;
 
+  if (!["PROJECT", "SPECIAL"].includes(type)) {
+    throw new Error("Invalid type");
+  }
+
+  if (type === "PROJECT") {
+    if (!projectId) {
+      throw new Error("projectId required for PROJECT type");
+    }
+
+    return prisma.timesheetDefinition.update({
+      where: { id },
+      data: {
+        type: "PROJECT",
+        projectId,
+        description: null,
+        appliesTo: null,
+      },
+    });
+  }
+
+  // SPECIAL
+  if (!description) {
+    throw new Error("description required for SPECIAL type");
+  }
+
+  if (!["ALL", "EMPLOYEE", "HR", "MANAGER"].includes(appliesTo)) {
+    throw new Error("Invalid appliesTo");
+  }
+
   return prisma.timesheetDefinition.update({
     where: { id },
     data: {
-      type,
+      type: "SPECIAL",
+      projectId: null,
+      description: normalizeDesc(description),
       appliesTo,
-      projectId: type === "PROJECT" ? projectId : null,
-      description: type === "SPECIAL" ? description : null,
     },
   });
 }

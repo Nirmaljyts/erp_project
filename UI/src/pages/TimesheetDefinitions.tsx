@@ -5,26 +5,31 @@ import {
   updateDefinition,
   deleteDefinition,
 } from "../services/timesheetServices";
+import { getProjects } from "../services/projectServices";
 import { toast } from "react-toastify";
 import Tooltip from "../components/Tooltip";
-import { Edit2, Trash2 } from "lucide-react";
+import { Edit2, Trash2, X } from "lucide-react";
 import Swal from "sweetalert2";
 
 export default function TimesheetDefinitions() {
   const [definitions, setDefinitions] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
+
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const [form, setForm] = useState({
-    type: "PROJECT",
+    type: "",
     projectId: "",
     description: "",
-    appliesTo: "ALL",
+    appliesTo: "",
   });
 
   useEffect(() => {
     loadDefinitions();
+    loadProjects();
   }, []);
 
   async function loadDefinitions() {
@@ -39,13 +44,22 @@ export default function TimesheetDefinitions() {
     }
   }
 
+  async function loadProjects() {
+    try {
+      const res = await getProjects(1, 1000, "", "status", "asc");
+      setProjects(res.data.data || res.data);
+    } catch {
+      toast.error("Failed to load projects");
+    }
+  }
+
   function openCreateModal() {
     setEditing(null);
     setForm({
-      type: "PROJECT",
+      type: "",
       projectId: "",
       description: "",
-      appliesTo: "ALL",
+      appliesTo: "",
     });
     setModalOpen(true);
   }
@@ -61,9 +75,41 @@ export default function TimesheetDefinitions() {
     setModalOpen(true);
   }
 
-  async function handleSave() {
+  function closeDefinitionModal() {
+    setModalOpen(false);
+  }
+
+  function validateForm() {
+    const newErrors: Record<string, string> = {};
+
+    if (!form.type) newErrors.type = "Type is required";
+
+    if (form.type === "PROJECT") {
+      if (!form.projectId) {
+        newErrors.projectId = "Project is required";
+      }
+    }
+
+    if (form.type === "SPECIAL") {
+      if (!form.description.trim()) {
+        newErrors.description = "Description is required";
+      }
+
+      if (!form.appliesTo) {
+        newErrors.appliesTo = "Applies To is required";
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }
+
+  async function handleSaveDefinition(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!validateForm()) return;
+
     try {
-      // Build safe payload
       const payload: any = {
         type: form.type,
         appliesTo: form.appliesTo,
@@ -76,7 +122,7 @@ export default function TimesheetDefinitions() {
       }
 
       if (form.type === "SPECIAL") {
-        payload.description = form.description?.trim() || null;
+        payload.description = form.description.trim();
       }
 
       if (editing) {
@@ -88,11 +134,17 @@ export default function TimesheetDefinitions() {
       }
 
       setModalOpen(false);
+      setErrors({});
       loadDefinitions();
     } catch (e: any) {
       toast.error(e.response?.data?.message || "Failed");
     }
   }
+
+  const fieldClass = (name: string) =>
+    `w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border ${
+      errors[name] ? "border-red-500" : "border-[var(--border)]"
+    }`;
 
   async function handleDelete(id: number) {
     const result = await Swal.fire({
@@ -125,7 +177,7 @@ export default function TimesheetDefinitions() {
           onClick={openCreateModal}
           className="px-4 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
         >
-          Add Definition
+          Create Definition
         </button>
       </div>
 
@@ -187,7 +239,7 @@ export default function TimesheetDefinitions() {
 
             {definitions.length === 0 && (
               <tr className="border-t">
-                <td colSpan={5} className="p-4 text-center text-gray-500">
+                <td colSpan={5} className="p-4 text-sm text-center text-gray-500">
                   No Definitions Found
                 </td>
               </tr>
@@ -196,81 +248,134 @@ export default function TimesheetDefinitions() {
         </table>
       </div>
 
-      {/* MODAL */}
+      {/* ADD/EDIT MODAL */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
-          <div className="bg-white p-6 rounded w-[400px]">
+          <form
+            onSubmit={handleSaveDefinition}
+            className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 w-full max-w-2xl relative"
+          >
+            <button
+              type="button"
+              onClick={closeDefinitionModal}
+              className="absolute right-4 top-4 cursor-pointer"
+            >
+              <Tooltip text="Close" position="left">
+                <X size={22} className="text-[var(--text)] cursor-pointer" />
+              </Tooltip>
+            </button>
+
             <h2 className="text-lg font-semibold mb-4">
               {editing ? "Edit Definition" : "Create Definition"}
             </h2>
 
-            {/* TYPE */}
-            <label className="block mb-2">Type</label>
-            <select
-              value={form.type}
-              onChange={(e) => setForm({ ...form, type: e.target.value })}
-              className="w-full border p-2 rounded mb-3"
-            >
-              <option value="PROJECT">Project-based</option>
-              <option value="SPECIAL">Special Row</option>
-            </select>
+            <div className="space-y-2">
+              <select
+                value={form.type}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setForm({
+                    type: value,
+                    projectId: "",
+                    description: "",
+                    appliesTo: "",
+                  });
+                  setErrors({});
+                }}
+                className={fieldClass("type")}
+              >
+                <option value="">-- Select Project Type --</option>
+                <option value="PROJECT">Project-based</option>
+                <option value="SPECIAL">Special Row</option>
+              </select>
 
-            {/* PROJECT OR DESCRIPTION */}
-            {form.type === "PROJECT" ? (
-              <>
-                <label className="block mb-2">Project ID</label>
-                <input
-                  type="number"
-                  value={form.projectId}
-                  className="w-full border p-2 rounded mb-3"
-                  onChange={(e) =>
-                    setForm({ ...form, projectId: e.target.value })
-                  }
-                />
-              </>
-            ) : (
-              <>
-                <label className="block mb-2">Description</label>
-                <input
-                  type="text"
-                  value={form.description}
-                  className="w-full border p-2 rounded mb-3"
-                  onChange={(e) =>
-                    setForm({ ...form, description: e.target.value })
-                  }
-                />
-              </>
-            )}
+              {errors.type && (
+                <p className="text-xs text-red-500 mt-1">{errors.type}</p>
+              )}
 
-            {/* Applies To */}
-            <label className="block mb-2">Applies To</label>
-            <select
-              value={form.appliesTo}
-              onChange={(e) => setForm({ ...form, appliesTo: e.target.value })}
-              className="w-full border p-2 rounded mb-3"
-            >
-              <option value="ALL">ALL USERS</option>
-              <option value="EMPLOYEE">EMPLOYEES</option>
-              <option value="MANAGER">MANAGERS</option>
-              <option value="HR">HR</option>
-              <option value="HR_MANAGER">HR MANAGERS</option>
-            </select>
+              {form.type === "PROJECT" && (
+                <>
+                  <select
+                    value={form.projectId}
+                    onChange={(e) => {
+                      setForm({ ...form, projectId: e.target.value });
+                      setErrors({ ...errors, projectId: "" });
+                    }}
+                    className={fieldClass("projectId")}
+                  >
+                    <option value="">-- Select Project --</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {errors.projectId && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {errors.projectId}
+                    </p>
+                  )}
+                </>
+              )}
+
+              {form.type === "SPECIAL" && (
+                <>
+                  <input
+                    type="text"
+                    value={form.description}
+                    placeholder="Description"
+                    className={fieldClass("description")}
+                    onChange={(e) => {
+                      setForm({ ...form, description: e.target.value });
+                      setErrors({ ...errors, description: "" });
+                    }}
+                  />
+
+                  {errors.description && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {errors.description}
+                    </p>
+                  )}
+                </>
+              )}
+
+              {form.type === "SPECIAL" && (
+                <>
+                  <select
+                    value={form.appliesTo}
+                    onChange={(e) => {
+                      setForm({ ...form, appliesTo: e.target.value });
+                      setErrors({ ...errors, appliesTo: "" });
+                    }}
+                    className={fieldClass("appliesTo")}
+                  >
+                    <option value="">-- Select User --</option>
+                    <option value="ALL">ALL USERS</option>
+                    <option value="EMPLOYEE">EMPLOYEES</option>
+                    <option value="MANAGER">MANAGERS</option>
+                    <option value="HR">HR</option>
+                    <option value="HR_MANAGER">HR MANAGERS</option>
+                  </select>
+
+                  {errors.appliesTo && (
+                    <p className="text-xs text-red-500 mt-1">
+                      {errors.appliesTo}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
 
             <div className="flex justify-end gap-2 mt-4">
               <button
-                onClick={() => setModalOpen(false)}
-                className="px-4 py-2 bg-gray-300 rounded"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                className="px-4 py-2 bg-blue-600 text-white rounded"
+                type="submit"
+                className="mt-2 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
               >
                 Save
               </button>
             </div>
-          </div>
+          </form>
         </div>
       )}
     </div>

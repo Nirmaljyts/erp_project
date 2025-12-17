@@ -205,7 +205,7 @@ export default function Timesheet() {
           </p>
 
           <p className="text-sm text-gray-700 dark:text-[var(--text)]">
-            {week?.approver && <span>Approved By: {week.approver.name}</span>}
+            {week?.approver && <span>Approver: {week.approver.name}</span>}
           </p>
         </div>
 
@@ -213,6 +213,7 @@ export default function Timesheet() {
           <button
             onClick={() => changeWeek(-1)}
             className="btn rounded border border-[var(--border)] p-2 h-9 flex items-center justify-center"
+            disabled={week?.entries?.length === 0}
           >
             Previous Week
           </button>
@@ -220,6 +221,7 @@ export default function Timesheet() {
           <button
             onClick={() => setSelectedMonday(getMonday(new Date()))}
             className="btn rounded border border-[var(--border)] p-2 h-9 flex items-center justify-center"
+            disabled={week?.entries?.length === 0}
           >
             Current Week
           </button>
@@ -227,6 +229,7 @@ export default function Timesheet() {
           <button
             onClick={() => changeWeek(1)}
             className="btn btn rounded border border-[var(--border)] p-2 h-9 flex items-center justify-center"
+            disabled={week?.entries?.length === 0}
           >
             Next Week
           </button>
@@ -245,23 +248,28 @@ export default function Timesheet() {
               <table className="w-full">
                 <thead>
                   <tr>
-                    <th className="w-auto p-2 text-left uppercase">
+                    <th className="w-auto text-xs p-2 text-left uppercase">
                       Project/Task
                     </th>
 
                     {days.map((d) => (
-                      <th key={d} className="w-auto p-2 text-left uppercase">
+                      <th
+                        key={d}
+                        className="w-auto text-xs p-2 text-left uppercase"
+                      >
                         {d}
                       </th>
                     ))}
 
                     {canSeeBillable && (
-                      <th className="w-auto p-2 text-left uppercase">
+                      <th className="w-auto text-xs p-2 text-left uppercase">
                         Billable
                       </th>
                     )}
 
-                    <th className="w-auto p-2 text-left uppercase">Notes</th>
+                    <th className="w-auto text-xs p-2 text-left uppercase">
+                      Notes
+                    </th>
                   </tr>
                 </thead>
 
@@ -306,7 +314,7 @@ export default function Timesheet() {
                         ))}
 
                         {canSeeBillable && (
-                          <td className="w-auto p-2 text-left">
+                          <td className="w-auto p-2 text-center">
                             <button
                               disabled={isPastWeek || isSpecial}
                               onClick={() => toggleBillable(row)}
@@ -325,7 +333,7 @@ export default function Timesheet() {
                           {isSpecial ? (
                             <input
                               type="text"
-                              disabled={week.status !== "DRAFT" || isPastWeek}
+                              disabled
                               className="border border-[var(--border)] rounded p-1 w-full"
                               defaultValue={row.description || ""}
                               onBlur={(e) =>
@@ -343,42 +351,57 @@ export default function Timesheet() {
 
                 <div className="my-3"></div>
 
-                <tfoot>
-                  <tr className="font-semibold border-t">
-                    <td className="w-auto p-2">Total</td>
+                {week.entries.length > 0 ? (
+                  <tfoot>
+                    <tr className="font-semibold border-t">
+                      <td className="w-auto p-2">Total</td>
 
-                    {days.map((d) => (
-                      <td key={d} className="w-auto p-0 text-left">
-                        <input
-                          type="number"
-                          disabled
-                          className="w-14 border border-[var(--border)] rounded p-1 text-center"
-                          value={totals ? totals[d] : 0}
-                        />
+                      {days.map((d) => (
+                        <td key={d} className="w-auto p-0 text-left">
+                          <input
+                            type="number"
+                            disabled
+                            className="w-14 border border-[var(--border)] rounded p-1 text-center"
+                            value={totals ? totals[d] : 0}
+                          />
+                        </td>
+                      ))}
+
+                      <td className="w-[50px] p-2 text-center px-2">
+                        {canSeeBillable && "-"}
                       </td>
-                    ))}
 
-                    <td className="w-auto p-2 text-left px-5">
-                      {canSeeBillable && <td> - </td>}
-                    </td>
-
-                    <td className="w-auto p-2 text-left">{weeklyTotal}</td>
-                  </tr>
-                </tfoot>
+                      <td className="w-auto p-2 text-left">{weeklyTotal}</td>
+                    </tr>
+                  </tfoot>
+                ) : (
+                  <tbody>
+                    <tr>
+                      <td
+                        colSpan={10}
+                        className="p-4 text-sm text-center text-gray-500"
+                      >
+                        No Timesheet Data
+                      </td>
+                    </tr>
+                  </tbody>
+                )}
               </table>
 
-              {isCurrentWeek && (
+              {isCurrentWeek && week.entries.length > 0 && (
                 <div className="flex justify-end p-2 mt-2 gap-2">
                   <button
                     onClick={handleSave}
-                    className="px-4 py-2 rounded border border-[#2f4f82]"
+                    disabled={week.status !== "DRAFT"}
+                    className="px-4 py-2 rounded border border-[#2f4f82] disabled:bg-gray-300"
                   >
                     Save
                   </button>
 
                   <button
                     onClick={handleSubmit}
-                    className="px-4 py-2 bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a] rounded"
+                    disabled={week.status !== "DRAFT"}
+                    className="px-4 py-2 bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a] rounded disabled:bg-gray-300"
                   >
                     Submit
                   </button>

@@ -96,7 +96,7 @@ const menu = [
         label: "Timesheet Definitions",
         path: "/timesheets/definitions",
         icon: Kanban,
-        roles: ["ADMIN", "HR_MANAGER", "HR"],
+        roles: ["ADMIN", "HR_MANAGER"],
       },
       {
         label: "Timesheet Reports",
