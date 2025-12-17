@@ -56,6 +56,7 @@ interface TimesheetEntry {
 }
 
 interface TimesheetWeek {
+  leaveMap: any;
   id: number;
   weekStartDate: string;
   status: "DRAFT" | "SUBMITTED" | "APPROVED" | "REJECTED";
@@ -100,6 +101,7 @@ export default function Timesheet() {
     try {
       setLoading(true);
       const res = await getMyTimesheet(formatISO(selectedMonday));
+
       setWeek(res.data);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to load timesheet");
@@ -296,7 +298,8 @@ export default function Timesheet() {
                                 disabled={
                                   week.status !== "DRAFT" ||
                                   isPastWeek ||
-                                  isFutureWeek
+                                  isFutureWeek ||
+                                  week.leaveMap?.[d]
                                 }
                                 min={0}
                                 value={row[d]}
@@ -393,7 +396,7 @@ export default function Timesheet() {
                   <button
                     onClick={handleSave}
                     disabled={week.status !== "DRAFT"}
-                    className="px-4 py-2 rounded border border-[#2f4f82] disabled:bg-gray-300"
+                    className="px-4 py-2 rounded border border-[#2f4f82] disabled:bg-gray-400 disabled:text-white disabled:border-0"
                   >
                     Save
                   </button>
@@ -401,7 +404,7 @@ export default function Timesheet() {
                   <button
                     onClick={handleSubmit}
                     disabled={week.status !== "DRAFT"}
-                    className="px-4 py-2 bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a] rounded disabled:bg-gray-300"
+                    className="px-4 py-2 bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a] rounded disabled:bg-gray-400"
                   >
                     Submit
                   </button>

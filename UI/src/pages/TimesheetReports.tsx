@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+} from "recharts";
 import { getTimesheetReport } from "../services/timesheetServices";
 import { getUsers } from "../services/userServices";
 import { getProjects } from "../services/projectServices";
@@ -9,6 +18,7 @@ export default function TimesheetReports() {
   const [users, setUsers] = useState<any[]>([]);
   const [projects, setProjects] = useState<any[]>([]);
   const [clients, setClients] = useState<any[]>([]);
+  const [chart, setChart] = useState<any | null>(null);
 
   const [filters, setFilters] = useState({
     userId: "",
@@ -49,13 +59,26 @@ export default function TimesheetReports() {
         from: filters.from || undefined,
         to: filters.to || undefined,
       });
+
       setSummary(res.data.summary);
       setEntries(res.data.entries);
+      setChart(res.data.chart);
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to load report");
     } finally {
       setLoading(false);
     }
+  }
+
+  function buildChartData(chart: any) {
+    if (!chart) return [];
+
+    return chart.labels.map((label: string, i: number) => ({
+      date: label,
+      total: chart.total[i],
+      Billable: chart.billable[i],
+      NonBillable: chart.nonBillable[i],
+    }));
   }
 
   return (
@@ -158,6 +181,26 @@ export default function TimesheetReports() {
           </div>
         </div>
       ) : null}
+
+      {chart && (
+        <div className="border border-[var(--border)] bg-[var(--card)] rounded-xl p-4 mb-4">
+          <h2 className="text-sm font-semibold mb-3">Daily Hours</h2>
+
+          <div style={{ width: "100%", height: 300 }}>
+            <ResponsiveContainer>
+              <BarChart data={buildChartData(chart)}>
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+
+                <Bar dataKey="Billable" stackId="a" fill="#4ade80" />
+                <Bar dataKey="NonBillable" stackId="a" fill="#f87171" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
       {/* Entries table */}
       {entries.length > 0 && (

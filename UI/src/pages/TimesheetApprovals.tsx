@@ -26,6 +26,63 @@ export default function TimesheetApprovals() {
     loadData();
   }, []);
 
+  type DayLabel = "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat" | "Sun";
+
+  function getWeekDates(weekStart: string | Date) {
+    const start = new Date(weekStart);
+    const labels: DayLabel[] = [
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat",
+      "Sun",
+    ];
+
+    return labels.map((label, i) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      return { label, date: d };
+    });
+  }
+
+  function summarizeWeek(entries: any[], leaveMap: Record<string, boolean>) {
+    const days = {
+      Mon: 0,
+      Tue: 0,
+      Wed: 0,
+      Thu: 0,
+      Fri: 0,
+      Sat: 0,
+      Sun: 0,
+    };
+
+    for (const e of entries) {
+      const map = [
+        ["Mon", e.mon],
+        ["Tue", e.tue],
+        ["Wed", e.wed],
+        ["Thu", e.thu],
+        ["Fri", e.fri],
+        ["Sat", e.sat],
+        ["Sun", e.sun],
+      ] as const;
+
+      for (const [day, value] of map) {
+        if (!value) continue;
+        if (leaveMap[day.toLowerCase()]) continue; // 🚫 ignore leave days
+        days[day] += value;
+      }
+    }
+
+    const total = Object.entries(days).reduce((sum, [day, h]) => {
+      return leaveMap[day.toLowerCase()] ? sum : sum + h;
+    }, 0);
+
+    return { days, total };
+  }
+
   async function handleAction(id: number, type: "APPROVE" | "REJECT") {
     try {
       if (type === "APPROVE") {
@@ -69,7 +126,7 @@ export default function TimesheetApprovals() {
                     Week of {new Date(w.weekStartDate).toLocaleDateString()}
                   </p>
                 </div>
-                <span className="px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-700">
+                <span className="h-6 flex items-center justify-center px-2 py-1 rounded-full text-xs bg-yellow-200 text-gray-700">
                   {w.status}
                 </span>
               </div>
@@ -78,19 +135,34 @@ export default function TimesheetApprovals() {
                 Entries: {w.entries?.length ?? 0}
               </div>
 
-              <div className="mt-2 max-h-32 overflow-y-auto text-xs">
-                {w.entries.map((e: any) => (
-                  <div key={e.id} className="flex justify-between py-0.5">
-                    <span>
-                      {new Date(e.entryDate).toLocaleDateString()} •{" "}
-                      {e.project?.name || e.client?.name || "General"}
-                    </span>
-                    <span>
-                      {e.hours}h {e.isBillable ? "(B)" : "(NB)"}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              {(() => {
+                const { days, total } = summarizeWeek(w.entries, w.leaveMap);
+                const weekDates = getWeekDates(w.weekStartDate);
+
+                return (
+                  <>
+                    <div className="mt-3 text-xs space-y-1">
+                      {weekDates.map(({ label, date }) => (
+                        <div key={label} className="flex justify-between">
+                          <span>
+                            {label} ({date.toLocaleDateString()})
+                          </span>
+                          <span className="font-medium">
+                            {w.leaveMap[label.toLowerCase()]
+                              ? "Leave"
+                              : `${days[label]}h`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-2 pt-2 border-t flex justify-between text-sm font-semibold">
+                      <span>Total</span>
+                      <span>{total}h</span>
+                    </div>
+                  </>
+                );
+              })()}
 
               <div className="flex gap-2 mt-3">
                 <button

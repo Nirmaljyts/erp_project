@@ -7,7 +7,13 @@ import {
   listDefinitionsService,
   updateDefinitionService,
   deleteDefinitionService,
+  getTimesheetApprovalsService,
+  approveTimesheetService,
+  rejectTimesheetService,
+  getTimesheetReportService,
 } from "../services/timesheetService.js";
+
+// ----------------------------------------- TIMESHEET -----------------------------------------
 
 export async function getMyTimesheetController(req, res) {
   try {
@@ -56,9 +62,38 @@ export async function submitTimesheetController(req, res) {
   }
 }
 
-// -------------------------
-// DEFINITIONS CRUD
-// -------------------------
+// ----------------------------------------- TIMESHEET APPROVAL -----------------------------------------
+
+export async function getTimesheetApprovalsController(req, res) {
+  try {
+    const data = await getTimesheetApprovalsService(req.user);
+    res.json(data);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+}
+
+export async function approveTimesheetController(req, res) {
+  try {
+    const weekId = Number(req.params.weekId);
+    const data = await approveTimesheetService(req.user.id, weekId);
+    res.json(data);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+}
+
+export async function rejectTimesheetController(req, res) {
+  try {
+    const weekId = Number(req.params.weekId);
+    const data = await rejectTimesheetService(req.user.id, weekId);
+    res.json(data);
+  } catch (e) {
+    res.status(400).json({ message: e.message });
+  }
+}
+
+// ----------------------------------------- TIMESHEET DEFINITION -----------------------------------------
 
 export async function createDefinitionController(req, res) {
   try {
@@ -93,6 +128,17 @@ export async function deleteDefinitionController(req, res) {
   try {
     await deleteDefinitionService(Number(req.params.id));
     res.json({ message: "Deleted" });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+}
+
+// ----------------------------------------- TIMESHEET REPORT -----------------------------------------
+
+export async function getTimesheetReportController(req, res) {
+  try {
+    const data = await getTimesheetReportService(req.query, req.user);
+    res.json(data);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }

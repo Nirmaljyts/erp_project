@@ -239,7 +239,10 @@ export default function TimesheetDefinitions() {
 
             {definitions.length === 0 && (
               <tr className="border-t">
-                <td colSpan={5} className="p-4 text-sm text-center text-gray-500">
+                <td
+                  colSpan={5}
+                  className="p-4 text-sm text-center text-gray-500"
+                >
                   No Definitions Found
                 </td>
               </tr>
@@ -250,7 +253,7 @@ export default function TimesheetDefinitions() {
 
       {/* ADD/EDIT MODAL */}
       {modalOpen && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center">
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <form
             onSubmit={handleSaveDefinition}
             className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 w-full max-w-2xl relative"

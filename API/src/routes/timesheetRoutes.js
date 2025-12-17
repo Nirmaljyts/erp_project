@@ -9,9 +9,15 @@ import {
   listDefinitionsController,
   updateDefinitionController,
   deleteDefinitionController,
+  getTimesheetApprovalsController,
+  approveTimesheetController,
+  rejectTimesheetController,
+  getTimesheetReportController,
 } from "../controllers/timesheetController.js";
 
 const router = Router();
+
+// ----------------------------------------- TIMESHEET -----------------------------------------
 
 // GET my weekly timesheet
 router.get("/my", authRequired, getMyTimesheetController);
@@ -24,6 +30,29 @@ router.post("/:weekId/save", authRequired, saveTimesheetWeekController);
 
 // SUBMIT week
 router.post("/:weekId/submit", authRequired, submitTimesheetController);
+
+// ----------------------------------------- TIMESHEET APPROVAL -----------------------------------------
+
+router.get(
+  "/approvals",
+  authRequired,
+  requireRole("ADMIN", "HR", "HR_MANAGER", "MANAGER"),
+  getTimesheetApprovalsController
+);
+router.post(
+  "/:weekId/approve",
+  authRequired,
+  requireRole("ADMIN", "HR", "HR_MANAGER", "MANAGER"),
+  approveTimesheetController
+);
+router.post(
+  "/:weekId/reject",
+  authRequired,
+  requireRole("ADMIN", "HR", "HR_MANAGER", "MANAGER"),
+  rejectTimesheetController
+);
+
+// ----------------------------------------- TIMESHEET DEFINITION -----------------------------------------
 
 // DEFINITIONS (ADMIN + HR_MANAGER)
 router.post(
@@ -52,6 +81,15 @@ router.delete(
   authRequired,
   requireRole("ADMIN", "HR_MANAGER"),
   deleteDefinitionController
+);
+
+// ----------------------------------------- TIMESHEET REPORT -----------------------------------------
+
+router.get(
+  "/reports",
+  authRequired,
+  requireRole("ADMIN", "HR", "HR_MANAGER", "MANAGER"),
+  getTimesheetReportController
 );
 
 export default router;

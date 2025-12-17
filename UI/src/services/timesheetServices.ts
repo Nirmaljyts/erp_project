@@ -1,12 +1,12 @@
 import { axiosInstance } from "./interceptor";
 
+// ----------------------------------------- TIMESHEET -----------------------------------------
 export function getMyTimesheet(weekStart?: string) {
   return axiosInstance.get("/timesheets/my", {
     params: weekStart ? { weekStart } : undefined,
   });
 }
 
-// Save individual day entry
 export function saveTimesheetEntry(payload: {
   id: number | undefined;
   weekStart: string;
@@ -33,6 +33,8 @@ export function submitTimesheet(weekId: number, entries: any[]) {
   return axiosInstance.post(`/timesheets/${weekId}/submit`, { entries });
 }
 
+// ----------------------------------------- TIMESHEET APPROVAL -----------------------------------------
+
 export function getTimesheetApprovals() {
   return axiosInstance.get("/timesheets/approvals");
 }
@@ -45,26 +47,17 @@ export function rejectTimesheet(weekId: number) {
   return axiosInstance.post(`/timesheets/${weekId}/reject`);
 }
 
-export function getTimesheetReport(params: {
-  userId?: number;
-  projectId?: number;
-  clientId?: number;
-  from?: string;
-  to?: string;
-}) {
-  return axiosInstance.get("/timesheets/reports", { params });
-}
+// ----------------------------------------- TIMESHEET DEFINITION -----------------------------------------
 
-// Timesheet Definitions (ADMIN / HR_MANAGER only)
 export function getDefinitions() {
   return axiosInstance.get("/timesheets/definitions");
 }
 
 export function createDefinition(data: {
-  type: string; // "PROJECT" | "SPECIAL"
+  type: string;
   projectId?: number | null;
   description?: string | null;
-  appliesTo: string; // ALL | EMPLOYEE | MANAGER | HR | HR_MANAGER
+  appliesTo: string;
 }) {
   return axiosInstance.post("/timesheets/definitions", data);
 }
@@ -75,4 +68,16 @@ export function updateDefinition(id: number, data: any) {
 
 export function deleteDefinition(id: number) {
   return axiosInstance.delete(`/timesheets/definitions/${id}`);
+}
+
+// ----------------------------------------- TIMESHEET REPORT -----------------------------------------
+
+export function getTimesheetReport(params: {
+  userId?: number;
+  projectId?: number;
+  clientId?: number;
+  from?: string;
+  to?: string;
+}) {
+  return axiosInstance.get("/timesheets/reports", { params });
 }
