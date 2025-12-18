@@ -208,13 +208,13 @@ export default function Timesheet() {
             Current Week
           </button>
 
-          <button
+          {/* <button
             onClick={() => changeWeek(1)}
             className="btn btn rounded border border-[var(--border)] p-2 h-9 flex items-center justify-center"
             disabled={week?.entries?.length === 0}
           >
             Next Week
-          </button>
+          </button> */}
         </div>
       </div>
 
@@ -330,8 +330,6 @@ export default function Timesheet() {
                     );
                   })}
                 </tbody>
-
-                <div className="my-3"></div>
 
                 {week.entries.length > 0 ? (
                   <tfoot>

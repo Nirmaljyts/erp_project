@@ -240,6 +240,14 @@ export default function UsersPage() {
     }
   };
 
+  const roleClasses: Record<string, string> = {
+    ADMIN: "bg-red-100 text-red-700",
+    HR_MANAGER: "bg-green-100 text-green-700",
+    HR: "bg-orange-100 text-orange-700",
+    MANAGER: "bg-yellow-100 text-yellow-700",
+    EMPLOYEE: "bg-blue-100 text-blue-700",
+  };
+
   return (
     <div className="max-h-auto">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
@@ -371,26 +379,35 @@ export default function UsersPage() {
                       >
                         {index + 1}
                       </td>
+
                       <td
                         className="table_td min-w-[18%] px-4 py-2 text-sm truncate"
                         data-label="Name"
                       >
                         {user.name}
                       </td>
+
                       <td
                         className="table_td min-w-[20%] px-4 py-2 text-sm truncate"
                         data-label="Email"
                       >
                         {user.email}
                       </td>
+
                       <td
                         className="table_td min-w-[18%] px-4 py-2 text-sm"
                         data-label="Role"
                       >
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            roleClasses[user.role] ??
+                            "bg-gray-100 text-gray-700"
+                          }`}
+                        >
                           {user.role}
                         </span>
                       </td>
+
                       <td
                         className="table_td min-w-[18%] px-4 py-2 text-sm"
                         data-label="Status"
@@ -405,6 +422,7 @@ export default function UsersPage() {
                           </span>
                         )}
                       </td>
+
                       {(currentRole === "ADMIN" ||
                         currentRole === "HR_MANAGER" ||
                         currentRole === "HR") && (

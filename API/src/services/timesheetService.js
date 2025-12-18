@@ -176,11 +176,19 @@ async function getApprovedLeaveMapForWeek(userId, weekStartDate) {
   };
 }
 
+function isUniqueConstraintError(err) {
+  return (
+    err?.code === "P2002" || err?.message?.includes("Unique constraint failed")
+  );
+}
+
 export async function getMyTimesheetWeekService(userId, weekStartParam) {
   const date = weekStartParam ? new Date(weekStartParam) : new Date();
 
+  // 1️⃣ Find or create week (should be the ONLY place week creation happens)
   const week = await findOrCreateWeek(userId, date);
 
+  // 2️⃣ Load user with relations
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
@@ -197,7 +205,6 @@ export async function getMyTimesheetWeekService(userId, weekStartParam) {
   if (!user) throw new Error("User not found");
 
   const role = user.role;
-
   const weekStart = new Date(week.weekStartDate);
   const isDraft = week.status === "DRAFT";
   const isCurrentOrFuture = isCurrentOrFutureWeek(weekStart);
@@ -217,18 +224,13 @@ export async function getMyTimesheetWeekService(userId, weekStartParam) {
       deletedAt: null,
     },
     select: {
-      id: true,
       rowKey: true,
     },
   });
 
-  const existingRowKeyMap = new Map(
-    existingEntries.map((e) => [e.rowKey, e.id])
-  );
+  const existingRowKeys = new Set(existingEntries.map((e) => e.rowKey));
 
   /* ---------------- FILTER DEFINITIONS ---------------- */
-
-  const existingRowKeys = new Set(existingEntries.map((e) => e.rowKey));
 
   const defs = allDefs.filter((def) => {
     if (!def.deletedAt) return true;
@@ -243,12 +245,12 @@ export async function getMyTimesheetWeekService(userId, weekStartParam) {
     return existingRowKeys.has(rowKey);
   });
 
+  /* ---------------- BUILD ROW DEFINITIONS ---------------- */
+
   const rowDefs = [];
-
-  /* ---------------- SPECIAL DEFINITIONS (DEDUPED) ---------------- */
-
   const seenSpecial = new Set();
 
+  // SPECIAL rows (deduped)
   for (const d of defs) {
     if (d.type !== "SPECIAL" || !d.description) continue;
 
@@ -263,8 +265,7 @@ export async function getMyTimesheetWeekService(userId, weekStartParam) {
     });
   }
 
-  /* ---------------- PROJECT ROWS (ROLE-BASED) ---------------- */
-
+  // PROJECT rows by role
   if (role === "ADMIN" || role === "HR") {
     for (const d of defs) {
       if (d.type === "PROJECT" && d.projectId) {
@@ -315,65 +316,68 @@ export async function getMyTimesheetWeekService(userId, weekStartParam) {
             : typeof d.description === "string"
         )
         .map((d) => {
-          const key = buildRowKey(d);
-          return [key, { ...d, rowKey: key }];
+          const rowKey = buildRowKey(d);
+          return [rowKey, { ...d, rowKey }];
         })
     ).values()
   );
 
-  /* ---------------- DEADLOCK-SAFE WRITE ---------------- */
+  /* ---------------- SAFE UPSERT (NO DEADLOCKS) ---------------- */
 
-  /* ---------------- CONCURRENCY-SAFE WRITE ---------------- */
+  // Only write if something is missing
+  const missingDefs = uniqueDefs.filter((d) => !existingRowKeys.has(d.rowKey));
 
-  await prisma.$transaction(async (tx) => {
-    // 1) Create any missing rows (skipDuplicates handles concurrent creates safely)
-    const rowsToCreate = uniqueDefs.map((def) => ({
-      timesheetId: week.id,
-      rowKey: def.rowKey,
-      projectId: def.projectId ?? null,
-      clientId: def.clientId ?? null,
-      description: def.type === "PROJECT" ? null : def.description,
-      isBillable: def.type === "PROJECT",
-      mon: 0,
-      tue: 0,
-      wed: 0,
-      thu: 0,
-      fri: 0,
-      sat: 0,
-      sun: 0,
-    }));
-
-    await tx.timesheetEntry.createMany({
-      data: rowsToCreate,
-      skipDuplicates: true, // ✅ key part
-    });
-
-    // 2) OPTIONAL but recommended:
-    // Ensure structural fields are correct (if definitions changed over time)
-    // This does not touch hours.
-    for (const def of uniqueDefs) {
-      await tx.timesheetEntry.updateMany({
-        where: {
-          timesheetId: week.id,
-          rowKey: def.rowKey,
-          deletedAt: null,
-        },
-        data: {
-          projectId: def.projectId ?? null,
-          clientId: def.clientId ?? null,
-          description: def.type === "PROJECT" ? null : def.description,
-          isBillable: def.type === "PROJECT",
-        },
+  if (missingDefs.length > 0) {
+    try {
+      await prisma.$transaction(async (tx) => {
+        for (const def of missingDefs) {
+          await tx.timesheetEntry.upsert({
+            where: {
+              timesheet_rowkey_unique: {
+                timesheetId: week.id,
+                rowKey: def.rowKey,
+              },
+            },
+            update: {
+              projectId: def.projectId ?? null,
+              clientId: def.clientId ?? null,
+              description: def.type === "PROJECT" ? null : def.description,
+              isBillable: def.type === "PROJECT",
+            },
+            create: {
+              timesheetId: week.id,
+              rowKey: def.rowKey,
+              projectId: def.projectId ?? null,
+              clientId: def.clientId ?? null,
+              description: def.type === "PROJECT" ? null : def.description,
+              isBillable: def.type === "PROJECT",
+              mon: 0,
+              tue: 0,
+              wed: 0,
+              thu: 0,
+              fri: 0,
+              sat: 0,
+              sun: 0,
+            },
+          });
+        }
       });
+    } catch (err) {
+      // ✅ SAFE TO IGNORE — another request created the rows
+      if (!isUniqueConstraintError(err)) {
+        throw err;
+      }
     }
-  });
+  }
 
-  /* ---------------- RETURN FINAL WEEK ---------------- */
+  /* ---------------- LEAVES ---------------- */
 
   const { leaveMap, leaves } = await getApprovedLeaveMapForWeek(
     userId,
-    new Date(week.weekStartDate)
+    weekStart
   );
+
+  /* ---------------- FINAL FETCH ---------------- */
 
   const result = await prisma.timesheetWeek.findUnique({
     where: { id: week.id },
@@ -1033,13 +1037,7 @@ export async function deleteDefinitionService(id) {
 // ----------------------------------------- TIMESHEET REPORT -----------------------------------------
 
 export async function getTimesheetReportService(params, currentUser) {
-  const {
-    userId,
-    projectId,
-    clientId,
-    from,
-    to,
-  } = params;
+  const { userId, projectId, clientId, from, to } = params;
 
   const whereWeek = {
     deletedAt: null,
@@ -1105,9 +1103,7 @@ export async function getTimesheetReportService(params, currentUser) {
 
         const day = daily.get(dateKey);
         day.total += hours;
-        e.isBillable
-          ? (day.billable += hours)
-          : (day.nonBillable += hours);
+        e.isBillable ? (day.billable += hours) : (day.nonBillable += hours);
 
         detailedEntries.push({
           id: `${e.id}-${key}`,

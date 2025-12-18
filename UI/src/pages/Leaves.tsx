@@ -115,17 +115,15 @@ export default function Leaves() {
                   {new Date(l.endDate).toLocaleDateString()}
                 </div>
 
-                <p className="text-sm text-gray-500 mt-1">
+                <p className="text-sm text-[var(--text)] mt-1">
                   {l.reason || "Reason Not Specified"}
                 </p>
 
                 {l.status === "APPROVED" && l.approvedBy && (
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-[var(--text)] mt-1 font-semibold">
                     Approved by:{" "}
-                    <span className="font-semibold">
-                      {l.approvedBy.name} on{" "}
-                    </span>
-                    <span className="font-semibold">
+                    <span className="font-normal">{l.approvedBy.name} on </span>
+                    <span className="font-normal">
                       {l.decidedAt
                         ? new Date(l.decidedAt).toLocaleDateString()
                         : "—"}
@@ -134,12 +132,10 @@ export default function Leaves() {
                 )}
 
                 {l.status === "REJECTED" && l.rejectedBy && (
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-[var(--text)] mt-1 font-semibold">
                     Rejected by:{" "}
-                    <span className="font-semibold">
-                      {l.rejectedBy.name} on{" "}
-                    </span>
-                    <span className="font-semibold">
+                    <span className="font-normal">{l.rejectedBy.name} on </span>
+                    <span className="font-normal">
                       {l.decidedAt
                         ? new Date(l.decidedAt).toLocaleDateString()
                         : "—"}
@@ -147,9 +143,9 @@ export default function Leaves() {
                   </p>
                 )}
 
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-[var(--text)] mt-1 font-semibold">
                   Applied On:{" "}
-                  <span className="font-semibold">
+                  <span className="font-normal">
                     {new Date(l.createdAt).toLocaleDateString()}
                   </span>
                 </p>

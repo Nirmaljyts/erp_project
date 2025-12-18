@@ -48,7 +48,6 @@ export async function createLeaveService(userId, body) {
   });
 }
 
-
 // GET MY LEAVES
 export function getMyLeavesService(userId) {
   return prisma.leave.findMany({
@@ -141,6 +140,26 @@ export async function cancelLeaveService(user, leaveId) {
 }
 
 // LEAVE DASHBOARD
+const LEAVE_LIMITS = {
+  ANNUAL: 10,
+  CASUAL: 10,
+  SICK: 10,
+  WFH: 10,
+  UNPAID: null, // LOP
+};
+
+function calculateLeaveDays(leave) {
+  if (leave.dayType === "HALF") return 0.5;
+
+  const start = new Date(leave.startDate);
+  const end = new Date(leave.endDate);
+
+  return (
+    Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
+  );
+}
+
+// LEAVE DASHBOARD
 export async function getLeaveDashboardService(user) {
   let where = { deletedAt: null };
 
@@ -163,30 +182,25 @@ export async function getLeaveDashboardService(user) {
     ];
   }
 
-  // 3️⃣ HR → only own
+  // 3️⃣ HR → own + processed
   else if (user.role === "HR") {
     where.OR = [
-      { userId: user.id }, // HR's own leaves
-      { approvedById: user.id }, // HR approved
-      { rejectedById: user.id }, // HR rejected
+      { userId: user.id },
+      { approvedById: user.id },
+      { rejectedById: user.id },
     ];
   }
 
-  // 4️⃣ HR_MANAGER → own + HR + MANAGER + bench employees
+  // 4️⃣ HR_MANAGER → own + HR + MANAGER + bench
   else if (user.role === "HR_MANAGER") {
     where.OR = [
-      // HR_MANAGER → own leave
       { userId: user.id },
-
-      // HR + MANAGER (explicitly exclude ADMIN)
       {
         user: {
           role: { in: ["HR", "MANAGER"] },
           NOT: { role: "ADMIN" },
         },
       },
-
-      // BENCH employees (exclude ADMIN)
       {
         user: {
           role: { not: "ADMIN" },
@@ -202,12 +216,13 @@ export async function getLeaveDashboardService(user) {
     ];
   }
 
-  // 5️⃣ ADMIN → sees ALL leaves (no filtering)
+  // 5️⃣ ADMIN → all
   else if (user.role === "ADMIN") {
     where = { deletedAt: null };
   }
 
-  // Fetch data
+  /* ---------------- FETCH DATA ---------------- */
+
   const [stats, leaves] = await Promise.all([
     prisma.leave.groupBy({
       by: ["status"],
@@ -225,9 +240,47 @@ export async function getLeaveDashboardService(user) {
     }),
   ]);
 
-  const total = leaves.length;
+  /* ---------------- CALCULATE BALANCES ---------------- */
 
-  return { stats, leaves, total };
+  const balances = {};
+
+  // Initialize
+  for (const type in LEAVE_LIMITS) {
+    balances[type] = {
+      taken: 0,
+      total: LEAVE_LIMITS[type],
+      remaining: LEAVE_LIMITS[type],
+    };
+  }
+
+  // Only APPROVED leaves affect balances
+  for (const leave of leaves) {
+    if (leave.status !== "APPROVED") continue;
+
+    const days = calculateLeaveDays(leave);
+
+    if (!balances[leave.type]) {
+      balances[leave.type] = {
+        taken: 0,
+        total: null,
+        remaining: null,
+      };
+    }
+
+    balances[leave.type].taken += days;
+
+    if (balances[leave.type].total !== null) {
+      balances[leave.type].remaining =
+        balances[leave.type].total - balances[leave.type].taken;
+    }
+  }
+
+  return {
+    stats,
+    leaves,
+    total: leaves.length,
+    leaveBalances: balances,
+  };
 }
 
 export async function deleteApprovedLeaveService(id) {

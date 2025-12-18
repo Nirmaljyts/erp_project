@@ -12,6 +12,7 @@ import {
 } from "../services/leaveService";
 import { RootState } from "../store/store";
 import Tooltip from "../components/Tooltip";
+import { RingComponent } from "../components/RingComponent";
 
 export default function LeaveDashboard() {
   const user = useSelector((state: RootState) => state.auth.user);
@@ -21,6 +22,7 @@ export default function LeaveDashboard() {
   const [leaves, setLeaves] = useState([]);
   type Stat = { status: string; _count: number };
   const [stats, setStats] = useState<Stat[]>([]);
+  const [leaveBalances, setLeaveBalances] = useState<any>({});
 
   const navigate = useNavigate();
 
@@ -33,6 +35,7 @@ export default function LeaveDashboard() {
       const res = await getLeaveDashboard();
       setLeaves(res.data.leaves);
       setStats(res.data.stats);
+      setLeaveBalances(res.data.leaveBalances);
     } finally {
       setLoading(false);
     }
@@ -105,30 +108,73 @@ export default function LeaveDashboard() {
         </div>
       ) : (
         <>
-          <div className="grid  sx:grid-cols-1 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mb-2">
-            {["TOTAL", "APPROVED", "PENDING", "REJECTED", "CANCELLED"].map(
-              (key) => {
-                const count =
-                  key === "TOTAL"
-                    ? leaves.length
-                    : stats.find((s: any) => s.status === key)?._count || 0;
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-4">
+            <RingComponent
+              label="Annual"
+              taken={leaveBalances.ANNUAL?.taken ?? 0}
+              total={leaveBalances.ANNUAL?.total ?? 0}
+              linkTo="/request-leaves"
+            />
 
-                return (
-                  <div
-                    key={key}
-                    className="p-3 sm:p-4 border border-[var(--border)] rounded-xl bg-[var(--card)] shadow-sm"
+            <RingComponent
+              label="Casual"
+              taken={leaveBalances.CASUAL?.taken ?? 0}
+              total={leaveBalances.CASUAL?.total ?? 0}
+              linkTo="/request-leaves"
+            />
+
+            <RingComponent
+              label="Sick"
+              taken={leaveBalances.SICK?.taken ?? 0}
+              total={leaveBalances.SICK?.total ?? 0}
+              linkTo="/request-leaves"
+            />
+
+            <RingComponent
+              label="WFH"
+              taken={leaveBalances.WFH?.taken ?? 0}
+              total={leaveBalances.WFH?.total ?? 0}
+              linkTo="/request-leaves"
+            />
+
+            <RingComponent
+              label="LOP"
+              taken={leaveBalances.UNPAID?.taken ?? 0}
+              total={null}
+              linkTo="/request-leaves"
+            />
+          </div>
+
+          <div className="grid  sx:grid-cols-1 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mb-2">
+            {[
+              "TOTAL LEAVES",
+              "APPROVED LEAVES",
+              "PENDING LEAVES",
+              "REJECTED LEAVES",
+              "CANCELLED LEAVES",
+            ].map((key) => {
+              const count =
+                key === "TOTAL"
+                  ? leaves.length
+                  : stats.find((s: any) => s.status === key)?._count || 0;
+
+              return (
+                <div
+                  key={key}
+                  className="p-3 sm:p-4 border border-[var(--border)] rounded-xl bg-[var(--card)] shadow-sm"
+                >
+                  <p className="text-xs text-left  sm:text-xs text-gray-500">
+                    {key}
+                  </p>
+                  <p
+                    className="cursor-pointer text-xl text-left sm:text-2xl font-bold hover:underline"
+                    onClick={navigateToLeaves}
                   >
-                    <p className="text-xs sm:text-sm text-gray-500">{key}</p>
-                    <p
-                      className="cursor-pointer text-xl sm:text-2xl font-bold hover:underline"
-                      onClick={navigateToLeaves}
-                    >
-                      {count}
-                    </p>
-                  </div>
-                );
-              }
-            )}
+                    {count}
+                  </p>
+                </div>
+              );
+            })}
           </div>
 
           <div className="flex justify-end mb-2 sm:mb-2">
