@@ -4,12 +4,14 @@ import { Calendar, X } from "lucide-react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { getMyLeaves, applyLeave, cancelLeave } from "../services/leaveService";
+import Pagination from "../components/Pagination";
 
 export default function Leaves() {
-  const [leaves, setLeaves] = useState([]);
+  const [leaves, setLeaves] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
   const [showModal, setShowModal] = useState(false);
+
   const [form, setForm] = useState({
     type: "ANNUAL",
     dayType: "FULL",
@@ -18,15 +20,42 @@ export default function Leaves() {
     reason: "",
   });
 
-  async function loadLeaves() {
+  async function loadLeaves(page = 1) {
+    const limit = 12;
     try {
       setLoading(true);
-      const res = await getMyLeaves();
-      setLeaves(res.data);
+      const res = await getMyLeaves(page, limit);
+
+      setLeaves(res.data.data);
+      setPagination({
+        page: res.data.pagination.page,
+        totalPages: res.data.pagination.totalPages,
+      });
     } finally {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    loadLeaves(pagination.page);
+  }, []);
+
+  const handlePaginate = (page: number) => {
+    if (page > 0 && page <= pagination.totalPages) {
+      loadLeaves(page);
+    }
+  };
+
+  const createLeaveRequest = () => {
+    setForm({
+      type: "ANNUAL",
+      dayType: "FULL",
+      startDate: "",
+      endDate: "",
+      reason: "",
+    });
+    setShowModal(true);
+  };
 
   const handleSubmit = async () => {
     if (!form.startDate || !form.endDate) {
@@ -40,10 +69,13 @@ export default function Leaves() {
     }
 
     try {
+      setLoading(true);
       await applyLeave(form);
       toast.success("Leave request submitted");
       setShowModal(false);
-      loadLeaves();
+      setLoading(false);
+      window.dispatchEvent(new Event("notifications-updated"));
+      loadLeaves(pagination.page);
     } catch (err: any) {
       toast.error(err.response?.data?.message || "Failed to apply leave");
     }
@@ -53,23 +85,20 @@ export default function Leaves() {
     try {
       await cancelLeave(id);
       toast.success("Leave request cancelled");
-      loadLeaves();
+      window.dispatchEvent(new Event("notifications-updated"));
+      loadLeaves(pagination.page);
     } catch {
       toast.error("Unable to cancel leave");
     }
   };
 
-  useEffect(() => {
-    loadLeaves();
-  }, []);
-
   return (
     <div className="max-h-auto">
-      <div className="flex justify-between mb-4">
+      <div className="flex justify-between mb-2">
         <h1 className="text-2xl font-semibold">My Leaves</h1>
 
         <button
-          onClick={() => setShowModal(true)}
+          onClick={createLeaveRequest}
           className="px-4 py-2 rounded-lg bg-[#2f4f82] text-white hover:bg-[#1b335a] flex items-center gap-2"
         >
           Apply Leave
@@ -82,7 +111,7 @@ export default function Leaves() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {leaves.map((l: any) => (
               <div
                 key={l.id}
@@ -109,18 +138,18 @@ export default function Leaves() {
                   </span>
                 </div>
 
-                <div className="mt-2 text-sm flex items-center">
+                <div className="mt-0 text-sm flex items-center">
                   <Calendar size={14} className="inline-block mr-1" />
                   {new Date(l.startDate).toLocaleDateString()} -{" "}
                   {new Date(l.endDate).toLocaleDateString()}
                 </div>
 
-                <p className="text-sm text-[var(--text)] mt-1">
+                <p className="text-sm text-[var(--text)] mt-0">
                   {l.reason || "Reason Not Specified"}
                 </p>
 
                 {l.status === "APPROVED" && l.approvedBy && (
-                  <p className="text-sm text-[var(--text)] mt-1 font-semibold">
+                  <p className="text-sm text-[var(--text)] mt-0 font-semibold">
                     Approved by:{" "}
                     <span className="font-normal">{l.approvedBy.name} on </span>
                     <span className="font-normal">
@@ -132,7 +161,7 @@ export default function Leaves() {
                 )}
 
                 {l.status === "REJECTED" && l.rejectedBy && (
-                  <p className="text-sm text-[var(--text)] mt-1 font-semibold">
+                  <p className="text-sm text-[var(--text)] mt-0 font-semibold">
                     Rejected by:{" "}
                     <span className="font-normal">{l.rejectedBy.name} on </span>
                     <span className="font-normal">
@@ -143,7 +172,7 @@ export default function Leaves() {
                   </p>
                 )}
 
-                <p className="text-sm text-[var(--text)] mt-1 font-semibold">
+                <p className="text-sm text-[var(--text)] mt-0 font-semibold">
                   Applied On:{" "}
                   <span className="font-normal">
                     {new Date(l.createdAt).toLocaleDateString()}
@@ -153,7 +182,7 @@ export default function Leaves() {
                 {l.status === "PENDING" && (
                   <button
                     onClick={() => handleCancel(l.id)}
-                    className="mt-3 px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700"
+                    className="mt-2 px-3 py-[2px] rounded bg-red-600 text-white hover:bg-red-700"
                   >
                     Cancel
                   </button>
@@ -161,6 +190,12 @@ export default function Leaves() {
               </div>
             ))}
           </div>
+
+          <Pagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            onPageChange={(p) => handlePaginate(p)}
+          />
 
           {leaves.length === 0 && (
             <div className="h-max-full text-center w-full text-gray-500 py-10">

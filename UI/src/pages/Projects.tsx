@@ -79,7 +79,6 @@ export default function Projects() {
 
   async function loadProjects(page = 1, searchValue = search) {
     const limit = 12;
-
     try {
       setLoading(true);
       const res = await getProjects(page, limit, searchValue, "status", "asc");

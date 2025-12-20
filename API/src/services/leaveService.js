@@ -1,20 +1,22 @@
 import prisma from "../utils/prisma.js";
 import { resolveReviewer } from "../utils/resolveReviewer.js";
+import { notify } from "./notificationService.js";
 
 // CREATE LEAVE
 export async function createLeaveService(userId, body) {
   const { type, startDate, endDate, reason, dayType } = body;
 
-  if (!type || !startDate || !endDate)
+  if (!type || !startDate || !endDate) {
     throw new Error("Type, start date and end date are required");
+  }
 
   const start = new Date(startDate);
   const end = new Date(endDate);
 
-  if (start > end)
+  if (start > end) {
     throw new Error("End date cannot be earlier than start date");
+  }
 
-  // ✅ Validate dayType
   let finalDayType = "FULL";
 
   if (["CASUAL", "SICK"].includes(type)) {
@@ -30,14 +32,15 @@ export async function createLeaveService(userId, body) {
   }
 
   const reviewerId = await resolveReviewer(userId);
-  if (!reviewerId)
+  if (!reviewerId) {
     throw new Error("No valid reviewer found for this leave request");
+  }
 
-  return prisma.leave.create({
+  const leave = await prisma.leave.create({
     data: {
       userId,
       type,
-      dayType: finalDayType, // ✅ saved
+      dayType: finalDayType,
       startDate: start,
       endDate: end,
       reason: reason || null,
@@ -45,19 +48,75 @@ export async function createLeaveService(userId, body) {
       approvedById: reviewerId,
       rejectedById: null,
     },
+    include: {
+      user: true,
+    },
   });
+
+  const isSelfApproved = reviewerId === userId;
+
+  const formattedDate =
+    start.toDateString() === end.toDateString()
+      ? start.toDateString()
+      : `${start.toDateString()} – ${end.toDateString()}`;
+
+  // 📌 Case 1: requester and approver are DIFFERENT
+  if (!isSelfApproved) {
+    await notify({
+      userId: reviewerId,
+      type: "LEAVE_REQUESTED",
+      title: "Leave approval required",
+      message: `${
+        leave.user.name
+      } requested ${leave.type.toLowerCase()} leave for ${formattedDate}`,
+      entityId: leave.id,
+      email: true,
+    });
+  }
+
+  // 🔔 Notify APPLICANT (always)
+  await notify({
+    userId: leave.userId,
+    type: "LEAVE_REQUESTED",
+    title: "Leave applied",
+    message: `${leave.type.toLowerCase()} leave applied for ${formattedDate}`,
+    entityId: leave.id,
+    email: false,
+  });
+
+  return leave;
 }
 
 // GET MY LEAVES
-export function getMyLeavesService(userId) {
-  return prisma.leave.findMany({
-    where: { userId, deletedAt: null },
-    include: {
-      approvedBy: true,
-      rejectedBy: true,
+// services/leaveService.js
+export async function getMyLeavesService(userId, page = 1, limit = 10) {
+  const skip = (page - 1) * limit;
+
+  const [leaves, total] = await Promise.all([
+    prisma.leave.findMany({
+      where: { userId, deletedAt: null },
+      include: {
+        approvedBy: true,
+        rejectedBy: true,
+      },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    }),
+
+    prisma.leave.count({
+      where: { userId, deletedAt: null },
+    }),
+  ]);
+
+  return {
+    data: leaves,
+    pagination: {
+      page,
+      totalPages: Math.ceil(total / limit),
+      total,
     },
-    orderBy: { createdAt: "desc" },
-  });
+  };
 }
 
 // GET TEAM LEAVES
@@ -66,28 +125,54 @@ export function getMyLeavesService(userId) {
 // HR             → same: sees leaves routed to HR
 // HR_MANAGER     → sees leaves routed to HR_MANAGER
 // ADMIN          → sees leaves routed to ADMIN
-export function getTeamLeavesService(user) {
-  return prisma.leave.findMany({
-    where: {
-      approvedById: user.id,
-      status: "PENDING",
-      deletedAt: null,
+export async function getTeamLeavesService(user, page = 1, limit = 10) {
+  const skip = (page - 1) * limit;
+
+  const [leaves, total] = await Promise.all([
+    prisma.leave.findMany({
+      where: {
+        approvedById: user.id,
+        status: "PENDING",
+        deletedAt: null,
+      },
+      include: { user: true },
+      orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    }),
+
+    prisma.leave.count({
+      where: {
+        approvedById: user.id,
+        status: "PENDING",
+        deletedAt: null,
+      },
+    }),
+  ]);
+
+  return {
+    data: leaves,
+    pagination: {
+      page,
+      totalPages: Math.ceil(total / limit),
+      total,
     },
-    include: { user: true },
-    orderBy: { createdAt: "desc" },
-  });
+  };
 }
 
 // APPROVE LEAVE
 export async function approveLeaveService(leaveId, reviewerId) {
-  const leave = await prisma.leave.findUnique({ where: { id: leaveId } });
+  const leave = await prisma.leave.findUnique({
+    where: { id: leaveId },
+    include: { user: true },
+  });
 
   if (!leave) throw new Error("Leave not found");
   if (leave.status !== "PENDING") throw new Error("Already processed");
   if (leave.approvedById !== reviewerId)
     throw new Error("You are not authorized to approve this leave");
 
-  return prisma.leave.update({
+  const updatedLeave = await prisma.leave.update({
     where: { id: leaveId },
     data: {
       status: "APPROVED",
@@ -95,20 +180,35 @@ export async function approveLeaveService(leaveId, reviewerId) {
       rejectedById: null,
       decidedAt: new Date(),
     },
-    include: { approvedBy: true },
+    include: { user: true },
   });
+
+  //  Notify
+  await notify({
+    userId: updatedLeave.userId,
+    type: "LEAVE_APPROVED",
+    title: "Leave approved",
+    message: `Your ${updatedLeave.type.toLowerCase()} leave has been approved`,
+    entityId: updatedLeave.id,
+    email: true,
+  });
+
+  return updatedLeave;
 }
 
 // REJECT LEAVE
 export async function rejectLeaveService(leaveId, reviewerId) {
-  const leave = await prisma.leave.findUnique({ where: { id: leaveId } });
+  const leave = await prisma.leave.findUnique({
+    where: { id: leaveId },
+    include: { user: true },
+  });
 
   if (!leave) throw new Error("Leave not found");
   if (leave.status !== "PENDING") throw new Error("Already processed");
   if (leave.approvedById !== reviewerId)
     throw new Error("You are not authorized to reject this leave");
 
-  return prisma.leave.update({
+  const updatedLeave = await prisma.leave.update({
     where: { id: leaveId },
     data: {
       status: "REJECTED",
@@ -116,27 +216,53 @@ export async function rejectLeaveService(leaveId, reviewerId) {
       approvedById: null,
       decidedAt: new Date(),
     },
-    include: { rejectedBy: true },
+    include: { user: true },
   });
+
+  // Notify
+  await notify({
+    userId: updatedLeave.userId,
+    type: "LEAVE_REJECTED",
+    title: "Leave rejected",
+    message: `Your ${updatedLeave.type.toLowerCase()} leave was rejected`,
+    entityId: updatedLeave.id,
+    email: true,
+  });
+  // }
+
+  return updatedLeave;
 }
 
 // CANCEL LEAVE (Employee)
 export async function cancelLeaveService(user, leaveId) {
-  const leave = await prisma.leave.findUnique({ where: { id: leaveId } });
+  const leave = await prisma.leave.findUnique({
+    where: { id: leaveId },
+  });
+
   if (!leave) throw new Error("Leave request not found");
-
   if (leave.userId !== user.id) throw new Error("You cannot cancel this leave");
-
   if (!["PENDING", "APPROVED"].includes(leave.status))
     throw new Error("Cannot cancel this leave");
 
-  return prisma.leave.update({
+  const updatedLeave = await prisma.leave.update({
     where: { id: leaveId },
     data: {
       status: "CANCELLED",
       decidedAt: new Date(),
     },
   });
+
+  // Notify
+  await notify({
+    userId: leave.approvedById,
+    type: "LEAVE_DELETED",
+    title: "Leave cancelled",
+    message: "An approved leave was cancelled by the employee",
+    entityId: leave.id,
+    email: true,
+  });
+
+  return updatedLeave;
 }
 
 // LEAVE DASHBOARD
@@ -160,7 +286,9 @@ function calculateLeaveDays(leave) {
 }
 
 // LEAVE DASHBOARD
-export async function getLeaveDashboardService(user) {
+export async function getLeaveDashboardService(user, page = 1, limit = 10) {
+  const skip = (page - 1) * limit;
+
   let where = { deletedAt: null };
 
   // 1️⃣ EMPLOYEE → only own
@@ -223,7 +351,7 @@ export async function getLeaveDashboardService(user) {
 
   /* ---------------- FETCH DATA ---------------- */
 
-  const [stats, leaves] = await Promise.all([
+  const [stats, leaves, total] = await Promise.all([
     prisma.leave.groupBy({
       by: ["status"],
       where,
@@ -237,14 +365,17 @@ export async function getLeaveDashboardService(user) {
         approvedBy: true,
       },
       orderBy: { startDate: "asc" },
+      skip,
+      take: limit,
     }),
+
+    prisma.leave.count({ where }),
   ]);
 
   /* ---------------- CALCULATE BALANCES ---------------- */
 
   const balances = {};
 
-  // Initialize
   for (const type in LEAVE_LIMITS) {
     balances[type] = {
       taken: 0,
@@ -253,7 +384,6 @@ export async function getLeaveDashboardService(user) {
     };
   }
 
-  // Only APPROVED leaves affect balances
   for (const leave of leaves) {
     if (leave.status !== "APPROVED") continue;
 
@@ -278,44 +408,47 @@ export async function getLeaveDashboardService(user) {
   return {
     stats,
     leaves,
-    total: leaves.length,
     leaveBalances: balances,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
   };
 }
 
-export async function deleteApprovedLeaveService(id) {
+export async function deleteApprovedLeaveService(id, adminId) {
   const leave = await prisma.leave.findUnique({
     where: { id },
   });
 
-  if (!leave) {
-    const error = new Error("Leave not found");
-    error.statusCode = 404;
-    throw error;
-  }
-
-  if (leave.status !== "APPROVED") {
-    const error = new Error("Only approved leaves can be deleted");
-    error.statusCode = 400;
-    throw error;
-  }
+  if (!leave) throw new Error("Leave not found");
+  if (leave.status !== "APPROVED")
+    throw new Error("Only approved leaves can be deleted");
 
   const now = new Date();
   const start = new Date(leave.startDate);
 
-  if (start <= now) {
-    const error = new Error(
-      "Cannot delete approved leaves that have already started"
-    );
-    error.statusCode = 400;
-    throw error;
-  }
+  if (start <= now)
+    throw new Error("Cannot delete approved leaves that have already started");
 
-  // Soft delete
   await prisma.leave.update({
     where: { id },
     data: { deletedAt: new Date() },
   });
+
+  //  Notify
+  if (leave.userId !== adminId) {
+    await notify({
+      userId: leave.userId,
+      type: "LEAVE_DELETED",
+      title: "Leave deleted",
+      message: "An approved leave was deleted by administration",
+      entityId: leave.id,
+      email: true,
+    });
+  }
 
   return "Approved leave deleted successfully";
 }

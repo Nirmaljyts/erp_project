@@ -13,6 +13,7 @@ import {
 import { RootState } from "../store/store";
 import Tooltip from "../components/Tooltip";
 import { RingComponent } from "../components/RingComponent";
+import Pagination from "../components/Pagination";
 
 export default function LeaveDashboard() {
   const user = useSelector((state: RootState) => state.auth.user);
@@ -20,20 +21,23 @@ export default function LeaveDashboard() {
 
   const [loading, setLoading] = useState(true);
   const [leaves, setLeaves] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
   type Stat = { status: string; _count: number };
   const [stats, setStats] = useState<Stat[]>([]);
   const [leaveBalances, setLeaveBalances] = useState<any>({});
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadDashboard();
-  }, []);
-
-  async function loadDashboard() {
+  async function loadDashboard(page = 1) {
+    const limit = 10;
     try {
-      const res = await getLeaveDashboard();
+      setLoading(true);
+      const res = await getLeaveDashboard(page, limit);
       setLeaves(res.data.leaves);
+      setPagination({
+        page: res.data.pagination.page,
+        totalPages: res.data.pagination.totalPages,
+      });
       setStats(res.data.stats);
       setLeaveBalances(res.data.leaveBalances);
     } finally {
@@ -41,8 +45,18 @@ export default function LeaveDashboard() {
     }
   }
 
+  useEffect(() => {
+    loadDashboard(pagination.page);
+  }, []);
+
   const navigateToLeaves = () => {
     navigate("/request-leaves");
+  };
+
+  const handlePaginate = (page: number) => {
+    if (page > 0 && page <= pagination.totalPages) {
+      loadDashboard(page);
+    }
   };
 
   const leaveRequest = () => navigate("/request-leaves");
@@ -80,11 +94,13 @@ export default function LeaveDashboard() {
     if (!confirm.isConfirmed) return;
 
     try {
+      setLoading(true);
       await deleteApprovedLeave(id);
-
+      setLoading(false);
+      window.dispatchEvent(new Event("notifications-updated"));
       toast.success("Deleted the approved leave.");
 
-      loadDashboard();
+      loadDashboard(pagination.page);
     } catch (err: any) {
       Swal.fire({
         title: "Delete Approved Leave?",
@@ -213,6 +229,7 @@ export default function LeaveDashboard() {
                 <thead className="t_head table_th">
                   <tr>
                     {[
+                      "#",
                       "Name",
                       "Role",
                       "Leave Type",
@@ -222,7 +239,7 @@ export default function LeaveDashboard() {
                     ].map((head) => (
                       <th
                         key={head}
-                        className="px-3 py-3 text-left text-[7px] sm:text-xs font-bold uppercase"
+                        className="px-2 py-3 text-left text-[7px] sm:text-xs font-bold uppercase"
                       >
                         {head}
                       </th>
@@ -234,19 +251,26 @@ export default function LeaveDashboard() {
                   {leaves.length === 0 ? (
                     <tr className="border-t">
                       <td
-                        colSpan={6}
-                        className="table_td px-4 py-6 text-center text-gray-500"
+                        colSpan={7}
+                        className="table_td px-2 py-6 text-center text-gray-500"
                       >
                         No Leave Data
                       </td>
                     </tr>
                   ) : (
-                    leaves.map((l: any) => (
+                    leaves.map((l: any, index) => (
                       <tr
                         key={l.id}
-                        className="border-t border-[var(--border)] p-1"
+                        className="border-t border-[var(--border)] px-2 py-3 text-left"
                         data-label="#"
                       >
+                        <td
+                          className="table_td text-[10px] sm:text-xs p-2"
+                          data-label="Name"
+                        >
+                          {index + 1}
+                        </td>
+
                         <td
                           className="table_td text-[10px] sm:text-xs p-2"
                           data-label="Name"
@@ -310,7 +334,7 @@ export default function LeaveDashboard() {
 
                         <td className="table_td text-[10px] sm:text-xs">
                           {l.status === "APPROVED" &&
-                            ["ADMIN", "HR_MANAGER", "HR"].includes(
+                            ["ADMIN", "HR_MANAGER", "HR", "MANAGER"].includes(
                               currentRole
                             ) && (
                               <button
@@ -334,6 +358,12 @@ export default function LeaveDashboard() {
                   )}
                 </tbody>
               </table>
+
+              <Pagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                onPageChange={(p) => handlePaginate(p)}
+              />
             </div>
           </div>
         </>

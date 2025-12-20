@@ -63,6 +63,8 @@ model User {
   // MISC
   // ======================
   otpCodes OtpCode[]
+
+  notifications   Notification[]
 }
 
 model Client {
@@ -263,4 +265,32 @@ model TimesheetDefinition {
   // Best-effort uniqueness (service still enforces rules)
   @@unique([type, projectId], name: "uniq_project_definition")
   @@unique([type, description, appliesTo], name: "uniq_special_definition")
+}
+
+enum NotificationType {
+  LEAVE_APPLIED
+  LEAVE_REQUESTED
+  LEAVE_APPROVED
+  LEAVE_REJECTED
+  LEAVE_DELETED
+  TIMESHEET_SUBMITTED
+  TIMESHEET_APPROVED
+  TIMESHEET_REJECTED
+  REMINDER
+  SLA_BREACH
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  type      NotificationType
+  title     String
+  message   String
+  entityId  Int?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead])
 }

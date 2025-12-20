@@ -56,7 +56,7 @@ router.get(
 router.delete(
   "/approved/:id",
   authRequired,
-  requireRole("ADMIN", "HR_MANAGER", "HR"),
+  requireRole("ADMIN", "HR_MANAGER", "HR", "MANAGER"),
   deleteApprovedLeaveController
 );
 
