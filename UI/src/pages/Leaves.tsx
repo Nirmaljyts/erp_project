@@ -149,7 +149,7 @@ export default function Leaves() {
                 </p>
 
                 {l.status === "APPROVED" && l.approvedBy && (
-                  <p className="text-sm text-[var(--text)] mt-0 font-semibold">
+                  <p className="text-sm text-[var(--text)] mt-1 font-semibold">
                     Approved by:{" "}
                     <span className="font-normal">{l.approvedBy.name} on </span>
                     <span className="font-normal">
@@ -161,7 +161,7 @@ export default function Leaves() {
                 )}
 
                 {l.status === "REJECTED" && l.rejectedBy && (
-                  <p className="text-sm text-[var(--text)] mt-0 font-semibold">
+                  <p className="text-sm text-[var(--text)] mt-1 font-semibold">
                     Rejected by:{" "}
                     <span className="font-normal">{l.rejectedBy.name} on </span>
                     <span className="font-normal">
@@ -172,7 +172,7 @@ export default function Leaves() {
                   </p>
                 )}
 
-                <p className="text-sm text-[var(--text)] mt-0 font-semibold">
+                <p className="text-sm text-[var(--text)] mt-1 font-semibold">
                   Applied On:{" "}
                   <span className="font-normal">
                     {new Date(l.createdAt).toLocaleDateString()}
