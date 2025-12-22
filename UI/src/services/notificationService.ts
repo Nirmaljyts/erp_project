@@ -21,3 +21,11 @@ export function markNotificationRead(id: number) {
 export function markAllNotificationsRead() {
   return axiosInstance.patch("/notifications/read-all");
 }
+
+export function clearNotification(id: number) {
+  return axiosInstance.delete(`/notifications/${id}`);
+}
+
+export function clearAllNotifications() {
+  return axiosInstance.delete("/notifications");
+}

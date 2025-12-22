@@ -255,7 +255,7 @@ export async function cancelLeaveService(user, leaveId) {
   // Notify
   await notify({
     userId: leave.approvedById,
-    type: "LEAVE_DELETED",
+    type: "LEAVE_CANCELLED",
     title: "Leave cancelled",
     message: "An approved leave was cancelled by the employee",
     entityId: leave.id,

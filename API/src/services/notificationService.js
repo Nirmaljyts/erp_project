@@ -23,3 +23,50 @@ export async function notify({
     await sendEmail(userId, title, message);
   }
 }
+
+export function getMyNotificationsService(userId) {
+  return prisma.notification.findMany({
+    where: {
+      userId,
+      deletedAt: null,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export function markNotificationReadService(id, userId) {
+  return prisma.notification.updateMany({
+    where: { id, userId },
+    data: { isRead: true },
+  });
+}
+
+export function markAllNotificationsReadService(userId) {
+  return prisma.notification.updateMany({
+    where: { userId, isRead: false },
+    data: { isRead: true },
+  });
+}
+
+export function clearNotificationService(id, userId) {
+  return prisma.notification.updateMany({
+    where: { id, userId },
+    data: {
+      isRead: true,
+      deletedAt: new Date(),
+    },
+  });
+}
+
+export function clearAllNotificationsService(userId) {
+  return prisma.notification.updateMany({
+    where: {
+      userId,
+      deletedAt: null,
+    },
+    data: {
+      isRead: true,
+      deletedAt: new Date(),
+    },
+  });
+}

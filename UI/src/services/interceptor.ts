@@ -68,6 +68,7 @@ axiosInstance.interceptors.response.use(
           text: "Please log in again.",
           icon: "warning",
           confirmButtonText: "OK",
+          confirmButtonColor: "#2f4f82",
         }).then(() => {
           localStorage.clear();
           window.location.href = "/login";

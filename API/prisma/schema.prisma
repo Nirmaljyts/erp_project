@@ -273,6 +273,7 @@ enum NotificationType {
   LEAVE_APPROVED
   LEAVE_REJECTED
   LEAVE_DELETED
+  LEAVE_CANCELLED
   TIMESHEET_SUBMITTED
   TIMESHEET_APPROVED
   TIMESHEET_REJECTED
@@ -288,9 +289,11 @@ model Notification {
   message   String
   entityId  Int?
   isRead    Boolean  @default(false)
+  deletedAt DateTime?
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId, isRead])
+  @@index([userId, deletedAt])
 }

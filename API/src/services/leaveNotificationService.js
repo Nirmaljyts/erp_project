@@ -1,45 +1,45 @@
 import { notify } from "./notificationService.js";
 
-export async function notifyLeaveRequested(leave) {
+export async function notifyLeaveRequested({ approverId, employee, id }) {
   await notify({
-    userId: leave.approverId,
+    userId: approverId,
     type: "LEAVE_REQUESTED",
-    title: "New leave request",
-    message: `${leave.employee.name} requested leave`,
-    entityId: leave.id,
+    title: "Leave approval required",
+    message: `${employee.name} requested leave`,
+    entityId: id,
     email: true,
   });
 }
 
-export async function notifyLeaveApproved(leave) {
+export async function notifyLeaveApproved({ employeeId, id }) {
   await notify({
-    userId: leave.employeeId,
+    userId: employeeId,
     type: "LEAVE_APPROVED",
     title: "Leave approved",
     message: "Your leave request has been approved",
-    entityId: leave.id,
+    entityId: id,
     email: true,
   });
 }
 
-export async function notifyLeaveRejected(leave) {
+export async function notifyLeaveRejected({ employeeId, id }) {
   await notify({
-    userId: leave.employeeId,
+    userId: employeeId,
     type: "LEAVE_REJECTED",
     title: "Leave rejected",
     message: "Your leave request was rejected",
-    entityId: leave.id,
+    entityId: id,
     email: true,
   });
 }
 
-export async function notifyLeaveDeleted(leave) {
+export async function notifyLeaveDeleted({ employeeId, id }) {
   await notify({
-    userId: leave.employeeId,
+    userId: employeeId,
     type: "LEAVE_DELETED",
     title: "Leave deleted",
     message: "An approved leave was deleted",
-    entityId: leave.id,
+    entityId: id,
     email: true,
   });
 }

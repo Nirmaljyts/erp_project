@@ -7,7 +7,7 @@ import SidebarMenu from "./SidebarMenu";
 import ProfilePopover from "./ProfilePopover";
 import Tooltip from "../components/Tooltip";
 import { getNotifications } from "../services/notificationService";
-import NotificationSidebar from "../components/NotificationSidebar";
+import NotificationSidebar from "./NotificationSidebar";
 
 export default function Layout() {
   const [theme, setTheme] = useState(localStorage.theme || "light");

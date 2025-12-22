@@ -163,11 +163,11 @@ export default function LeaveDashboard() {
 
           <div className="grid  sx:grid-cols-1 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mb-2">
             {[
-              "TOTAL LEAVES",
-              "APPROVED LEAVES",
-              "PENDING LEAVES",
-              "REJECTED LEAVES",
-              "CANCELLED LEAVES",
+              "TOTAL",
+              "APPROVED",
+              "PENDING",
+              "REJECTED",
+              "CANCELLED",
             ].map((key) => {
               const count =
                 key === "TOTAL"
