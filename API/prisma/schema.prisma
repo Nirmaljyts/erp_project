@@ -65,6 +65,8 @@ model User {
   otpCodes OtpCode[]
 
   notifications   Notification[]
+
+  @@map("user")
 }
 
 model Client {
