@@ -88,9 +88,9 @@ export default function Dashboard() {
               👋 Welcome back, {user?.name}
             </h1>
 
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="flex items-center justify-start w-full text-gray-600 dark:text-gray-400">
               {role === "ADMIN" &&
-                "Admin panel — full control over users, clients, and projects."}
+                "Administrative interface, offering full control over users, clients, and projects."}
 
               {role === "HR_MANAGER" &&
                 "Coordinate HR activities and ensure smooth workforce management."}
