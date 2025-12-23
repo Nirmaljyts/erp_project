@@ -81,6 +81,8 @@ model Client {
 
   projects         Project[]
   timesheetEntries TimesheetEntry[]
+
+  @@map("client")
 }
 
 model Project {
@@ -103,6 +105,8 @@ model Project {
   employees            ProjectEmployee[]
   timesheetEntries     TimesheetEntry[]
   timesheetDefinitions TimesheetDefinition[]
+
+  @@map("project")
 }
 
 model ProjectEmployee {
@@ -117,6 +121,8 @@ model ProjectEmployee {
   employee User    @relation(fields: [employeeId], references: [id])
 
   @@unique([projectId, employeeId])
+
+  @@map("projectemployee")
 }
 
 model Holiday {
@@ -130,6 +136,8 @@ model Holiday {
   updatedAt  DateTime  @updatedAt
 
   @@unique([date, name])
+
+  @@map("holiday")
 }
 
 model OtpCode {
@@ -143,6 +151,8 @@ model OtpCode {
 
   user   User? @relation(fields: [userId], references: [id])
   userId Int?
+
+  @@map("otpcode")
 }
 
 model Leave {
@@ -167,6 +177,8 @@ model Leave {
   user       User  @relation("UserLeaves", fields: [userId], references: [id])
   approvedBy User? @relation("LeaveApprovedBy", fields: [approvedById], references: [id])
   rejectedBy User? @relation("LeaveRejectedBy", fields: [rejectedById], references: [id])
+
+  @@map("leave")
 }
 
 enum LeaveDayType {
@@ -207,6 +219,8 @@ model TimesheetWeek {
   entries  TimesheetEntry[]
 
   @@unique([userId, weekStartDate], name: "user_week_unique")
+
+  @@map("timesheetweek")
 }
 
 model TimesheetEntry {
@@ -238,6 +252,8 @@ model TimesheetEntry {
   client    Client?       @relation(fields: [clientId], references: [id])
 
   @@unique([timesheetId, rowKey], name: "timesheet_rowkey_unique")
+
+  @@map("timesheetentry")
 }
 
 enum AppliesTo {
@@ -267,6 +283,8 @@ model TimesheetDefinition {
   // Best-effort uniqueness (service still enforces rules)
   @@unique([type, projectId], name: "uniq_project_definition")
   @@unique([type, description, appliesTo], name: "uniq_special_definition")
+
+  @@map("timesheetdefinition")
 }
 
 enum NotificationType {
@@ -298,4 +316,6 @@ model Notification {
 
   @@index([userId, isRead])
   @@index([userId, deletedAt])
+
+  @@map("notification")
 }
