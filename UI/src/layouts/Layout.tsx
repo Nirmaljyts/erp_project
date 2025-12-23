@@ -164,14 +164,14 @@ export default function Layout() {
                 )}
               </button>
 
-              {/* <Tooltip text="Profile" position="bottom"> */}
-              <ProfilePopover />
-              {/* </Tooltip> */}
+              <Tooltip text="Profile" position="bottom">
+                <ProfilePopover />
+              </Tooltip>
             </div>
           </header>
 
-          {/* Main Contents */}
-          <main className="flex-1 w-full min-w-0 overflow-y-auto p-2 sm:p-4">
+          {/* Inner Contents */}
+          <main className="flex-1 min-h-0 w-full overflow-y-auto p-2 sm:p-4 flex">
             <Outlet />
           </main>
         </div>

@@ -113,7 +113,7 @@ export default function LeaveDashboard() {
   }
 
   return (
-    <div className="max-h-auto">
+    <div className="max-h-auto w-full">
       <h1 className="text-xl sm:text-2xl font-semibold mb-4">
         Leave Dashboard
       </h1>

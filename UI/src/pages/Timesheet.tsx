@@ -145,10 +145,12 @@ export default function Timesheet() {
     if (!week) return;
 
     try {
+      setLoading(true);
       await saveTimesheetWeekApi(week.id, {
         entries: week.entries,
       });
 
+      setLoading(false);
       toast.success("Timesheet saved");
       loadWeek();
     } catch (err: any) {
@@ -161,7 +163,9 @@ export default function Timesheet() {
     if (!week) return;
 
     try {
+      setLoading(true);
       await submitTimesheet(week.id, week.entries);
+      setLoading(false);
       toast.success("Submitted");
       loadWeek();
     } catch (err: any) {
@@ -177,7 +181,7 @@ export default function Timesheet() {
   }
 
   return (
-    <div className="max-h-auto">
+    <div className="max-h-auto w-full">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Weekly Timesheet</h1>

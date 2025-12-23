@@ -5,6 +5,7 @@ import {
   approveTimesheet,
   rejectTimesheet,
 } from "../services/timesheetServices";
+import EmptyStateComponent from "../components/EmptyStateComponent";
 
 export default function TimesheetApprovals() {
   const [weeks, setWeeks] = useState<any[]>([]);
@@ -99,8 +100,8 @@ export default function TimesheetApprovals() {
   }
 
   return (
-    <div className="max-h-auto">
-      <div className="flex justify-between mb-4">
+    <div className="max-h-auto w-full">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
         <h1 className="text-2xl font-semibold">Timesheet Approvals</h1>
       </div>
 
@@ -109,9 +110,7 @@ export default function TimesheetApprovals() {
           <div className="loader-all"></div>
         </div>
       ) : weeks.length === 0 ? (
-        <div className="text-center text-gray-500 py-10">
-          No pending Timesheets
-        </div>
+        <EmptyStateComponent name="Approval Timesheet" />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {weeks.map((w) => (

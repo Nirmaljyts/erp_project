@@ -170,7 +170,7 @@ export default function TimesheetDefinitions() {
   }
 
   return (
-    <div className="max-h-auto">
+    <div className="max-h-auto w-full">
       <div className="flex justify-between mb-4">
         <h1 className="text-2xl font-semibold">Timesheet Definitions</h1>
         <button

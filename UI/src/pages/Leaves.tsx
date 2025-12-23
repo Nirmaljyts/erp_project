@@ -5,6 +5,7 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { getMyLeaves, applyLeave, cancelLeave } from "../services/leaveService";
 import Pagination from "../components/Pagination";
+import EmptyStateComponent from "../components/EmptyStateComponent";
 
 export default function Leaves() {
   const [leaves, setLeaves] = useState<any[]>([]);
@@ -93,13 +94,13 @@ export default function Leaves() {
   };
 
   return (
-    <div className="max-h-auto">
-      <div className="flex justify-between mb-2">
+    <div className="max-h-auto w-full">
+      <div className="flex justify-between mb-3">
         <h1 className="text-2xl font-semibold">My Leaves</h1>
 
         <button
           onClick={createLeaveRequest}
-          className="px-4 py-2 rounded-lg bg-[#2f4f82] text-white hover:bg-[#1b335a] flex items-center gap-2"
+          className="px-4 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
         >
           Apply Leave
         </button>
@@ -197,11 +198,7 @@ export default function Leaves() {
             onPageChange={(p) => handlePaginate(p)}
           />
 
-          {leaves.length === 0 && (
-            <div className="h-max-full text-center w-full text-gray-500 py-10">
-              No leaves
-            </div>
-          )}
+          {leaves.length === 0 && <EmptyStateComponent name="Leave" />}
 
           {/* LEAVE CREATE/EDIT MODAL */}
           {showModal && (

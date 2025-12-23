@@ -145,7 +145,7 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="max-h-auto">
+    <div className="max-h-auto w-full">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-0 pb-4">
         <h2 className="font-semibold text-2xl md:text-2xl lg:text-2xl">
           Holidays - {currentYear}

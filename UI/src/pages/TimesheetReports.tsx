@@ -81,7 +81,7 @@ export default function TimesheetReports() {
   }
 
   return (
-    <div className="max-h-auto">
+    <div className="max-h-auto w-full">
       <h1 className="text-2xl font-semibold mb-4">Timesheet Reports</h1>
 
       <div className="border border-[var(--border)] bg-[var(--card)] rounded-xl p-3 sm:p-4 mb-4">

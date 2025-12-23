@@ -6,6 +6,7 @@ import {
   rejectLeave,
 } from "../services/leaveService";
 import Pagination from "../components/Pagination";
+import EmptyStateComponent from "../components/EmptyStateComponent";
 
 export default function LeaveApprovals() {
   const [leaves, setLeaves] = useState([]);
@@ -59,8 +60,10 @@ export default function LeaveApprovals() {
   };
 
   return (
-    <div className="max-h-auto">
-      <h1 className="text-2xl font-semibold mb-4">Leave Approvals</h1>
+    <div className="max-h-auto w-full">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+        <h1 className="text-2xl font-semibold">Leave Approvals</h1>
+      </div>
 
       {loading ? (
         <div className="loader-overlay">
@@ -135,11 +138,7 @@ export default function LeaveApprovals() {
             onPageChange={(p) => handlePaginate(p)}
           />
 
-          {leaves.length === 0 && (
-            <div className="h-max-full text-center w-full text-gray-500 py-10">
-              No leaves to approve
-            </div>
-          )}
+          {leaves.length === 0 && <EmptyStateComponent name="Approved Leave" />}
         </>
       )}
     </div>

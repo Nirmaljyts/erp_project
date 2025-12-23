@@ -12,13 +12,13 @@ import {
   assignUsers,
   getManagers,
   getEmployees,
-  validateEmployees,
   removeEmployee,
 } from "../services/projectServices";
 import Pagination from "../components/Pagination";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 import Tooltip from "../components/Tooltip";
+import EmptyStateComponent from "../components/EmptyStateComponent";
 
 interface Manager {
   id: number;
@@ -325,8 +325,8 @@ export default function Projects() {
   };
 
   return (
-    <div className="max-h-auto">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+    <div className="max-h-auto w-full">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-2">
         <h1 className="text-2xl font-semibold">Projects</h1>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
@@ -387,7 +387,7 @@ export default function Projects() {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-2">
+          <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-2">
             {projects.map((p) => (
               <div
                 key={p.id}
@@ -476,9 +476,7 @@ export default function Projects() {
             ))}
           </div>
 
-          {projects.length === 0 && (
-            <div className="text-center text-gray-500 py-10">No Data</div>
-          )}
+          {projects.length === 0 && <EmptyStateComponent name="Project" />}
 
           <div className="fixed bottom-0 left-0 right-0 shadow-md p-3 z-50">
             <Pagination

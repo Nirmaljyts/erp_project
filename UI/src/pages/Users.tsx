@@ -12,6 +12,7 @@ import Pagination from "../components/Pagination";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 import Tooltip from "../components/Tooltip";
+import EmptyStateComponent from "../components/EmptyStateComponent";
 
 interface User {
   id: number;
@@ -249,8 +250,8 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="max-h-auto">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+    <div className="max-h-auto w-full">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-2">
         <h1 className="text-2xl font-semibold">Users</h1>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
@@ -287,7 +288,7 @@ export default function UsersPage() {
                 }}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-500"
               >
-                <X size={18} />
+                <X size={18} className="cursor-pointer" />
               </button>
             )}
           </div>
@@ -307,68 +308,62 @@ export default function UsersPage() {
         </div>
       ) : (
         <>
-          <div className="border border-[var(--border)] rounded-xl bg-[var(--card)]">
-            <table className="table text-xs md:text-sm border-collapse">
-              <thead className="t_head table_th">
-                <tr>
-                  <th className="min-w-[10%] px-4 py-3 text-left text-xs font-bold uppercase">
-                    #
-                  </th>
-
-                  <th
-                    onClick={() => toggleSort("name")}
-                    className="min-w-[18%] px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer"
-                  >
-                    Name{" "}
-                    {sortBy === "name" && (sortOrder === "asc" ? "▲" : "▼")}
-                  </th>
-
-                  <th
-                    onClick={() => toggleSort("email")}
-                    className="min-w-[20%] px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer"
-                  >
-                    Email{" "}
-                    {sortBy === "email" && (sortOrder === "asc" ? "▲" : "▼")}
-                  </th>
-
-                  <th
-                    onClick={() => toggleSort("role")}
-                    className="min-w-[18%] px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer"
-                  >
-                    Role{" "}
-                    {sortBy === "role" && (sortOrder === "asc" ? "▲" : "▼")}
-                  </th>
-
-                  <th
-                    onClick={() => toggleSort("isActive")}
-                    className="min-w-[18%] px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer"
-                  >
-                    Status{" "}
-                    {sortBy === "isActive" && (sortOrder === "asc" ? "▲" : "▼")}
-                  </th>
-
-                  {(currentRole === "ADMIN" ||
-                    currentRole === "HR_MANAGER" ||
-                    currentRole === "HR") && (
-                    <th className="min-w-[20%] px-4 py-3 text-right text-xs font-semibold uppercase">
-                      Actions
+          {users.length === 0 ? (
+            <EmptyStateComponent name="User" />
+          ) : (
+            <div className="border border-[var(--border)] rounded-xl bg-[var(--card)]">
+              <table className="table text-xs md:text-sm border-collapse">
+                <thead className="t_head table_th">
+                  <tr>
+                    <th className="min-w-[10%] px-4 py-3 text-left text-xs font-bold uppercase">
+                      #
                     </th>
-                  )}
-                </tr>
-              </thead>
 
-              <tbody>
-                {users.length === 0 ? (
-                  <tr className="border-t-2">
-                    <td
-                      colSpan={6}
-                      className="table_td px-4 py-6 text-center text-gray-500"
+                    <th
+                      onClick={() => toggleSort("name")}
+                      className="min-w-[18%] px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer"
                     >
-                      No Data
-                    </td>
+                      Name{" "}
+                      {sortBy === "name" && (sortOrder === "asc" ? "▲" : "▼")}
+                    </th>
+
+                    <th
+                      onClick={() => toggleSort("email")}
+                      className="min-w-[20%] px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer"
+                    >
+                      Email{" "}
+                      {sortBy === "email" && (sortOrder === "asc" ? "▲" : "▼")}
+                    </th>
+
+                    <th
+                      onClick={() => toggleSort("role")}
+                      className="min-w-[18%] px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer"
+                    >
+                      Role{" "}
+                      {sortBy === "role" && (sortOrder === "asc" ? "▲" : "▼")}
+                    </th>
+
+                    <th
+                      onClick={() => toggleSort("isActive")}
+                      className="min-w-[18%] px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer"
+                    >
+                      Status{" "}
+                      {sortBy === "isActive" &&
+                        (sortOrder === "asc" ? "▲" : "▼")}
+                    </th>
+
+                    {(currentRole === "ADMIN" ||
+                      currentRole === "HR_MANAGER" ||
+                      currentRole === "HR") && (
+                      <th className="min-w-[20%] px-4 py-3 text-right text-xs font-semibold uppercase">
+                        Actions
+                      </th>
+                    )}
                   </tr>
-                ) : (
-                  users.map((user, index) => (
+                </thead>
+
+                <tbody>
+                  {users.map((user, index) => (
                     <tr
                       key={user.id}
                       className="border-t border-[var(--border)]"
@@ -451,11 +446,11 @@ export default function UsersPage() {
                         </td>
                       )}
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           <div className="fixed bottom-0 left-0 right-0 shadow-md p-3 z-50">
             <Pagination

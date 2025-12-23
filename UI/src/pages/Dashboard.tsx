@@ -76,7 +76,7 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="max-h-auto">
+    <div className="max-h-auto w-full">
       {loading ? (
         <div v-if="isProcessing" className="loader-overlay">
           <div className="loader-all"></div>

@@ -12,6 +12,7 @@ import Pagination from "../components/Pagination";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 import Tooltip from "../components/Tooltip";
+import EmptyStateComponent from "../components/EmptyStateComponent";
 
 interface Client {
   id: number;
@@ -187,7 +188,7 @@ export default function ClientsPage() {
   };
 
   return (
-    <div className="max-h-auto">
+    <div className="max-h-auto w-full">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-2">
         <h1 className="text-2xl font-semibold">Clients</h1>
 
@@ -293,9 +294,7 @@ export default function ClientsPage() {
             ))}
           </div>
 
-          {clients.length === 0 && (
-            <div className="text-center text-gray-500 py-10">No Data</div>
-          )}
+          {clients.length === 0 && <EmptyStateComponent name="Client"/>}
 
           <div className="fixed bottom-0 left-0 right-0 shadow-md p-3 z-50">
             <Pagination
