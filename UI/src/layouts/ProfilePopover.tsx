@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import type { RootState } from "../store/store";
+import Tooltip from "../components/Tooltip";
 
 export default function ProfilePopover() {
   const user = useSelector((state: RootState) => state.auth.user);
@@ -62,21 +63,23 @@ export default function ProfilePopover() {
 
   return (
     <div className="relative" ref={popoverRef}>
-      <button
-        onClick={() => setOpen((prev) => !prev)}
-        className="
+      <Tooltip text="Profile" position="bottom">
+        <button
+          onClick={() => setOpen((prev) => !prev)}
+          className="
     w-8 h-8 rounded-full 
-    bg-gray-900 text-white 
-    dark:bg-white dark:text-black
+    text-[var(--text)]
+    bg-[var(--card)]
     flex items-center justify-center font-semibold
-    border border-gray-400 
+    border-[1.5px] border-gray-400 
     dark:border-gray-600
     ring-2 ring-gray-300 dark:ring-0
     hover:opacity-90 transition
   "
-      >
-        {userInitial}
-      </button>
+        >
+          {userInitial}
+        </button>
+      </Tooltip>
 
       {open && (
         <div

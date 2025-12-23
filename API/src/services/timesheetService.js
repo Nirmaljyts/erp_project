@@ -1,5 +1,10 @@
 import prisma from "../utils/prisma.js";
 import { resolveTimesheetApprover } from "../utils/resolveTimesheetApprover.js";
+import {
+  notifyTimesheetApproved,
+  notifyTimesheetRejected,
+  notifyTimesheetSubmitted,
+} from "./timesheetNotificationService.js";
 
 // ----------------------------------------- TIMESHEET -----------------------------------------
 
@@ -665,15 +670,29 @@ export async function submitTimesheetWeekService(
 
   const approverId = await resolveTimesheetApprover(userId);
 
-  return prisma.timesheetWeek.update({
+  const updatedWeek = await prisma.timesheetWeek.update({
     where: { id: weekId },
     data: {
       status: "SUBMITTED",
       approverId,
       submittedAt: new Date(),
     },
-    include: { approver: true },
+    include: {
+      approver: true,
+      user: { select: { name: true } },
+    },
   });
+
+  // NOTIFY APPROVER (avoided self-notify)
+  if (approverId && approverId !== userId) {
+    await notifyTimesheetSubmitted({
+      approverId,
+      employeeName: updatedWeek.user.name,
+      ts: updatedWeek,
+    });
+  }
+
+  return updatedWeek;
 }
 
 // ----------------------------------------- TIMESHEET APPROVAL -----------------------------------------
@@ -777,7 +796,7 @@ export async function approveTimesheetService(userId, weekId) {
   //   throw new Error("You cannot approve your own timesheet");
   // }
 
-  return prisma.timesheetWeek.update({
+  const updated = await prisma.timesheetWeek.update({
     where: { id: weekId },
     data: {
       status: "APPROVED",
@@ -785,6 +804,16 @@ export async function approveTimesheetService(userId, weekId) {
       decidedAt: new Date(),
     },
   });
+
+  // Notify
+  // if (week.userId !== userId) {
+  await notifyTimesheetApproved({
+    employeeId: week.userId,
+    timesheetId: week.id,
+  });
+  // }
+
+  return updated;
 }
 
 /* ---------------- REJECT TIMESHEET ---------------- */
@@ -804,7 +833,7 @@ export async function rejectTimesheetService(userId, weekId) {
   //   throw new Error("You cannot reject your own timesheet");
   // }
 
-  return prisma.timesheetWeek.update({
+  const updated = await prisma.timesheetWeek.update({
     where: { id: weekId },
     data: {
       status: "DRAFT",
@@ -812,6 +841,16 @@ export async function rejectTimesheetService(userId, weekId) {
       decidedAt: new Date(),
     },
   });
+
+  // Notify
+  // if (week.userId !== userId) {
+  await notifyTimesheetRejected({
+    employeeId: week.userId,
+    timesheetId: week.id,
+  });
+  // }
+
+  return updated;
 }
 
 // ----------------------------------------- TIMESHEET DEFINITION -----------------------------------------

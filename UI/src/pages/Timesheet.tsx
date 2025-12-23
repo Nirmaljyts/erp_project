@@ -187,7 +187,21 @@ export default function Timesheet() {
           </p>
 
           <p className="text-sm text-gray-700 dark:text-[var(--text)]">
-            {week?.approver && <span>Approver: {week.approver.name}</span>}
+            {week?.approver && week.status === "APPROVED" && (
+              <span className="text-[#15ab2d]">
+                Timesheet Approved By: {week.approver.name}
+              </span>
+            )}
+            {week?.approver && week.status === "DRAFT" && (
+              <span className="text-[#ff0000]">
+                Timesheet Rejected By: {week.approver.name}
+              </span>
+            )}
+            {week?.approver && week.status === "SUBMITTED" && (
+              <span className="text-[#0062ff]">
+                Timesheet has been submitted to the respective approver
+              </span>
+            )}
           </p>
         </div>
 

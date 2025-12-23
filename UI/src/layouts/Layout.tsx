@@ -88,7 +88,7 @@ export default function Layout() {
           <div className="h-screen flex flex-col p-0">
             <div className="flex w-full items-center justify-between p-[13.5px] border-[var(--border)] border-b hover:cursor-pointer">
               <h1
-                className="text-xl font-bold text-[#2f4f82] tracking-tight cursor-pointer"
+                className="text-xl font-bold text-[#3a63a4] tracking-tight cursor-pointer"
                 onClick={headerNavigation}
               >
                 ERP COMPANY
@@ -128,17 +128,19 @@ export default function Layout() {
               className="lg:hidden p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm hover:bg-gray-300 dark:hover:bg-gray-600 transition"
               onClick={() => setSidebarOpen(true)}
             >
-              <Tooltip text="Toggle" position="right">
+              <Tooltip text="Toggle" position="bottom">
                 <Menu size={20} className="cursor-pointer" />
               </Tooltip>
             </button>
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setNotificationOpen(true)}
-                className="relative p-1.5 rounded-full border border-gray-200 dark:border-gray-700"
+                className="relative p-1.5 rounded-full"
               >
-                <Bell size={18} className="cursor-pointer" />
+                <Tooltip text="Notifications" position="bottom">
+                  <Bell size={18} className="cursor-pointer" />
+                </Tooltip>
 
                 {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs px-1.5 rounded-full">
@@ -149,7 +151,7 @@ export default function Layout() {
 
               <button
                 onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-                className="p-1.5 rounded-full border border-gray-200 dark:border-gray-700 text-gray-900  transition"
+                className="p-1.5 rounded-full text-gray-900  transition"
               >
                 {theme === "light" ? (
                   <Tooltip text="Dark Theme" position="bottom">
@@ -162,7 +164,9 @@ export default function Layout() {
                 )}
               </button>
 
+              {/* <Tooltip text="Profile" position="bottom"> */}
               <ProfilePopover />
+              {/* </Tooltip> */}
             </div>
           </header>
 

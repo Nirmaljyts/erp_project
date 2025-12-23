@@ -71,7 +71,7 @@ export default function Dashboard() {
       link: "/calendar",
       icon: Calendar,
       allowedRoles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER", "EMPLOYEE"],
-      style: "text-2xl text-[#2f4f82]",
+      style: "text-2xl text-[#3a63a4]",
     },
   ];
 

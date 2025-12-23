@@ -33,6 +33,36 @@ export default function NotificationSidebar({ open, onClose, onRead }: Props) {
 
   if (!open) return null;
 
+  async function handleClearAll() {
+    await clearAllNotifications();
+    setNotifications([]);
+    onRead();
+  }
+
+  async function handleMarkAllRead() {
+    await markAllNotificationsRead();
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+    onRead();
+  }
+
+  async function handleNotificationClick(notification: Notification) {
+    await markNotificationRead(notification.id);
+    onRead();
+    navigate(resolveRoute(notification, role));
+    onClose();
+  }
+
+  async function handleClear(e: React.MouseEvent, notificationId: number) {
+    e.stopPropagation();
+
+    await clearNotification(notificationId);
+
+    setTimeout(() => {
+      setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
+      onRead();
+    }, 200);
+  }
+
   return (
     <>
       <div className="fixed inset-0 bg-black/40 z-40" onClick={onClose} />
@@ -46,21 +76,17 @@ export default function NotificationSidebar({ open, onClose, onRead }: Props) {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto px-1">
           {notifications.length === 0 ? (
             <div className="h-full flex items-center justify-center">
               <p className="p-4 text-sm text-gray-500">No Notifications</p>
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-end px-2 h-5 border-b border-gray-400">
+              <div className="flex items-center justify-end px-2 h-5">
                 <button
                   className="text-xs text-[var(--text)] hover:underline"
-                  onClick={async () => {
-                    await clearAllNotifications();
-                    setNotifications([]);
-                    onRead();
-                  }}
+                  onClick={handleClearAll}
                 >
                   Clear All
                 </button>
@@ -69,24 +95,15 @@ export default function NotificationSidebar({ open, onClose, onRead }: Props) {
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`flex items-center justify-between gap-2 p-2 border-b border-gray-400 ${
-                    notification.isRead
-                      ? "bg-[var(--card)] text-[var(--text)] font-normal"
-                      : "font-semibold border-b-2 bg-gray-300 dark:bg-gray-500"
-                  }`}
+                  className={`flex items-center justify-between border border-[var(--border)] bg-[var(--icon-bg)] gap-2 p-2 rounded-lg mb-1
+                    ${notification.isRead ? "font-normal" : "font-bold"}
+                  `}
                 >
                   <div
                     className="cursor-pointer flex-1"
-                    onClick={async () => {
-                      await markNotificationRead(notification.id);
-                      onRead();
-                      navigate(resolveRoute(notification, role));
-                      onClose();
-                    }}
+                    onClick={() => handleNotificationClick(notification)}
                   >
-                    <div className="cursor-pointer font-medium ">
-                      {notification.title}
-                    </div>
+                    <div className="cursor-pointer">{notification.title}</div>
 
                     <div className="cursor-pointer text-sm ">
                       {notification.message}
@@ -94,15 +111,8 @@ export default function NotificationSidebar({ open, onClose, onRead }: Props) {
                   </div>
 
                   <button
-                    className="text-gray-400 hover:text-[#2f4f82]"
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      await clearNotification(notification.id);
-                      setNotifications((prev) =>
-                        prev.filter((x) => x.id !== notification.id)
-                      );
-                      onRead();
-                    }}
+                    className="text-gray-400"
+                    onClick={(e) => handleClear(e, notification.id)}
                   >
                     <X size={16} className="cursor-pointer" />
                   </button>
@@ -116,16 +126,7 @@ export default function NotificationSidebar({ open, onClose, onRead }: Props) {
           <div className="flex items-center justify-center py-2 bg-[var(--icon-bg)] text-[var(--text)]">
             <button
               className="text-xs text-[var(--text)] hover:underline"
-              onClick={async () => {
-                await markAllNotificationsRead();
-                setNotifications((prev) =>
-                  prev.map((notification) => ({
-                    ...notification,
-                    isRead: true,
-                  }))
-                );
-                onRead();
-              }}
+              onClick={handleMarkAllRead}
             >
               Mark All Read
             </button>
@@ -165,8 +166,20 @@ function resolveRoute(notification: Notification, role: string) {
 
   // --- TIMESHEETS ---
   if (notification.type.startsWith("TIMESHEET")) {
-    return role === "EMPLOYEE" ? "/my-timesheet" : "/timesheet-approvals";
+    return role === "EMPLOYEE" ? "/timesheets/my" : "/timesheets/approvals";
   }
 
-  return "/leaves";
+  // --- TIMESHEETS ---
+  if (notification.type.startsWith("TIMESHEET")) {
+    // Employee receives approved/rejected on "My Timesheet"
+    if (role === "EMPLOYEE") {
+      return "/timesheets/my";
+    }
+
+    // MANAGER/HR/HR_MANAGER/ADMIN review timesheets here
+    // (Submitted timesheets that need approval)
+    return "/timesheets/approvals";
+  }
+
+  return "/";
 }

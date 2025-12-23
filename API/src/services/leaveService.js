@@ -60,7 +60,7 @@ export async function createLeaveService(userId, body) {
       ? start.toDateString()
       : `${start.toDateString()} – ${end.toDateString()}`;
 
-  // 📌 Case 1: requester and approver are DIFFERENT
+  // Case 1: requester and approver are DIFFERENT
   if (!isSelfApproved) {
     await notify({
       userId: reviewerId,
@@ -74,7 +74,7 @@ export async function createLeaveService(userId, body) {
     });
   }
 
-  // 🔔 Notify APPLICANT (always)
+  // Notify APPLICANT (always)
   await notify({
     userId: leave.userId,
     type: "LEAVE_REQUESTED",

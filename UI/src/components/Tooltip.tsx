@@ -32,6 +32,7 @@ export default function Tooltip({
           pointer-events-none whitespace-nowrap
           transition
           z-50
+          hidden lg:group-hover:block
         `}
       >
         {text}
