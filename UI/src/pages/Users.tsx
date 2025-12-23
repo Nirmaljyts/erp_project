@@ -161,7 +161,7 @@ export default function UsersPage() {
         setPasswordError("");
       }
     } else {
-      // editing: password optional; if provided, validate
+      // editing: password optional
       if (cleanPassword && !validatePassword(cleanPassword)) {
         setPasswordError("Password must be at least 6 characters");
         valid = false;

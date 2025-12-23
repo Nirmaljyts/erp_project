@@ -166,7 +166,7 @@ async function getApprovedLeaveMapForWeek(userId, weekStartDate) {
     while (d <= overlapEnd) {
       const day = d.getDay();
 
-      // ✅ Only mark working days (Mon–Fri)
+      // Only mark working days (Mon–Fri)
       if (day >= 1 && day <= 5) {
         leaveMap[toDayKey(d)] = true;
       }
@@ -190,10 +190,10 @@ function isUniqueConstraintError(err) {
 export async function getMyTimesheetWeekService(userId, weekStartParam) {
   const date = weekStartParam ? new Date(weekStartParam) : new Date();
 
-  // 1️⃣ Find or create week (should be the ONLY place week creation happens)
+  // Find or create week (should be the ONLY place week creation happens)
   const week = await findOrCreateWeek(userId, date);
 
-  // 2️⃣ Load user with relations
+  // Load user with relations
   const user = await prisma.user.findUnique({
     where: { id: userId },
     include: {
@@ -368,7 +368,7 @@ export async function getMyTimesheetWeekService(userId, weekStartParam) {
         }
       });
     } catch (err) {
-      // ✅ SAFE TO IGNORE — another request created the rows
+      // SAFE TO IGNORE — another request created the rows
       if (!isUniqueConstraintError(err)) {
         throw err;
       }
@@ -880,7 +880,7 @@ export async function createTimesheetDefinition(req, res) {
   //   });
   // }
 
-  // 🔍 Find existing (including soft-deleted)
+  // Find existing (including soft-deleted)
   const existing = await prisma.timesheetDefinition.findFirst({
     where: {
       type: "SPECIAL",
@@ -889,14 +889,14 @@ export async function createTimesheetDefinition(req, res) {
     },
   });
 
-  // ✅ Exists & active → error
+  // Exists & active → error
   if (existing && !existing.deletedAt) {
     return res.status(409).json({
       message: "Definition name already exists",
     });
   }
 
-  // ♻️ Exists but soft-deleted → restore
+  // Exists but soft-deleted → restore
   if (existing && existing.deletedAt) {
     const restored = await prisma.timesheetDefinition.update({
       where: { id: existing.id },
@@ -906,7 +906,7 @@ export async function createTimesheetDefinition(req, res) {
     return res.json(restored);
   }
 
-  // ➕ Fresh create
+  // Fresh create
   const def = await prisma.timesheetDefinition.create({
     data: {
       type: "SPECIAL",
@@ -934,7 +934,7 @@ export async function createDefinitionService(data) {
       throw new Error("projectId required for PROJECT type");
     }
 
-    // 🔍 Check existing (by projectId only)
+    // Check existing (by projectId only)
     const existing = await prisma.timesheetDefinition.findFirst({
       where: {
         type: "PROJECT",

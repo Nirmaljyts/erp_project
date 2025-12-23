@@ -26,7 +26,7 @@ function formatISO(d: Date) {
 function isPast(dateStr: string) {
   const weekStart = new Date(dateStr);
   const thisMon = getMonday(new Date());
-  return weekStart < thisMon; // ONLY compares YYYY-MM-DD safely
+  return weekStart < thisMon;
 }
 
 interface TimesheetEntry {
@@ -173,7 +173,7 @@ export default function Timesheet() {
     }
   }
 
-  // CHANGE WEEK — FIXED VERSION
+  // CHANGE WEEK
   function changeWeek(offset: number) {
     const next = new Date(selectedMonday);
     next.setDate(next.getDate() + offset * 7);

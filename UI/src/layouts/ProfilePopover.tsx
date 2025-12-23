@@ -63,23 +63,21 @@ export default function ProfilePopover() {
 
   return (
     <div className="relative" ref={popoverRef}>
-      <Tooltip text="Profile" position="bottom">
-        <button
-          onClick={() => setOpen((prev) => !prev)}
-          className="
-    w-8 h-8 rounded-full 
-    text-[var(--text)]
-    bg-[var(--card)]
-    flex items-center justify-center font-semibold
-    border-[1.5px] border-gray-400 
-    dark:border-gray-600
-    ring-2 ring-gray-300 dark:ring-0
-    hover:opacity-90 transition
-  "
-        >
-          {userInitial}
-        </button>
-      </Tooltip>
+      <button
+        onClick={() => setOpen((prev) => !prev)}
+        className="
+          w-8 h-8 rounded-full 
+          text-[var(--text)]
+          bg-[var(--card)]
+          flex items-center justify-center font-semibold
+          border-[1.5px] border-gray-400 
+          dark:border-gray-600
+          ring-2 ring-gray-300 dark:ring-0
+          hover:opacity-90 transition
+        "
+      >
+        {userInitial}
+      </button>
 
       {open && (
         <div

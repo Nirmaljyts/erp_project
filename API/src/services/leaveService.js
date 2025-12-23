@@ -291,12 +291,12 @@ export async function getLeaveDashboardService(user, page = 1, limit = 10) {
 
   let where = { deletedAt: null };
 
-  // 1️⃣ EMPLOYEE → only own
+  // EMPLOYEE → only own
   if (user.role === "EMPLOYEE") {
     where.userId = user.id;
   }
 
-  // 2️⃣ MANAGER → own + employees in projects
+  // MANAGER → own + employees in projects
   else if (user.role === "MANAGER") {
     where.OR = [
       { userId: user.id },
@@ -310,7 +310,7 @@ export async function getLeaveDashboardService(user, page = 1, limit = 10) {
     ];
   }
 
-  // 3️⃣ HR → own + processed
+  // HR → own + processed
   else if (user.role === "HR") {
     where.OR = [
       { userId: user.id },
@@ -319,7 +319,7 @@ export async function getLeaveDashboardService(user, page = 1, limit = 10) {
     ];
   }
 
-  // 4️⃣ HR_MANAGER → own + HR + MANAGER + bench
+  // HR_MANAGER → own + HR + MANAGER + bench
   else if (user.role === "HR_MANAGER") {
     where.OR = [
       { userId: user.id },
@@ -344,7 +344,7 @@ export async function getLeaveDashboardService(user, page = 1, limit = 10) {
     ];
   }
 
-  // 5️⃣ ADMIN → all
+  // ADMIN → all
   else if (user.role === "ADMIN") {
     where = { deletedAt: null };
   }

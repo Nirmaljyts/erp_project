@@ -21,7 +21,7 @@ export async function notifyTimesheetApproved({ employeeId, timesheetId }) {
     type: "TIMESHEET_APPROVED",
     title: "Timesheet approved",
     message: "Your timesheet was approved",
-    entityId: timesheetId, // ✅ FIXED
+    entityId: timesheetId,
     email: true,
   });
 }
