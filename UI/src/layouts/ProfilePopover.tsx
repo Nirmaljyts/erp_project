@@ -4,16 +4,39 @@ import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import type { RootState } from "../store/store";
-import Tooltip from "../components/Tooltip";
+import { getUser } from "../services/userServices";
+
+type UserDetails = {
+  id: string;
+  name: string;
+  email?: string;
+  role?: string;
+};
 
 export default function ProfilePopover() {
+  const [userDetails, setUserDetails] = useState<UserDetails | undefined>();
+
   const user = useSelector((state: RootState) => state.auth.user);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (!user) return;
+      try {
+        const res = await getUser(user.id);
+        console.log(res);
+        setUserDetails(res);
+      } finally {
+      }
+    };
+    fetchUser();
+  }, [userDetails]);
+
   const userInitial = (() => {
-    if (!user?.name) return "U";
+    if (!userDetails?.name) return "U";
 
-    const parts = user.name.trim().split(/\s+/);
+    const parts = userDetails.name.trim().split(/\s+/);
 
-    // If full name (first + last)
+    // Full name (first + last)
     if (parts.length > 1) {
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }

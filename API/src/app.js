@@ -14,13 +14,11 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://erpproject-lyart.vercel.app/api",
 ];
-// app.use(cors());
+
 app.use(
   cors({
     origin: function (origin, callback) {
-      // allow requests with no origin (Postman, curl)
       if (!origin) return callback(null, true);
 
       if (allowedOrigins.includes(origin)) {

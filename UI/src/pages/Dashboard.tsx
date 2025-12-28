@@ -5,8 +5,18 @@ import { RootState } from "../store/store";
 import { useEffect, useState } from "react";
 import { getDashboardData } from "../services/dashboardServices";
 import Tooltip from "../components/Tooltip";
+import { getUser } from "../services/userServices";
+
+type UserDetails = {
+  id: string;
+  name: string;
+  email?: string;
+  role?: string;
+};
 
 export default function Dashboard() {
+  const [userDetails, setUserDetails] = useState<UserDetails | undefined>();
+
   const user = useSelector((state: RootState) => state?.auth?.user);
   const role = user?.role || "";
 
@@ -35,6 +45,19 @@ export default function Dashboard() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (!user) return;
+      try {
+        const res = await getUser(user.id);
+        console.log(res);
+        setUserDetails(res);
+      } finally {
+      }
+    };
+    fetchUser();
+  }, [userDetails]);
 
   useEffect(() => {
     loadDashboardData();
@@ -85,7 +108,7 @@ export default function Dashboard() {
         <>
           <div className="space-y-1">
             <h1 className="text-2xl md:text-3xl font-bold">
-              👋 Welcome back, {user?.name}
+              👋 Welcome back, {userDetails?.name}
             </h1>
 
             <p className="flex items-center justify-start w-full text-gray-600 dark:text-gray-400">

@@ -21,6 +21,13 @@ router.get(
   listUsers
 );
 
+router.get(
+  "/:id",
+  authRequired,
+  requireRole("ADMIN", "HR_MANAGER", "HR", "MANAGER", "EMPLOYEE"),
+  getUserById
+);
+
 // CREATE USER
 router.post(
   "/",

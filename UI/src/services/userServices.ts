@@ -14,6 +14,11 @@ export async function getUsers(
   return res.data;
 }
 
+// GET USER BY ID
+export async function getUser(id: number) {
+  return (await axiosInstance.get(`/users/${id}`)).data;
+}
+
 // CREATE USERS
 export async function createUser(data: any) {
   return (await axiosInstance.post(`/users`, data)).data;
