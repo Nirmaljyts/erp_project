@@ -12,7 +12,10 @@ import timesheetRoutes from "./routes/timesheetRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 
 const app = express();
-
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://erpproject-lyart.vercel.app/api",
+];
 // app.use(cors());
 app.use(
   cors({
