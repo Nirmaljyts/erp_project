@@ -18,18 +18,18 @@ export default function ProfilePopover() {
 
   const user = useSelector((state: RootState) => state.auth.user);
 
+  const fetchUser = async () => {
+    if (!user) return;
+    try {
+      const res = await getUser(user.id);
+      setUserDetails(res);
+    } finally {
+    }
+  };
+
   useEffect(() => {
-    const fetchUser = async () => {
-      if (!user) return;
-      try {
-        const res = await getUser(user.id);
-        console.log(res);
-        setUserDetails(res);
-      } finally {
-      }
-    };
     fetchUser();
-  }, [userDetails]);
+  }, []);
 
   const userInitial = (() => {
     if (!userDetails?.name) return "U";

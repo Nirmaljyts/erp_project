@@ -46,18 +46,18 @@ export default function Dashboard() {
     }
   }
 
+  const fetchUser = async () => {
+    if (!user) return;
+    try {
+      const res = await getUser(user.id);
+      setUserDetails(res);
+    } finally {
+    }
+  };
+
   useEffect(() => {
-    const fetchUser = async () => {
-      if (!user) return;
-      try {
-        const res = await getUser(user.id);
-        console.log(res);
-        setUserDetails(res);
-      } finally {
-      }
-    };
     fetchUser();
-  }, [userDetails]);
+  }, []);
 
   useEffect(() => {
     loadDashboardData();
