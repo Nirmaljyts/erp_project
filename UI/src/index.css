@@ -48,6 +48,21 @@ summary {
   font-weight: 500;
 }
 
+/* Hide native calendar icons but keep input clickable */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  position: absolute;
+  right: 0;
+}
+
+input[type="date"]::-moz-calendar-picker-indicator {
+  display: none;
+}
+
+
 .Toastify__close-button svg {
   pointer-events: none;
 }

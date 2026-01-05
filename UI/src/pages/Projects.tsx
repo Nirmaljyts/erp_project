@@ -130,22 +130,25 @@ export default function Projects() {
 
   const openCreate = async () => {
     setEditingProject(null);
-
     setFormName("");
     setFormDescription("");
     setFormStatus("ACTIVE");
     setAssignedEmployees([]);
     setSelectedManager(null);
 
-    const [mgr, emp] = await Promise.all([getManagers(), getEmployees()]);
+    try {
+      const [mgr, emp] = await Promise.all([getManagers(), getEmployees()]);
 
-    setManagers(mgr);
-    setEmployees(emp);
+      setManagers(mgr);
+      setEmployees(emp);
 
-    // auto-select first manager if available
-    // setSelectedManager(mgr.length ? mgr[0].id : null);
+      // Optionally auto-select the first manager
+      // setSelectedManager(mgr.length ? mgr[0].id : null);
 
-    setShowProjectModal(true);
+      setShowProjectModal(true);
+    } catch (err) {
+      console.error("Failed to load managers or employees:", err);
+    }
   };
 
   const openEdit = async (p: Project) => {

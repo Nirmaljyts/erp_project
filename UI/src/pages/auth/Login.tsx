@@ -99,7 +99,11 @@ export default function Login() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-2.5 text-gray-600 hover:text-gray-800"
                 >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPassword ? (
+                    <EyeOff size={18} className="cursor-pointer" />
+                  ) : (
+                    <Eye size={18} className="cursor-pointer" />
+                  )}
                 </button>
               </div>
             </div>

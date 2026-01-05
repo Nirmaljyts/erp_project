@@ -69,6 +69,18 @@ export default function TimesheetReports() {
     }
   }
 
+  function handleClear() {
+    setFilters({
+      userId: "",
+      projectId: "",
+      clientId: "",
+      from: "",
+      to: "",
+    });
+
+    setChart(null);
+  }
+
   function buildChartData(chart: any) {
     if (!chart) return [];
 
@@ -131,29 +143,52 @@ export default function TimesheetReports() {
             ))}
           </select>
 
-          <input
-            type="date"
-            value={filters.from}
-            onChange={(e) =>
-              setFilters((prev) => ({ ...prev, from: e.target.value }))
-            }
-            className="border border-[var(--border)] rounded-lg p-2 bg-[var(--card)] text-[var(--text)]"
-          />
+          <div className="relative flex-1">
+            <input
+              type="date"
+              value={filters.from}
+              onChange={(e) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  from: e.target.value,
+                  to: prev.to && prev.to < e.target.value ? "" : prev.to,
+                }))
+              }
+              className="w-full border border-[var(--border)] rounded-lg p-2 bg-[var(--card)] text-[var(--text)] appearance-none"
+              min={new Date().toISOString().slice(0, 10)}
+              max={filters.to || undefined}
+            />
+          </div>
 
-          <input
-            type="date"
-            value={filters.to}
-            onChange={(e) =>
-              setFilters((prev) => ({ ...prev, to: e.target.value }))
-            }
-            className="border border-[var(--border)] rounded-lg p-2 bg-[var(--card)] text-[var(--text)]"
-          />
+          <div className="relative flex-1">
+            <input
+              type="date"
+              value={filters.to}
+              onChange={(e) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  to: e.target.value,
+                }))
+              }
+              className="w-full border border-[var(--border)] rounded-lg p-2 bg-[var(--card)] text-[var(--text)] appearance-none"
+              min={filters.from || new Date().toISOString().slice(0, 10)}
+            />
+          </div>
 
           <button
             onClick={handleRun}
             className="px-4 py-2 rounded-lg bg-[#2f4f82] text-white text-sm font-medium hover:bg-[#1b335a]"
           >
             Run Report
+          </button>
+        </div>
+
+        <div className="flex items-center justify-end">
+          <button
+            onClick={handleClear}
+            className="px-4 py-2 rounded-lg text-sm text-gray-500 font-light hover:text-[#1b335a]"
+          >
+            Clear Filters
           </button>
         </div>
       </div>

@@ -55,8 +55,7 @@ export async function removeEmployee(projectId: number, employeeId: number) {
 }
 
 // GET ALL MANAGERS
-// backend: /users/managers
-export async function getManagers() {
+export async function getManagers() { 
   return (await axiosInstance.get(`/users/managers`)).data;
 }
 
