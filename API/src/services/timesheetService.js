@@ -8,18 +8,22 @@ import {
 
 // ----------------------------------------- TIMESHEET -----------------------------------------
 
-function getWeekStart(dateInput) {
+export function getWeekStart(dateInput) {
   const d = new Date(dateInput);
+  if (isNaN(d)) throw new Error("Invalid date");
 
-  // Normalize to local date so timezone does not push backward/forward
-  const date = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-
-  const day = date.getDay();
+  const day = d.getUTCDay();
   const diff = day === 0 ? -6 : 1 - day;
 
-  date.setDate(date.getDate() + diff);
+  const weekStart = new Date(Date.UTC(
+    d.getUTCFullYear(),
+    d.getUTCMonth(),
+    d.getUTCDate()
+  ));
 
-  return date;
+  weekStart.setUTCDate(weekStart.getUTCDate() + diff);
+
+  return weekStart; // ALWAYS 00:00:00.000Z
 }
 
 function addDays(date, days) {
@@ -31,8 +35,21 @@ function addDays(date, days) {
 export async function findOrCreateWeek(userId, dateInput) {
   const weekStart = getWeekStart(dateInput);
 
+  // Create range for safe matching (avoids timezone mismatch)
+  const start = new Date(weekStart);
+  const end = new Date(weekStart);
+  end.setDate(end.getDate() + 1);
+
+  console.log("weekStart input:", weekStart.toISOString());
+  // 1. Try find existing
   let week = await prisma.timesheetWeek.findFirst({
-    where: { userId, weekStartDate: weekStart },
+    where: {
+      userId,
+      weekStartDate: {
+        gte: start,
+        lt: end,
+      },
+    },
     include: {
       entries: {
         where: { deletedAt: null },
@@ -45,8 +62,9 @@ export async function findOrCreateWeek(userId, dateInput) {
 
   if (week) return week;
 
+  // 2. Try create
   try {
-    week = await prisma.timesheetWeek.create({
+    return await prisma.timesheetWeek.create({
       data: {
         userId,
         weekStartDate: weekStart,
@@ -61,12 +79,17 @@ export async function findOrCreateWeek(userId, dateInput) {
         approver: true,
       },
     });
-
-    return week;
   } catch (err) {
-    if (err.code === "P2002") {
-      return prisma.timesheetWeek.findFirst({
-        where: { userId, weekStartDate: weekStart },
+    // 3. Handle race condition safely
+    if (err?.code === "P2002") {
+      const existing = await prisma.timesheetWeek.findFirst({
+        where: {
+          userId,
+          weekStartDate: {
+            gte: start,
+            lt: end,
+          },
+        },
         include: {
           entries: {
             where: { deletedAt: null },
@@ -76,6 +99,14 @@ export async function findOrCreateWeek(userId, dateInput) {
           approver: true,
         },
       });
+
+      if (!existing) {
+        throw new Error(
+          "Race condition detected but week not found — check DB consistency",
+        );
+      }
+
+      return existing;
     }
 
     throw err;
@@ -192,6 +223,9 @@ export async function getMyTimesheetWeekService(userId, weekStartParam) {
 
   // Find or create week (should be the ONLY place week creation happens)
   const week = await findOrCreateWeek(userId, date);
+  if (!week) {
+    throw new Error("Failed to load or create timesheet week");
+  }
 
   // Load user with relations
   const user = await prisma.user.findUnique({
@@ -318,13 +352,13 @@ export async function getMyTimesheetWeekService(userId, weekStartParam) {
         .filter((d) =>
           d.type === "PROJECT"
             ? Number.isInteger(d.projectId)
-            : typeof d.description === "string"
+            : typeof d.description === "string",
         )
         .map((d) => {
           const rowKey = buildRowKey(d);
           return [rowKey, { ...d, rowKey }];
-        })
-    ).values()
+        }),
+    ).values(),
   );
 
   /* ---------------- SAFE UPSERT (NO DEADLOCKS) ---------------- */
@@ -379,7 +413,7 @@ export async function getMyTimesheetWeekService(userId, weekStartParam) {
 
   const { leaveMap, leaves } = await getApprovedLeaveMapForWeek(
     userId,
-    weekStart
+    weekStart,
   );
 
   /* ---------------- FINAL FETCH ---------------- */
@@ -421,7 +455,7 @@ function assertNoHoursOnLeaveDays(entry, leaveMap) {
   for (const [day, val] of map) {
     if (leaveMap[day] && (val || 0) > 0) {
       throw new Error(
-        `Cannot log hours on ${day.toUpperCase()} (approved leave)`
+        `Cannot log hours on ${day.toUpperCase()} (approved leave)`,
       );
     }
   }
@@ -569,7 +603,7 @@ export async function saveTimesheetWeekService(userId, weekId, entries) {
 export async function submitTimesheetWeekService(
   userId,
   weekId,
-  uiEntries = []
+  uiEntries = [],
 ) {
   const week = await prisma.timesheetWeek.findUnique({
     where: { id: weekId },
@@ -631,7 +665,7 @@ export async function submitTimesheetWeekService(
       (e.fri || 0) +
       (e.sat || 0) +
       (e.sun || 0),
-    0
+    0,
   );
 
   // Leave-based required hours (UNCHANGED logic)
@@ -651,7 +685,7 @@ export async function submitTimesheetWeekService(
   for (const leave of leaves) {
     let d = new Date(Math.max(new Date(leave.startDate), weekStart));
     const end = new Date(
-      Math.min(new Date(leave.endDate), addDays(weekEnd, -1))
+      Math.min(new Date(leave.endDate), addDays(weekEnd, -1)),
     );
 
     while (d <= end) {
@@ -664,7 +698,7 @@ export async function submitTimesheetWeekService(
 
   if (totalHours < requiredHours) {
     throw new Error(
-      `You must complete at least ${requiredHours} hours this week (leave days excluded)`
+      `You must complete at least ${requiredHours} hours this week (leave days excluded)`,
     );
   }
 
@@ -767,7 +801,7 @@ export async function getTimesheetApprovalsService(currentUser) {
     // Attach leaveMap
     const { leaveMap } = await getApprovedLeaveMapForWeek(
       owner.id,
-      w.weekStartDate
+      w.weekStartDate,
     );
 
     result.push({

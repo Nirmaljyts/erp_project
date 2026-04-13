@@ -88,10 +88,11 @@ export default function Timesheet() {
     loadWeek();
   }, [selectedMonday]);
 
-  async function loadWeek() {
+  async function loadWeek() {    
     try {
       setLoading(true);
-      const res = await getMyTimesheet(formatISO(selectedMonday));
+      let monday = formatISO(selectedMonday);
+      const res = await getMyTimesheet(monday);
 
       setWeek(res.data);
     } catch (err: any) {
