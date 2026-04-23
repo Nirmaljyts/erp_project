@@ -15,11 +15,9 @@ export function getWeekStart(dateInput) {
   const day = d.getUTCDay();
   const diff = day === 0 ? -6 : 1 - day;
 
-  const weekStart = new Date(Date.UTC(
-    d.getUTCFullYear(),
-    d.getUTCMonth(),
-    d.getUTCDate()
-  ));
+  const weekStart = new Date(
+    Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()),
+  );
 
   weekStart.setUTCDate(weekStart.getUTCDate() + diff);
 
@@ -697,7 +695,7 @@ export async function submitTimesheetWeekService(
 
   if (totalHours < requiredHours) {
     throw new Error(
-      `You must complete at least ${requiredHours} hours this week (leave days excluded)`,
+      `You must complete at least ${requiredHours} hours this week (leave days are excluded)`,
     );
   }
 

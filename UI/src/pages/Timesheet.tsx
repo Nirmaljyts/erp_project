@@ -61,14 +61,14 @@ interface TimesheetWeek {
 export default function Timesheet() {
   const user = useSelector((state: RootState) => state.auth.user);
   const canSeeBillable = ["ADMIN", "MANAGER", "HR_MANAGER"].includes(
-    user?.role || ""
+    user?.role || "",
   );
 
   const [week, setWeek] = useState<TimesheetWeek | null>(null);
   const [loading, setLoading] = useState(false);
 
   const [selectedMonday, setSelectedMonday] = useState(() =>
-    getMonday(new Date())
+    getMonday(new Date()),
   );
 
   const todayMonday = getMonday(new Date());
@@ -88,7 +88,7 @@ export default function Timesheet() {
     loadWeek();
   }, [selectedMonday]);
 
-  async function loadWeek() {    
+  async function loadWeek() {
     try {
       setLoading(true);
       let monday = formatISO(selectedMonday);
@@ -106,16 +106,19 @@ export default function Timesheet() {
 
   // CALCULATE TOTALS
   const totals = week
-    ? days.reduce((acc, d) => {
-        acc[d] = week.entries.reduce((sum, r) => sum + (r[d] || 0), 0);
-        return acc;
-      }, {} as Record<(typeof days)[number], number>)
+    ? days.reduce(
+        (acc, d) => {
+          acc[d] = week.entries.reduce((sum, r) => sum + (r[d] || 0), 0);
+          return acc;
+        },
+        {} as Record<(typeof days)[number], number>,
+      )
     : null;
 
   const weeklyTotal = week
     ? week.entries.reduce(
         (sum, r) => sum + r.mon + r.tue + r.wed + r.thu + r.fri + r.sat + r.sun,
-        0
+        0,
       )
     : 0;
 
@@ -306,7 +309,7 @@ export default function Timesheet() {
                                   updateEntry(
                                     row,
                                     d,
-                                    Math.max(0, Number(e.target.value))
+                                    Math.max(0, Number(e.target.value)),
                                   )
                                 }
                                 className="w-14 bg-[var(--card)] text-[var(--text)] border border-[var(--border)] rounded p-1 text-center mr-2"
