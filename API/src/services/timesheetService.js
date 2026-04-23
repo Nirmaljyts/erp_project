@@ -40,7 +40,6 @@ export async function findOrCreateWeek(userId, dateInput) {
   const end = new Date(weekStart);
   end.setDate(end.getDate() + 1);
 
-  console.log("weekStart input:", weekStart.toISOString());
   // 1. Try find existing
   let week = await prisma.timesheetWeek.findFirst({
     where: {

@@ -171,6 +171,7 @@ export default function Timesheet() {
       loadWeek();
     } catch (err: any) {
       toast.error(err?.response?.data?.message || "Failed to submit");
+      setLoading(false);
     }
   }
 
@@ -262,14 +263,14 @@ export default function Timesheet() {
                     ))}
 
                     {canSeeBillable && (
-                      <th className="w-auto text-xs p-2 text-left uppercase">
+                      <th className="w-auto text-xs p-2 text-center uppercase">
                         Billable
                       </th>
                     )}
 
-                    <th className="w-auto text-xs p-2 text-left uppercase">
+                    {/* <th className="w-auto text-xs p-2 text-left uppercase">
                       Notes
-                    </th>
+                    </th> */}
                   </tr>
                 </thead>
 
@@ -330,7 +331,7 @@ export default function Timesheet() {
                           </td>
                         )}
 
-                        <td className="w-auto p-2 text-left">
+                        {/* <td className="w-auto p-2 text-left">
                           {isSpecial ? (
                             <input
                               type="text"
@@ -344,7 +345,7 @@ export default function Timesheet() {
                           ) : (
                             <span className="text-gray-400">—</span>
                           )}
-                        </td>
+                        </td> */}
                       </tr>
                     );
                   })}
@@ -366,11 +367,11 @@ export default function Timesheet() {
                         </td>
                       ))}
 
-                      <td className="w-[50px] p-2 text-center px-2">
+                      {/* <td className="w-[50px] p-2 text-center px-2">
                         {canSeeBillable && "-"}
-                      </td>
+                      </td> */}
 
-                      <td className="w-auto p-2 text-left">{weeklyTotal}</td>
+                      <td className="w-auto p-2 text-center">{weeklyTotal}</td>
                     </tr>
                   </tfoot>
                 ) : (
