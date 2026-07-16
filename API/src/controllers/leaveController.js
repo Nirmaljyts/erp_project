@@ -18,11 +18,19 @@ export async function createLeave(req, res) {
 }
 
 export async function getMyLeaves(req, res) {
-  res.json(await getMyLeavesService(req.user.id));
+  const page = Number(req.query.page || 1);
+  const limit = Number(req.query.limit || 10);
+
+  const result = await getMyLeavesService(req.user.id, page, limit);
+  res.json(result);
 }
 
 export async function getTeamLeaves(req, res) {
-  res.json(await getTeamLeavesService(req.user));
+  const page = Number(req.query.page || 1);
+  const limit = Number(req.query.limit || 10);
+
+  const result = await getTeamLeavesService(req.user, page, limit);
+  res.json(result);
 }
 
 export const approveLeave = async (req, res) => {
@@ -58,7 +66,10 @@ export async function cancelLeave(req, res) {
 }
 
 export async function getLeaveDashboard(req, res) {
-  res.json(await getLeaveDashboardService(req.user));
+  const page = Number(req.query.page || 1);
+  const limit = Number(req.query.limit || 10);
+
+  res.json(await getLeaveDashboardService(req.user, page, limit));
 }
 
 export async function deleteApprovedLeaveController(req, res) {

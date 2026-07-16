@@ -18,8 +18,8 @@ export async function resolveReviewer(userId) {
     });
 
   /* ======================================================
-     1️⃣ EMPLOYEE → Manager → HR → HR_MANAGER → ADMIN
-  ====================================================== */
+          EMPLOYEE → Manager → HR → HR_MANAGER → ADMIN
+     ====================================================== */
   if (user.role === "EMPLOYEE") {
     // Manager check (only if in active/on_hold project)
     const activeProject = user.projects.find((p) =>
@@ -46,8 +46,8 @@ export async function resolveReviewer(userId) {
   }
 
   /* ======================================================
-     2️⃣ MANAGER → HR → HR_MANAGER → ADMIN
-  ====================================================== */
+             MANAGER → HR → HR_MANAGER → ADMIN
+     ====================================================== */
   if (user.role === "MANAGER") {
     const hr = await getUserByRole("HR");
     if (hr) return hr.id;
@@ -62,8 +62,8 @@ export async function resolveReviewer(userId) {
   }
 
   /* ======================================================
-     3️⃣ HR → HR_MANAGER → ADMIN
-  ====================================================== */
+              HR → HR_MANAGER → ADMIN
+     ====================================================== */
   if (user.role === "HR") {
     const hrm = await getUserByRole("HR_MANAGER");
     if (hrm) return hrm.id;
@@ -75,8 +75,8 @@ export async function resolveReviewer(userId) {
   }
 
   /* ======================================================
-     4️⃣ HR_MANAGER → ADMIN
-  ====================================================== */
+                 HR_MANAGER → ADMIN
+     ====================================================== */
   if (user.role === "HR_MANAGER") {
     const admin = await getUserByRole("ADMIN");
     if (admin) return admin.id;
@@ -85,8 +85,8 @@ export async function resolveReviewer(userId) {
   }
 
   /* ======================================================
-     5️⃣ ADMIN → SELF
-  ====================================================== */
+                  ADMIN → SELF
+     ====================================================== */
   if (user.role === "ADMIN") {
     return user.id;
   }

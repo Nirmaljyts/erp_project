@@ -218,7 +218,7 @@ export async function createNewProject(data, user) {
     include: { manager: true, employees: true },
   });
 
-  // 🔥 After project + employees are created, update leave reviewers
+  // After project + employees are created, update leave reviewers
   await updateReviewersForProject(project.id);
 
   return project;
@@ -321,7 +321,7 @@ export async function updateExistingProject(id, data, user) {
     include: { manager: true, employees: true },
   });
 
-  // 🔥 Project status / employees / manager changed → update reviewers
+  // Project status / employees / manager changed → update reviewers
   await updateReviewersForProject(projectId);
 
   return updated;
@@ -348,7 +348,7 @@ export async function deleteProjectService(id) {
     data: { deletedAt: new Date() },
   });
 
-  // 🔥 Employees now effectively benched → reviewers must become HR
+  // Employees now effectively benched → reviewers must become HR
   // We don't know employees here anymore; best effort:
   // Any pending leaves for users who no longer have active/on_hold projects
   // will be corrected next time resolveReviewer is used or via a batch script.
@@ -449,7 +449,7 @@ export async function assignUsersService(projectId, data, user) {
     include: { manager: true, employees: { include: { employee: true } } },
   });
 
-  // 🔥 FIX: update all employee reviewers under this project
+  // FIX: update all employee reviewers under this project
   await updateReviewersForProject(pid);
 
   return updated;
@@ -526,7 +526,7 @@ export async function updateProjectStatusService(projectId, status) {
     data: { status },
   });
 
-  // 🔥 Status change affects who manages employees (manager vs HR)
+  // Status change affects who manages employees (manager vs HR)
   await updateReviewersForProject(pid);
 
   return updated;

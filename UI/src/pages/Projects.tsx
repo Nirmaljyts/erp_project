@@ -12,12 +12,13 @@ import {
   assignUsers,
   getManagers,
   getEmployees,
-  validateEmployees,
   removeEmployee,
 } from "../services/projectServices";
 import Pagination from "../components/Pagination";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
+import Tooltip from "../components/Tooltip";
+import EmptyStateComponent from "../components/EmptyStateComponent";
 
 interface Manager {
   id: number;
@@ -50,42 +51,34 @@ export default function Projects() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
-  // Select lists
   const [managers, setManagers] = useState<Manager[]>([]);
   const [employees, setEmployees] = useState<SimpleEmployee[]>([]);
 
-  // Create/Edit modal
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [showProjectModal, setShowProjectModal] = useState(false);
 
-  // Assign modal
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [assignProject, setAssignProject] = useState<Project | null>(null);
 
-  // Shared assignment state (used in both modals)
   const [selectedManager, setSelectedManager] = useState<number | null>(null);
   const [assignedEmployees, setAssignedEmployees] = useState<number[]>([]);
 
   const [originalEmployees, setOriginalEmployees] = useState<number[]>([]);
 
-  // Form fields
   const [formName, setFormName] = useState("");
   const [formDescription, setFormDescription] = useState("");
   const [formStatus, setFormStatus] = useState("ACTIVE");
   const [formStartDate, setFormStartDate] = useState<Date | null>(null);
   const [formEndDate, setFormEndDate] = useState<Date | null>(null);
 
-  // Error handling
   const [nameError, setNameError] = useState("");
   const [managerError, setManagerError] = useState("");
   const [dateError, setDateError] = useState("");
 
   const user = useSelector((state: RootState) => state?.auth?.user);
 
-  // ---------------- FETCH PROJECTS ----------------
   async function loadProjects(page = 1, searchValue = search) {
     const limit = 12;
-
     try {
       setLoading(true);
       const res = await getProjects(page, limit, searchValue, "status", "asc");
@@ -135,26 +128,27 @@ export default function Projects() {
     }
   }
 
-  // ---------------- OPEN MODALS ----------------
   const openCreate = async () => {
     setEditingProject(null);
-
     setFormName("");
     setFormDescription("");
     setFormStatus("ACTIVE");
     setAssignedEmployees([]);
     setSelectedManager(null);
 
-    // Load managers + free employees
-    const [mgr, emp] = await Promise.all([getManagers(), getEmployees()]);
+    try {
+      const [mgr, emp] = await Promise.all([getManagers(), getEmployees()]);
 
-    setManagers(mgr);
-    setEmployees(emp);
+      setManagers(mgr);
+      setEmployees(emp);
 
-    // auto-select first manager if available
-    // setSelectedManager(mgr.length ? mgr[0].id : null);
+      // Optionally auto-select the first manager
+      // setSelectedManager(mgr.length ? mgr[0].id : null);
 
-    setShowProjectModal(true);
+      setShowProjectModal(true);
+    } catch (err) {
+      console.error("Failed to load managers or employees:", err);
+    }
   };
 
   const openEdit = async (p: Project) => {
@@ -166,13 +160,11 @@ export default function Projects() {
     setFormStartDate(p.startDate ? new Date(p.startDate) : null);
     setFormEndDate(p.endDate ? new Date(p.endDate) : null);
 
-    // Fetch fresh available managers + employees
     const [mgr, emp] = await Promise.all([getManagers(), getEmployees(p.id)]);
 
     setManagers(mgr);
     setEmployees(emp);
 
-    // Set selected manager
     setSelectedManager(p.manager?.id ?? (mgr.length > 0 ? mgr[0].id : null));
 
     const assigned = Array.isArray(p.employees)
@@ -201,44 +193,43 @@ export default function Projects() {
   };
 
   const projectAssign = async () => {
-  try {
-    if (!assignProject) return;
+    try {
+      if (!assignProject) return;
 
-    // detect removed employees
-    const removed = originalEmployees.filter(
-      (id) => !assignedEmployees.includes(id)
-    );
+      // detect removed employees
+      const removed = originalEmployees.filter(
+        (id) => !assignedEmployees.includes(id)
+      );
 
-    // call remove API for each removed employee
-    for (const empId of removed) {
-      await removeEmployee(assignProject.id, empId);
+      // call remove API for each removed employee
+      for (const empId of removed) {
+        await removeEmployee(assignProject.id, empId);
+      }
+
+      // update manager + add new employees
+      await assignUsers(assignProject.id, {
+        managerId: selectedManager,
+        employees: assignedEmployees,
+      });
+
+      toast.success("User assignment updated");
+      setShowAssignModal(false);
+      loadProjects(pagination.page, search);
+    } catch (err: any) {
+      const message =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Failed to assign users";
+
+      Swal.fire({
+        icon: "error",
+        title: "Assignment Error",
+        text: message,
+        confirmButtonColor: "#d33",
+      });
     }
-
-    // update manager + add new employees
-    await assignUsers(assignProject.id, {
-      managerId: selectedManager,
-      employees: assignedEmployees,
-    });
-
-    toast.success("User assignment updated");
-    setShowAssignModal(false);
-    loadProjects(pagination.page, search);
-  } catch (err: any) {
-    const message =
-      err?.response?.data?.message ||
-      err?.response?.data?.error ||
-      err?.message ||
-      "Failed to assign users";
-
-    Swal.fire({
-      icon: "error",
-      title: "Assignment Error",
-      text: message,
-      confirmButtonColor: "#d33",
-    });
-  }
-};
-
+  };
 
   async function handleProjectSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -248,7 +239,6 @@ export default function Projects() {
     const cleanName = formName.trim();
     const cleanManager = selectedManager;
 
-    // Validate Project Name
     if (!cleanName) {
       setNameError("Project name is required");
       valid = false;
@@ -259,7 +249,6 @@ export default function Projects() {
       setNameError("");
     }
 
-    // Date Validation
     if (!formStartDate || !formEndDate) {
       setDateError("Select both start and end dates");
       return;
@@ -273,7 +262,6 @@ export default function Projects() {
       setDateError("");
     }
 
-    // Validate Manager
     if (!cleanManager) {
       setManagerError("Manager is required");
       valid = false;
@@ -295,24 +283,20 @@ export default function Projects() {
 
     try {
       if (editingProject) {
-  // detect removed employees
-  const removed = originalEmployees.filter(
-    (id) => !assignedEmployees.includes(id)
-  );
+        const removed = originalEmployees.filter(
+          (id) => !assignedEmployees.includes(id)
+        );
 
-  // remove via API → updates reviewers properly
-  for (const empId of removed) {
-    await removeEmployee(editingProject.id, empId);
-  }
+        for (const empId of removed) {
+          await removeEmployee(editingProject.id, empId);
+        }
 
-  // now update project normally
-  await updateProject(editingProject.id, payload);
-  toast.success("Project updated");
-} else {
-  await createProject(payload);
-  toast.success("Project created");
-}
-
+        await updateProject(editingProject.id, payload);
+        toast.success("Project updated");
+      } else {
+        await createProject(payload);
+        toast.success("Project created");
+      }
 
       closeProjectModal();
       loadProjects(pagination.page, search);
@@ -337,7 +321,6 @@ export default function Projects() {
     setFormEndDate(null);
   };
 
-  // ---------------- PAGINATION ----------------
   const handlePaginate = (page: number) => {
     if (page > 0 && page <= pagination.totalPages) {
       loadProjects(page, search);
@@ -345,8 +328,8 @@ export default function Projects() {
   };
 
   return (
-    <div className="max-h-auto">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+    <div className="max-h-auto w-full">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-2">
         <h1 className="text-2xl font-semibold">Projects</h1>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
@@ -370,14 +353,13 @@ export default function Projects() {
               onPaste={(e) => {
                 const pasted = e.clipboardData.getData("text");
                 if (/^\s*$/.test(pasted)) {
-                  e.preventDefault(); // block whitespace-only paste
+                  e.preventDefault();
                 }
               }}
               className="w-full px-3 py-2 pr-10 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--text)] 
                  focus:outline-none focus:ring-2 focus:ring-[#2f4f82]"
             />
 
-            {/* CLEAR BUTTON */}
             {search && (
               <button
                 onClick={() => {
@@ -386,7 +368,7 @@ export default function Projects() {
                 }}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-500"
               >
-                <X size={18} />
+                <X size={18} className="cursor-pointer" />
               </button>
             )}
           </div>
@@ -408,8 +390,7 @@ export default function Projects() {
         </div>
       ) : (
         <>
-          {/* GRID SECTION */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-2">
+          <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-2">
             {projects.map((p) => (
               <div
                 key={p.id}
@@ -419,22 +400,30 @@ export default function Projects() {
                   <h2 className="text-lg font-semibold truncate">{p.name}</h2>
                   {(user?.role === "ADMIN" || user?.role === "MANAGER") && (
                     <div className="flex items-center gap-2">
-                      <Users
-                        size={18}
-                        className="cursor-pointer text-[#2f4f82] hover:text-[#1b335a]"
-                        onClick={() => openAssign(p)}
-                      />
-                      <Edit2
-                        size={18}
-                        className="cursor-pointer text-gray-500 hover:text-gray-700"
-                        onClick={() => openEdit(p)}
-                      />
-                      {user?.role === "ADMIN" && (
-                        <Trash2
+                      <Tooltip text="Assign Employees" position="bottom">
+                        <Users
                           size={18}
-                          className="cursor-pointer text-red-500 hover:text-red-600"
-                          onClick={() => handleDeleteProject(p.id)}
+                          className="cursor-pointer text-[#2f4f82] hover:text-[#1b335a]"
+                          onClick={() => openAssign(p)}
                         />
+                      </Tooltip>
+
+                      <Tooltip text="Edit Employees" position="bottom">
+                        <Edit2
+                          size={18}
+                          className="cursor-pointer text-gray-500 hover:text-gray-700"
+                          onClick={() => openEdit(p)}
+                        />
+                      </Tooltip>
+
+                      {user?.role === "ADMIN" && (
+                        <Tooltip text="Delete Employees" position="bottom">
+                          <Trash2
+                            size={18}
+                            className="cursor-pointer text-red-500 hover:text-red-600"
+                            onClick={() => handleDeleteProject(p.id)}
+                          />
+                        </Tooltip>
                       )}
                     </div>
                   )}
@@ -490,9 +479,7 @@ export default function Projects() {
             ))}
           </div>
 
-          {projects.length === 0 && (
-            <div className="text-center text-gray-500 py-10">No Data</div>
-          )}
+          {projects.length === 0 && <EmptyStateComponent name="Project" />}
 
           <div className="fixed bottom-0 left-0 right-0 shadow-md p-3 z-50">
             <Pagination
@@ -504,7 +491,7 @@ export default function Projects() {
         </>
       )}
 
-      {/* ------------ CREATE / EDIT MODAL ------------ */}
+      {/* ------------ PROJECT CREATE/EDIT MODAL ------------ */}
       {showProjectModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <form
@@ -514,17 +501,18 @@ export default function Projects() {
             <button
               type="button"
               onClick={closeProjectModal}
-              className="absolute right-4 top-4"
+              className="absolute right-4 top-4 cursor-pointer"
             >
-              <X size={22} className="text-[var(--text)]" />
+              <Tooltip text="Close" position="left">
+                <X size={22} className="text-[var(--text)] cursor-pointer" />
+              </Tooltip>
             </button>
 
-            <h2 className="text-xl font-semibold mb-6 text-[var(--text)]">
+            <h2 className="text-xl font-semibold mb-4 text-[var(--text)]">
               {editingProject ? "Edit Project" : "Create Project"}
             </h2>
 
             <div className="space-y-2">
-              {/* Name */}
               <input
                 value={formName}
                 onChange={(e) => {
@@ -538,7 +526,6 @@ export default function Projects() {
               />
               {nameError && <p className="text-red-500 text-sm">{nameError}</p>}
 
-              {/* Description */}
               <textarea
                 rows={3}
                 value={formDescription}
@@ -547,8 +534,7 @@ export default function Projects() {
                 className="w-full p-2 rounded-lg bg-[var(--card)] text-[var(--text)] border border-[var(--border)]"
               />
 
-              {/* Start Date & End Date */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 m-0">
                 <DatePicker
                   selected={formStartDate}
                   onChange={(date: Date | null) => {
@@ -575,7 +561,6 @@ export default function Projects() {
 
               {dateError && <p className="text-red-500 text-sm">{dateError}</p>}
 
-              {/* Status */}
               <select
                 value={formStatus}
                 onChange={(e) => setFormStatus(e.target.value)}
@@ -587,11 +572,7 @@ export default function Projects() {
                 <option value="CANCELLED">Cancelled</option>
               </select>
 
-              {/* Manager */}
               <div>
-                <h3 className="font-semibold mb-1 text-[var(--text)]">
-                  Select Manager
-                </h3>
                 <select
                   value={selectedManager ?? ""}
                   onChange={(e) => {
@@ -616,7 +597,6 @@ export default function Projects() {
                 )}
               </div>
 
-              {/* Employees */}
               <div>
                 <h3 className="font-semibold mb-2 text-[var(--text)]">
                   Select Employees
@@ -650,7 +630,7 @@ export default function Projects() {
 
             <button
               type="submit"
-              className="mt-6 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
+              className="mt-2 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
             >
               {editingProject ? "Update" : "Create"}
             </button>
@@ -658,7 +638,7 @@ export default function Projects() {
         </div>
       )}
 
-      {/* ------------ ASSIGN MODAL ------------ */}
+      {/* ------------ USER ASSIGN MODAL ------------ */}
       {showAssignModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <div className="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 w-full max-w-2xl relative">
@@ -666,16 +646,17 @@ export default function Projects() {
               onClick={() => setShowAssignModal(false)}
               className="absolute right-4 top-4"
             >
-              <X size={22} />
+              <Tooltip text="Close" position="left">
+                <X size={22} className="text-[var(--text)] cursor-pointer" />
+              </Tooltip>
             </button>
 
-            <h2 className="text-xl font-semibold mb-6">
+            <h2 className="text-xl font-semibold mb-4">
               Assign Manager & Employees
             </h2>
 
-            {/* Manager */}
             <h3 className="font-semibold mb-2">Select Manager (Required)</h3>
-            <div className="border p-3 rounded-xl mb-6 space-y-2">
+            <div className="border p-3 rounded-xl mb-2 space-y-2">
               {managers.map((m) => (
                 <label key={m.id} className="flex gap-3 items-center">
                   <input
@@ -688,7 +669,6 @@ export default function Projects() {
               ))}
             </div>
 
-            {/* Employees */}
             <h3 className="font-semibold mb-2">Select Employees</h3>
             <div className="border p-3 rounded-xl max-h-40 overflow-y-auto space-y-2">
               {employees.length === 0 ? (
@@ -717,7 +697,7 @@ export default function Projects() {
 
             <button
               onClick={projectAssign}
-              className="mt-6 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
+              className="mt-2 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
             >
               Update Users
             </button>

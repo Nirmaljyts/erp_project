@@ -5,12 +5,15 @@ import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
+import { Trash2 } from "lucide-react";
 import {
   getLeaveDashboard,
   deleteApprovedLeave,
 } from "../services/leaveService";
 import { RootState } from "../store/store";
-import { Trash, Trash2 } from "lucide-react";
+import Tooltip from "../components/Tooltip";
+import { RingComponent } from "../components/RingComponent";
+import Pagination from "../components/Pagination";
 
 export default function LeaveDashboard() {
   const user = useSelector((state: RootState) => state.auth.user);
@@ -18,27 +21,42 @@ export default function LeaveDashboard() {
 
   const [loading, setLoading] = useState(true);
   const [leaves, setLeaves] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1 });
   type Stat = { status: string; _count: number };
   const [stats, setStats] = useState<Stat[]>([]);
+  const [leaveBalances, setLeaveBalances] = useState<any>({});
 
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadDashboard();
-  }, []);
-
-  async function loadDashboard() {
+  async function loadDashboard(page = 1) {
+    const limit = 10;
     try {
-      const res = await getLeaveDashboard();
+      setLoading(true);
+      const res = await getLeaveDashboard(page, limit);
       setLeaves(res.data.leaves);
+      setPagination({
+        page: res.data.pagination.page,
+        totalPages: res.data.pagination.totalPages,
+      });
       setStats(res.data.stats);
+      setLeaveBalances(res.data.leaveBalances);
     } finally {
       setLoading(false);
     }
   }
 
+  useEffect(() => {
+    loadDashboard(pagination.page);
+  }, []);
+
   const navigateToLeaves = () => {
     navigate("/request-leaves");
+  };
+
+  const handlePaginate = (page: number) => {
+    if (page > 0 && page <= pagination.totalPages) {
+      loadDashboard(page);
+    }
   };
 
   const leaveRequest = () => navigate("/request-leaves");
@@ -76,11 +94,13 @@ export default function LeaveDashboard() {
     if (!confirm.isConfirmed) return;
 
     try {
+      setLoading(true);
       await deleteApprovedLeave(id);
-
+      setLoading(false);
+      window.dispatchEvent(new Event("notifications-updated"));
       toast.success("Deleted the approved leave.");
 
-      loadDashboard();
+      loadDashboard(pagination.page);
     } catch (err: any) {
       Swal.fire({
         title: "Delete Approved Leave?",
@@ -93,8 +113,7 @@ export default function LeaveDashboard() {
   }
 
   return (
-    <div className="max-h-auto">
-      {/* PAGE TITLE */}
+    <div className="max-h-auto w-full">
       <h1 className="text-xl sm:text-2xl font-semibold mb-4">
         Leave Dashboard
       </h1>
@@ -105,45 +124,85 @@ export default function LeaveDashboard() {
         </div>
       ) : (
         <>
-          {/* --- STATS GRID --- */}
-          <div className="grid  sx:grid-cols-1 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mb-3">
-            {["TOTAL", "APPROVED", "PENDING", "REJECTED", "CANCELLED"].map(
-              (key) => {
-                const count =
-                  key === "TOTAL"
-                    ? leaves.length
-                    : stats.find((s: any) => s.status === key)?._count || 0;
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-4">
+            <RingComponent
+              label="Annual"
+              taken={leaveBalances.ANNUAL?.taken ?? 0}
+              total={leaveBalances.ANNUAL?.total ?? 0}
+              linkTo="/request-leaves"
+            />
 
-                return (
-                  <div
-                    key={key}
-                    className="p-3 sm:p-4 border border-[var(--border)] rounded-xl bg-[var(--card)] shadow-sm"
-                  >
-                    <p className="text-xs sm:text-sm text-gray-500">{key}</p>
-                    <p
-                      className="cursor-pointer text-xl sm:text-2xl font-bold hover:underline"
-                      onClick={navigateToLeaves}
-                    >
-                      {count}
-                    </p>
-                  </div>
-                );
-              }
-            )}
+            <RingComponent
+              label="Casual"
+              taken={leaveBalances.CASUAL?.taken ?? 0}
+              total={leaveBalances.CASUAL?.total ?? 0}
+              linkTo="/request-leaves"
+            />
+
+            <RingComponent
+              label="Sick"
+              taken={leaveBalances.SICK?.taken ?? 0}
+              total={leaveBalances.SICK?.total ?? 0}
+              linkTo="/request-leaves"
+            />
+
+            <RingComponent
+              label="WFH"
+              taken={leaveBalances.WFH?.taken ?? 0}
+              total={leaveBalances.WFH?.total ?? 0}
+              linkTo="/request-leaves"
+            />
+
+            <RingComponent
+              label="LOP"
+              taken={leaveBalances.UNPAID?.taken ?? 0}
+              total={null}
+              linkTo="/request-leaves"
+            />
           </div>
 
-          {/* --- REQUEST BUTTON --- */}
-          <div className="flex justify-end mb-3 sm:mb-4">
+          <div className="grid  sx:grid-cols-1 sm:grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3 mb-2">
+            {[
+              "TOTAL",
+              "APPROVED",
+              "PENDING",
+              "REJECTED",
+              "CANCELLED",
+            ].map((key) => {
+              const count =
+                key === "TOTAL"
+                  ? leaves.length
+                  : stats.find((s: any) => s.status === key)?._count || 0;
+
+              return (
+                <div
+                  key={key}
+                  className="p-3 sm:p-4 border border-[var(--border)] rounded-xl bg-[var(--card)] shadow-sm"
+                >
+                  <p className="text-xs text-left  sm:text-xs text-gray-500">
+                    {key}
+                  </p>
+                  <p
+                    className="cursor-pointer text-xl text-left sm:text-2xl font-bold hover:underline"
+                    onClick={navigateToLeaves}
+                  >
+                    {count}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex justify-end mb-2 sm:mb-2">
             <button
               onClick={leaveRequest}
-              className="px-4 py-2 text-sm rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
+              className="px-4 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
             >
               Request Leave
             </button>
           </div>
 
-          {/* --- CALENDAR WRAPPER --- */}
-          <div className="w-full overflow-x-auto rounded-xl border border-[var(--border)] p-2 sm:p-4 shadow-sm mb-6">
+          <div className="w-full overflow-x-auto rounded-xl border border-[var(--border)] p-2 sm:p-4 shadow-sm mb-4">
             <FullCalendar
               plugins={[dayGridPlugin]}
               initialView="dayGridMonth"
@@ -162,15 +221,15 @@ export default function LeaveDashboard() {
             />
           </div>
 
-          {/* --- TABLE SECTION --- */}
           <div className="rounded-xl border border-[var(--border)] p-3 sm:p-4 shadow-sm w-full">
-            <h2 className="text-lg font-semibold mb-3">All Leaves</h2>
+            <h2 className="text-lg font-semibold mb-2">All Leaves</h2>
 
-            <div className="w-full overflow-x-auto">
-              <table className="min-w-[520px] w-full text-xs sm:text-sm border border-[var(--border)]">
-                <thead>
-                  <tr className="border-b border border-[var(--border)] ">
+            <div className="border border-[var(--border)] rounded-xl bg-[var(--card)]">
+              <table className="table text-xs md:text-sm border-collapse">
+                <thead className="t_head table_th">
+                  <tr>
                     {[
+                      "#",
                       "Name",
                       "Role",
                       "Leave Type",
@@ -180,7 +239,7 @@ export default function LeaveDashboard() {
                     ].map((head) => (
                       <th
                         key={head}
-                        className="px-3 py-3 text-left text-[10px] sm:text-xs font-bold uppercase tracking-wide whitespace-nowrap"
+                        className="px-2 py-3 text-left text-[7px] sm:text-xs font-bold uppercase"
                       >
                         {head}
                       </th>
@@ -188,30 +247,63 @@ export default function LeaveDashboard() {
                   </tr>
                 </thead>
 
-                <tbody>
+                <tbody className="">
                   {leaves.length === 0 ? (
-                    <tr className="border-t-2 border border-[var(--border)] ">
+                    <tr className="border-t">
                       <td
-                        colSpan={4}
-                        className="px-4 py-6 text-center text-gray-500"
+                        colSpan={7}
+                        className="table_td px-2 py-6 text-center text-gray-500"
                       >
                         No Leave Data
                       </td>
                     </tr>
                   ) : (
-                    leaves.map((l: any) => (
+                    leaves.map((l: any, index) => (
                       <tr
                         key={l.id}
-                        className="border-b border border-[var(--border)] "
+                        className="border-t border-[var(--border)] px-2 py-3 text-left"
+                        data-label="#"
                       >
-                        <td className="p-2 whitespace-nowrap">{l.user.name}</td>
-                        <td className="p-2 whitespace-nowrap">{l.user.role}</td>
-                        <td className="p-2 whitespace-nowrap">{l.type}</td>
-                        <td className="p-2 whitespace-nowrap">
+                        <td
+                          className="table_td text-[10px] sm:text-xs p-2"
+                          data-label="Name"
+                        >
+                          {index + 1}
+                        </td>
+
+                        <td
+                          className="table_td text-[10px] sm:text-xs p-2"
+                          data-label="Name"
+                        >
+                          {l.user.name}
+                        </td>
+
+                        <td
+                          className="table_td text-[10px] sm:text-xs p-2"
+                          data-label="Role"
+                        >
+                          {l.user.role}
+                        </td>
+
+                        <td
+                          className="table_td text-[10px] sm:text-xs p-2"
+                          data-label="Leave Type"
+                        >
+                          {l.type}
+                        </td>
+
+                        <td
+                          className="table_td text-[10px] sm:text-xs p-2"
+                          data-label="Period"
+                        >
                           {new Date(l.startDate).toLocaleDateString()} →{" "}
                           {new Date(l.endDate).toLocaleDateString()}
                         </td>
-                        <td className="p-2 whitespace-nowrap font-semibold">
+
+                        <td
+                          className="table_td text-[10px] sm:text-xs p-2 font-semibold"
+                          data-label="Status"
+                        >
                           <span
                             style={{
                               color:
@@ -227,32 +319,37 @@ export default function LeaveDashboard() {
                             {l.status}
                           </span>
 
-                          {/* APPROVED BY */}
                           {l.status === "APPROVED" && l.approvedBy && (
                             <span className="ml-2 text-xs text-gray-600">
                               → {l.approvedBy.name}
                             </span>
                           )}
 
-                          {/* REJECTED BY */}
                           {l.status === "REJECTED" && l.rejectedBy && (
                             <span className="ml-2 text-xs text-red-600">
                               → {l.rejectedBy.name}
                             </span>
                           )}
                         </td>
-                        <td>
-                          {/* DELETE BUTTON FOR FUTURE APPROVED LEAVES */}
+
+                        <td className="table_td text-[10px] sm:text-xs">
                           {l.status === "APPROVED" &&
-                            new Date(l.startDate) > new Date() &&
-                            ["ADMIN", "HR_MANAGER", "HR"].includes(
+                            ["ADMIN", "HR_MANAGER", "HR", "MANAGER"].includes(
                               currentRole
                             ) && (
                               <button
                                 onClick={() => handleDeleteApproved(l.id)}
                                 className="ml-3 text-red-500 hover:text-red-700"
                               >
-                                <Trash2 size={18} />
+                                <Tooltip
+                                  text="Delete Approved Leave"
+                                  position="right"
+                                >
+                                  <Trash2
+                                    size={18}
+                                    className="cursor-pointer"
+                                  />
+                                </Tooltip>
                               </button>
                             )}
                         </td>
@@ -261,6 +358,12 @@ export default function LeaveDashboard() {
                   )}
                 </tbody>
               </table>
+
+              <Pagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                onPageChange={(p) => handlePaginate(p)}
+              />
             </div>
           </div>
         </>

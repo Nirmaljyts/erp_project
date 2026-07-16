@@ -11,6 +11,8 @@ import {
 import Pagination from "../components/Pagination";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
+import Tooltip from "../components/Tooltip";
+import EmptyStateComponent from "../components/EmptyStateComponent";
 
 interface Client {
   id: number;
@@ -30,7 +32,6 @@ export default function ClientsPage() {
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [showClientModal, setShowClientModal] = useState(false);
 
-  // Form fields
   const [formName, setFormName] = useState("");
   const [formContactedBy, setFormContactedBy] = useState("");
   const [formEmail, setFormEmail] = useState("");
@@ -40,7 +41,6 @@ export default function ClientsPage() {
   const [emailError, setEmailError] = useState("");
   const [phoneError, setPhoneError] = useState("");
 
-  // ---------------- FETCH CLIENTS ----------------
   async function loadClients(page = 1, searchText = "") {
     const limit = 16;
     try {
@@ -67,7 +67,6 @@ export default function ClientsPage() {
     loadClients(1, search);
   }, []);
 
-  // ---------------- DELETE ----------------
   async function handleDelete(id: number) {
     const result = await Swal.fire({
       title: "Delete Client?",
@@ -87,7 +86,6 @@ export default function ClientsPage() {
     }
   }
 
-  // ---------------- OPEN MODALS ----------------
   const openCreate = () => {
     setEditingClient(null);
     setFormName("");
@@ -116,7 +114,7 @@ export default function ClientsPage() {
   }
 
   function validatePhone(phone: string) {
-    const phoneRegex = /^[0-9]{10,15}$/; // only digits, length between 10-15
+    const phoneRegex = /^[0-9]{10,15}$/;
     return phoneRegex.test(phone);
   }
 
@@ -183,7 +181,6 @@ export default function ClientsPage() {
     setShowClientModal(false);
   };
 
-  // ---------------- PAGINATION ----------------
   const handlePaginate = (page: number) => {
     if (page > 0 && page <= pagination.totalPages) {
       loadClients(page, search);
@@ -191,8 +188,8 @@ export default function ClientsPage() {
   };
 
   return (
-    <div className="max-h-auto">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+    <div className="max-h-auto w-full">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-2">
         <h1 className="text-2xl font-semibold">Clients</h1>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
@@ -216,14 +213,13 @@ export default function ClientsPage() {
               onPaste={(e) => {
                 const pasted = e.clipboardData.getData("text");
                 if (/^\s*$/.test(pasted)) {
-                  e.preventDefault(); // block whitespace-only paste
+                  e.preventDefault();
                 }
               }}
               className="w-full px-3 py-2 pr-10 rounded-lg border border-[var(--border)] bg-[var(--card)] text-[var(--text)] 
                  focus:outline-none focus:ring-2 focus:ring-[#2f4f82]"
             />
 
-            {/* CLEAR BUTTON */}
             {search && (
               <button
                 onClick={() => {
@@ -232,7 +228,7 @@ export default function ClientsPage() {
                 }}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-500"
               >
-                <X size={18} />
+                <X size={18} className="cursor-pointer" />
               </button>
             )}
           </div>
@@ -254,7 +250,6 @@ export default function ClientsPage() {
         </div>
       ) : (
         <>
-          {/* GRID */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-2">
             {clients.map((c) => (
               <div
@@ -265,16 +260,21 @@ export default function ClientsPage() {
                   <h2 className="text-lg font-semibold truncate">{c.name}</h2>
                   {(user?.role === "ADMIN" || user?.role === "MANAGER") && (
                     <div className="flex items-center gap-2">
-                      <Edit2
-                        size={18}
-                        className="cursor-pointer text-gray-500 hover:text-gray-700"
-                        onClick={() => openEdit(c)}
-                      />
-                      <Trash2
-                        size={18}
-                        className="cursor-pointer text-red-500 hover:text-red-600"
-                        onClick={() => handleDelete(c.id)}
-                      />
+                      <Tooltip text="Edit Client" position="left">
+                        <Edit2
+                          size={18}
+                          className="cursor-pointer text-gray-500 hover:text-gray-700"
+                          onClick={() => openEdit(c)}
+                        />
+                      </Tooltip>
+
+                      <Tooltip text="Delete Client" position="left">
+                        <Trash2
+                          size={18}
+                          className="cursor-pointer text-red-500 hover:text-red-600"
+                          onClick={() => handleDelete(c.id)}
+                        />
+                      </Tooltip>
                     </div>
                   )}
                 </div>
@@ -294,9 +294,7 @@ export default function ClientsPage() {
             ))}
           </div>
 
-          {clients.length === 0 && (
-            <div className="text-center text-gray-500 py-10">No Data</div>
-          )}
+          {clients.length === 0 && <EmptyStateComponent name="Client"/>}
 
           <div className="fixed bottom-0 left-0 right-0 shadow-md p-3 z-50">
             <Pagination
@@ -308,7 +306,7 @@ export default function ClientsPage() {
         </>
       )}
 
-      {/* ------------ CREATE / EDIT MODAL ------------ */}
+      {/* ------------ CLIENT CREATE/EDIT MODAL ------------ */}
       {showClientModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <form
@@ -318,16 +316,17 @@ export default function ClientsPage() {
             <button
               type="button"
               onClick={closeModal}
-              className="absolute right-4 top-4"
+              className="absolute right-4 top-4 cursor-pointer"
             >
-              <X size={22} className="text-[var(--text)]" />
+              <Tooltip text="Close" position="left">
+                <X size={22} className="text-[var(--text)] cursor-pointer" />
+              </Tooltip>
             </button>
 
-            <h2 className="text-xl font-semibold mb-6 text-[var(--text)]">
+            <h2 className="text-xl font-semibold mb-4 text-[var(--text)]">
               {editingClient ? "Edit Client" : "Create Client"}
             </h2>
 
-            {/* FORM INPUTS */}
             <div className="space-y-2">
               <input
                 value={formName}
@@ -385,10 +384,9 @@ export default function ClientsPage() {
               )}
             </div>
 
-            {/* SUBMIT BUTTON */}
             <button
               type="submit"
-              className="mt-6 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
+              className="mt-2 w-full py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
             >
               {editingClient ? "Update" : "Create"}
             </button>

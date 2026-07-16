@@ -11,6 +11,8 @@ import {
 import Pagination from "../components/Pagination";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
+import Tooltip from "../components/Tooltip";
+import EmptyStateComponent from "../components/EmptyStateComponent";
 
 interface User {
   id: number;
@@ -29,7 +31,6 @@ export default function UsersPage() {
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
-  // form fields
   const [formName, setFormName] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formRole, setFormRole] = useState<
@@ -38,7 +39,6 @@ export default function UsersPage() {
   const [formActive, setFormActive] = useState(true);
   const [formPassword, setFormPassword] = useState("");
 
-  // validation errors
   const [nameError, setNameError] = useState("");
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
@@ -50,7 +50,6 @@ export default function UsersPage() {
   const user = useSelector((state: RootState) => state?.auth?.user);
   const currentRole = user?.role;
 
-  // ---------------- FETCH USERS ----------------
   async function loadUsers(page = 1, searchValue = search) {
     const limit = 15;
     try {
@@ -84,7 +83,6 @@ export default function UsersPage() {
     }
   }
 
-  // ---------------- VALIDATION HELPERS ----------------
   function validateName(name: string) {
     return name.trim().length >= 3;
   }
@@ -99,7 +97,6 @@ export default function UsersPage() {
     return password.length >= 6;
   }
 
-  // ---------------- MODAL OPEN/CLOSE ----------------
   const openCreate = () => {
     setEditingUser(null);
     setFormName("");
@@ -133,7 +130,6 @@ export default function UsersPage() {
     setPasswordError("");
   };
 
-  // ---------------- SUBMIT HANDLER ----------------
   async function handleUserSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -165,7 +161,7 @@ export default function UsersPage() {
         setPasswordError("");
       }
     } else {
-      // editing: password optional; if provided, validate
+      // editing: password optional
       if (cleanPassword && !validatePassword(cleanPassword)) {
         setPasswordError("Password must be at least 6 characters");
         valid = false;
@@ -208,7 +204,6 @@ export default function UsersPage() {
     }
   }
 
-  // ---------------- DELETE USER ----------------
   async function handleDelete(id: number) {
     const result = await Swal.fire({
       title: "Delete User?",
@@ -240,16 +235,23 @@ export default function UsersPage() {
     }
   }
 
-  // ---------------- PAGINATION ----------------
   const handlePaginate = (page: number) => {
     if (page > 0 && page <= pagination.totalPages) {
       loadUsers(page, search);
     }
   };
 
+  const roleClasses: Record<string, string> = {
+    ADMIN: "bg-red-100 text-red-700",
+    HR_MANAGER: "bg-green-100 text-green-700",
+    HR: "bg-orange-100 text-orange-700",
+    MANAGER: "bg-yellow-100 text-yellow-700",
+    EMPLOYEE: "bg-blue-100 text-blue-700",
+  };
+
   return (
-    <div className="max-h-auto">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+    <div className="max-h-auto w-full">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-2">
         <h1 className="text-2xl font-semibold">Users</h1>
 
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
@@ -286,7 +288,7 @@ export default function UsersPage() {
                 }}
                 className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-500"
               >
-                <X size={18} />
+                <X size={18} className="cursor-pointer" />
               </button>
             )}
           </div>
@@ -306,82 +308,105 @@ export default function UsersPage() {
         </div>
       ) : (
         <>
-          {/* TABLE */}
-          <div className="border border-[var(--border)] rounded-2xl bg-[var(--card)]">
-            <table className="text-xs md:text-sm border-collapse">
-              <thead>
-                <tr>
-                  <th className="w-[10%] px-4 py-3 text-left text-xs font-bold uppercase tracking-wide">
-                    #
-                  </th>
-                  <th
-                    onClick={() => toggleSort("name")}
-                    className="w-[18%] px-4 py-3 text-left text-xs font-bold uppercase tracking-wide cursor-pointer"
-                  >
-                    Name{" "}
-                    {sortBy === "name" && (sortOrder === "asc" ? "▲" : "▼")}
-                  </th>
-
-                  <th
-                    onClick={() => toggleSort("email")}
-                    className="w-[20%] px-4 py-3 text-left text-xs font-bold uppercase tracking-wide cursor-pointer"
-                  >
-                    Email{" "}
-                    {sortBy === "email" && (sortOrder === "asc" ? "▲" : "▼")}
-                  </th>
-
-                  <th
-                    onClick={() => toggleSort("role")}
-                    className="w-[18%] px-4 py-3 text-left text-xs font-bold uppercase tracking-wide cursor-pointer"
-                  >
-                    Role{" "}
-                    {sortBy === "role" && (sortOrder === "asc" ? "▲" : "▼")}
-                  </th>
-
-                  <th
-                    onClick={() => toggleSort("isActive")}
-                    className="w-[18%] px-4 py-3 text-left text-xs font-bold uppercase tracking-wide cursor-pointer"
-                  >
-                    Status{" "}
-                    {sortBy === "isActive" && (sortOrder === "asc" ? "▲" : "▼")}
-                  </th>
-
-                  {(currentRole === "ADMIN" ||
-                    currentRole === "HR_MANAGER" ||
-                    currentRole === "HR") && (
-                    <th className="w-[18%] px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide">
-                      Actions
+          {users.length === 0 ? (
+            <EmptyStateComponent name="User" />
+          ) : (
+            <div className="border border-[var(--border)] rounded-xl bg-[var(--card)]">
+              <table className="table text-xs md:text-sm border-collapse">
+                <thead className="t_head table_th">
+                  <tr>
+                    <th className="min-w-[10%] px-4 py-3 text-left text-xs font-bold uppercase">
+                      #
                     </th>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {users.length === 0 ? (
-                  <tr className="border-t-2">
-                    <td
-                      colSpan={5}
-                      className="px-4 py-6 text-center text-gray-500"
+
+                    <th
+                      onClick={() => toggleSort("name")}
+                      className="min-w-[18%] px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer"
                     >
-                      No Data
-                    </td>
+                      Name{" "}
+                      {sortBy === "name" && (sortOrder === "asc" ? "▲" : "▼")}
+                    </th>
+
+                    <th
+                      onClick={() => toggleSort("email")}
+                      className="min-w-[20%] px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer"
+                    >
+                      Email{" "}
+                      {sortBy === "email" && (sortOrder === "asc" ? "▲" : "▼")}
+                    </th>
+
+                    <th
+                      onClick={() => toggleSort("role")}
+                      className="min-w-[18%] px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer"
+                    >
+                      Role{" "}
+                      {sortBy === "role" && (sortOrder === "asc" ? "▲" : "▼")}
+                    </th>
+
+                    <th
+                      onClick={() => toggleSort("isActive")}
+                      className="min-w-[18%] px-4 py-3 text-left text-xs font-bold uppercase cursor-pointer"
+                    >
+                      Status{" "}
+                      {sortBy === "isActive" &&
+                        (sortOrder === "asc" ? "▲" : "▼")}
+                    </th>
+
+                    {(currentRole === "ADMIN" ||
+                      currentRole === "HR_MANAGER" ||
+                      currentRole === "HR") && (
+                      <th className="min-w-[20%] px-4 py-3 text-right text-xs font-semibold uppercase">
+                        Actions
+                      </th>
+                    )}
                   </tr>
-                ) : (
-                  users.map((user, index) => (
+                </thead>
+
+                <tbody>
+                  {users.map((user, index) => (
                     <tr
                       key={user.id}
                       className="border-t border-[var(--border)]"
                     >
-                      <td className="w-[10%] px-4 py-2 text-sm">{index + 1}</td>
-                      <td className="w-[18%] px-4 py-2 text-sm">{user.name}</td>
-                      <td className="w-[20%] px-4 py-2 text-sm">
+                      <td
+                        className="table_td min-w-[10%] px-4 py-2 text-sm"
+                        data-label="#"
+                      >
+                        {index + 1}
+                      </td>
+
+                      <td
+                        className="table_td min-w-[18%] px-4 py-2 text-sm truncate"
+                        data-label="Name"
+                      >
+                        {user.name}
+                      </td>
+
+                      <td
+                        className="table_td min-w-[20%] px-4 py-2 text-sm truncate"
+                        data-label="Email"
+                      >
                         {user.email}
                       </td>
-                      <td className="w-[18%] px-4 py-2 text-sm">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
+
+                      <td
+                        className="table_td min-w-[18%] px-4 py-2 text-sm"
+                        data-label="Role"
+                      >
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
+                            roleClasses[user.role] ??
+                            "bg-gray-100 text-gray-700"
+                          }`}
+                        >
                           {user.role}
                         </span>
                       </td>
-                      <td className="w-[18%] px-4 py-2 text-sm">
+
+                      <td
+                        className="table_td min-w-[18%] px-4 py-2 text-sm"
+                        data-label="Status"
+                      >
                         {user.isActive ? (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
                             Active
@@ -392,34 +417,40 @@ export default function UsersPage() {
                           </span>
                         )}
                       </td>
+
                       {(currentRole === "ADMIN" ||
                         currentRole === "HR_MANAGER" ||
                         currentRole === "HR") && (
-                        <td className="w-[18%] px-4 py-2 text-sm text-right">
-                          <div className="flex justify-end gap-3">
+                        <td className="table_td min-w-[18%] px-4 py-2 text-sm text-right">
+                          <div className="flex justify-end gap-2">
                             <button
                               type="button"
                               onClick={() => openEdit(user)}
                               className="text-gray-500 hover:text-gray-700"
                             >
-                              <Edit2 size={18} />
+                              <Tooltip text="Edit User" position="left">
+                                <Edit2 size={18} className="cursor-pointer" />
+                              </Tooltip>
                             </button>
+
                             <button
                               type="button"
                               onClick={() => handleDelete(user.id)}
                               className="text-red-500 hover:text-red-600"
                             >
-                              <Trash2 size={18} />
+                              <Tooltip text="Delete User" position="left">
+                                <Trash2 size={18} className="cursor-pointer" />
+                              </Tooltip>
                             </button>
                           </div>
                         </td>
                       )}
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           <div className="fixed bottom-0 left-0 right-0 shadow-md p-3 z-50">
             <Pagination
@@ -431,7 +462,7 @@ export default function UsersPage() {
         </>
       )}
 
-      {/* ------------ CREATE / EDIT USER MODAL ------------ */}
+      {/* ------------ USER CREATE/EDIT MODAL ------------ */}
       {showUserModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <form
@@ -441,17 +472,18 @@ export default function UsersPage() {
             <button
               type="button"
               onClick={closeUserModal}
-              className="absolute right-4 top-4"
+              className="absolute right-4 top-4 cursor-pointer"
             >
-              <X size={22} className="text-[var(--text)]" />
+              <Tooltip text="Close" position="left">
+                <X size={22} className="text-[var(--text)] cursor-pointer" />
+              </Tooltip>
             </button>
 
-            <h2 className="text-xl font-semibold mb-6 text-[var(--text)]">
+            <h2 className="text-xl font-semibold mb-4 text-[var(--text)]">
               {editingUser ? "Edit User" : "Add User"}
             </h2>
 
-            <div className="space-y-3">
-              {/* Name */}
+            <div className="space-y-2">
               <div>
                 <input
                   value={formName}
@@ -469,7 +501,6 @@ export default function UsersPage() {
                 )}
               </div>
 
-              {/* Email */}
               <div>
                 <input
                   type="email"
@@ -488,7 +519,6 @@ export default function UsersPage() {
                 )}
               </div>
 
-              {/* Password */}
               {!editingUser && (
                 <div className="relative">
                   <input
@@ -522,7 +552,6 @@ export default function UsersPage() {
                 </div>
               )}
 
-              {/* Role */}
               <div>
                 <select
                   value={formRole}
@@ -537,7 +566,6 @@ export default function UsersPage() {
                 </select>
               </div>
 
-              {/* Active toggle */}
               <div className="flex items-center">
                 <button
                   type="button"
@@ -564,7 +592,7 @@ export default function UsersPage() {
 
             <button
               type="submit"
-              className="w-full mt-6 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
+              className="w-full mt-2 py-2 rounded-lg bg-[#2f4f82] text-white font-medium hover:bg-[#1b335a]"
             >
               {editingUser ? "Update User" : "Create User"}
             </button>

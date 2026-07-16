@@ -102,7 +102,7 @@ async function seed() {
     },
   });
 
-    const hrManager = await prisma.user.create({
+  const hrManager = await prisma.user.create({
     data: {
       id: 8,
       name: "Eliza",
@@ -195,6 +195,25 @@ async function seed() {
   });
 
   console.log("✔ Project assignments seeded");
+
+  // DEFAULT TIMESHEET DEFINITIONS
+  await prisma.timesheetDefinition.createMany({
+    data: [
+      {
+        type: "SPECIAL",
+        description: "BENCH",
+        appliesTo: "ALL",
+      },
+      {
+        type: "SPECIAL",
+        description: "HR_ACTIVITIES",
+        appliesTo: "ALL",
+      },
+    ],
+    skipDuplicates: true,
+  });
+
+  console.log("✔ System timesheet definitions seeded");
 
   console.log("🎉 Seeding completed successfully.");
 }

@@ -4,10 +4,47 @@ import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import type { RootState } from "../store/store";
+import { getUser } from "../services/userServices";
+
+type UserDetails = {
+  id: string;
+  name: string;
+  email?: string;
+  role?: string;
+};
 
 export default function ProfilePopover() {
+  const [userDetails, setUserDetails] = useState<UserDetails | undefined>();
+
   const user = useSelector((state: RootState) => state.auth.user);
-  const userInitial = user?.name ? user.name.charAt(0).toUpperCase() : "U";
+
+  const fetchUser = async () => {
+    if (!user) return;
+    try {
+      const res = await getUser(user.id);
+      setUserDetails(res);
+    } finally {
+    }
+  };
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
+
+  const userInitial = (() => {
+    if (!userDetails?.name) return "U";
+
+    const parts = userDetails.name.trim().split(/\s+/);
+
+    // Full name (first + last)
+    if (parts.length > 1) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+
+    // Only first name
+    const first = parts[0];
+    return first.slice(0, 1).toUpperCase();
+  })();
 
   const [open, setOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement | null>(null);
@@ -49,24 +86,22 @@ export default function ProfilePopover() {
 
   return (
     <div className="relative" ref={popoverRef}>
-      {/* Profile Button */}
       <button
         onClick={() => setOpen((prev) => !prev)}
         className="
-    w-8 h-8 rounded-full 
-    bg-gray-900 text-white 
-    dark:bg-white dark:text-black
-    flex items-center justify-center font-semibold
-    border border-gray-400 
-    dark:border-gray-600
-    ring-2 ring-gray-300 dark:ring-0
-    hover:opacity-90 transition
-  "
+          w-8 h-8 rounded-full 
+          text-[var(--text)]
+          bg-[var(--card)]
+          flex items-center justify-center font-semibold
+          border-[1.5px] border-gray-400 
+          dark:border-gray-600
+          ring-2 ring-gray-300 dark:ring-0
+          hover:opacity-90 transition
+        "
       >
         {userInitial}
       </button>
 
-      {/* Dropdown */}
       {open && (
         <div
           className="

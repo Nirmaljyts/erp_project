@@ -8,15 +8,30 @@ import clientRoutes from "./routes/clientRoutes.js";
 import projectRoutes from "./routes/projectRoutes.js";
 import holidayRoutes from "./routes/holidayRoutes.js";
 import leaveRoutes from "./routes/leaveRoutes.js";
+import timesheetRoutes from "./routes/timesheetRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
 
 const app = express();
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://your-erp-app.vercel.app",
+];
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
     credentials: true,
   })
 );
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -27,6 +42,8 @@ app.use("/api/clients", clientRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/holidays", holidayRoutes);
 app.use("/api/leaves", leaveRoutes);
+app.use("/api/timesheets", timesheetRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

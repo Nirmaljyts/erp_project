@@ -304,7 +304,7 @@ export async function deleteUserService(id, currentUser) {
 }
 
 /* ============================================================
-   GET MANAGERS (unchanged)
+     GET MANAGERS (unchanged)
 ============================================================ */
 export async function getManagersService(user) {
   if (user.role === "MANAGER") {

@@ -1,8 +1,6 @@
 import { axiosInstance } from "./interceptor";
 
-// --------------------------
 // LIST PROJECTS
-// --------------------------
 export async function getProjects(
   page = 1,
   limit = 12,
@@ -24,40 +22,30 @@ export async function validateEmployees(
     projectId,
     employees,
   });
-  return res.data; // { valid: boolean }
+  return res.data;
 }
 
-// --------------------------
 // CREATE PROJECT
-// --------------------------
 export async function createProject(data: any) {
   return (await axiosInstance.post(`/projects`, data)).data;
 }
 
-// --------------------------
 // UPDATE PROJECT
-// --------------------------
 export async function updateProject(id: number, data: any) {
   return (await axiosInstance.put(`/projects/${id}`, data)).data;
 }
 
-// --------------------------
 // DELETE PROJECT
-// --------------------------
 export async function deleteProject(id: number) {
   return (await axiosInstance.delete(`/projects/${id}`)).data;
 }
 
-// --------------------------
 // ASSIGN MANAGER + EMPLOYEES
-// --------------------------
 export async function assignUsers(id: number, data: any) {
   return (await axiosInstance.put(`/projects/${id}/assign`, data)).data;
 }
 
-// --------------------------
 // REMOVE EMPLOYEE FROM PROJECT
-// --------------------------
 export async function removeEmployee(projectId: number, employeeId: number) {
   return (
     await axiosInstance.delete(
@@ -66,18 +54,12 @@ export async function removeEmployee(projectId: number, employeeId: number) {
   ).data;
 }
 
-// --------------------------
 // GET ALL MANAGERS
-// backend: /users/managers
-// --------------------------
-export async function getManagers() {
+export async function getManagers() { 
   return (await axiosInstance.get(`/users/managers`)).data;
 }
 
-// --------------------------
 // GET AVAILABLE EMPLOYEES
-// backend: /users/employees
-// --------------------------
 export async function getEmployees(projectId?: number) {
   const url = projectId
     ? `/users/employees?projectId=${projectId}`
@@ -86,9 +68,7 @@ export async function getEmployees(projectId?: number) {
   return (await axiosInstance.get(url)).data;
 }
 
-// --------------------------
 // UPDATE ONLY PROJECT STATUS
-// --------------------------
 export async function updateProjectStatus(id: number, status: string) {
   return (await axiosInstance.put(`/projects/${id}/status`, { status })).data;
 }

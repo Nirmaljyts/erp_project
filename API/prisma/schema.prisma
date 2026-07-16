@@ -15,6 +15,13 @@ enum Role {
   EMPLOYEE
 }
 
+enum TimesheetStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
 model User {
   id        Int       @id @default(autoincrement())
   name      String
@@ -36,13 +43,8 @@ model User {
   // ======================
   // LEAVE RELATIONS
   // ======================
-  // Leaves requested by this user
   leaveRequests Leave[] @relation("UserLeaves")
-
-  // Leaves approved by this user
   leaveApproved Leave[] @relation("LeaveApprovedBy")
-
-  // Leaves rejected by this user
   leaveRejected Leave[] @relation("LeaveRejectedBy")
 
   // ======================
@@ -52,9 +54,19 @@ model User {
   projects        ProjectEmployee[]
 
   // ======================
+  // TIMESHEET RELATIONS
+  // ======================
+  timesheets         TimesheetWeek[] @relation("UserTimesheets")
+  timesheetApprovals TimesheetWeek[] @relation("TimesheetApprover")
+
+  // ======================
   // MISC
   // ======================
   otpCodes OtpCode[]
+
+  notifications Notification[]
+
+  @@map("user")
 }
 
 model Client {
@@ -66,7 +78,11 @@ model Client {
   deletedAt   DateTime? // <--- soft delete
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  projects    Project[]
+
+  projects         Project[]
+  timesheetEntries TimesheetEntry[]
+
+  @@map("client")
 }
 
 model Project {
@@ -86,7 +102,11 @@ model Project {
   managerId Int?
   manager   User? @relation("ProjectManager", fields: [managerId], references: [id])
 
-  employees ProjectEmployee[]
+  employees            ProjectEmployee[]
+  timesheetEntries     TimesheetEntry[]
+  timesheetDefinitions TimesheetDefinition[]
+
+  @@map("project")
 }
 
 model ProjectEmployee {
@@ -101,6 +121,7 @@ model ProjectEmployee {
   employee User    @relation(fields: [employeeId], references: [id])
 
   @@unique([projectId, employeeId])
+  @@map("projectemployee")
 }
 
 model Holiday {
@@ -114,6 +135,7 @@ model Holiday {
   updatedAt  DateTime  @updatedAt
 
   @@unique([date, name])
+  @@map("holiday")
 }
 
 model OtpCode {
@@ -127,15 +149,19 @@ model OtpCode {
 
   user   User? @relation(fields: [userId], references: [id])
   userId Int?
+
+  @@map("otpcode")
 }
 
 model Leave {
-  id           Int       @id @default(autoincrement())
+  id           Int  @id @default(autoincrement())
   userId       Int
   approvedById Int?
   rejectedById Int?
 
-  type      String
+  type    LeaveType
+  dayType LeaveDayType @default(FULL)
+
   startDate DateTime
   endDate   DateTime
   reason    String?
@@ -146,13 +172,21 @@ model Leave {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user        User @relation("UserLeaves", fields: [userId], references: [id])
-  approvedBy  User? @relation("LeaveApprovedBy", fields: [approvedById], references: [id])
-  rejectedBy  User? @relation("LeaveRejectedBy", fields: [rejectedById], references: [id])
+  user       User  @relation("UserLeaves", fields: [userId], references: [id])
+  approvedBy User? @relation("LeaveApprovedBy", fields: [approvedById], references: [id])
+  rejectedBy User? @relation("LeaveRejectedBy", fields: [rejectedById], references: [id])
+
+  @@map("leave")
+}
+
+enum LeaveDayType {
+  FULL
+  HALF
 }
 
 enum LeaveType {
   ANNUAL
+  CASUAL
   SICK
   UNPAID
   WFH
@@ -164,4 +198,118 @@ enum LeaveStatus {
   APPROVED
   REJECTED
   CANCELLED
+}
+
+model TimesheetWeek {
+  id            Int             @id @default(autoincrement())
+  userId        Int
+  approverId    Int?
+  weekStartDate DateTime        @db.Date
+  status        TimesheetStatus @default(DRAFT)
+  submittedAt   DateTime?
+  decidedAt     DateTime?
+  deletedAt     DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  user     User             @relation("UserTimesheets", fields: [userId], references: [id])
+  approver User?            @relation("TimesheetApprover", fields: [approverId], references: [id])
+  entries  TimesheetEntry[]
+
+  @@unique([userId, weekStartDate], name: "user_week_unique")
+  @@map("timesheetweek")
+}
+
+model TimesheetEntry {
+  id          Int @id @default(autoincrement())
+  timesheetId Int
+
+  projectId   Int?
+  clientId    Int?
+  description String?
+
+  rowKey String // REQUIRED, canonical row identity
+
+  mon Float @default(0)
+  tue Float @default(0)
+  wed Float @default(0)
+  thu Float @default(0)
+  fri Float @default(0)
+  sat Float @default(0)
+  sun Float @default(0)
+
+  isBillable Boolean   @default(true)
+  deletedAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  timesheet TimesheetWeek @relation(fields: [timesheetId], references: [id])
+  project   Project?      @relation(fields: [projectId], references: [id])
+  client    Client?       @relation(fields: [clientId], references: [id])
+
+  @@unique([timesheetId, rowKey], name: "timesheet_rowkey_unique")
+  @@map("timesheetentry")
+}
+
+enum AppliesTo {
+  ALL
+  EMPLOYEE
+  HR
+  MANAGER
+}
+
+model TimesheetDefinition {
+  id   Int    @id @default(autoincrement())
+  type String
+
+  // PROJECT only
+  projectId Int?
+  project   Project? @relation(fields: [projectId], references: [id])
+
+  // SPECIAL only
+  description String?
+  appliesTo   String? // ⬅MUST be nullable
+
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Best-effort uniqueness (service still enforces rules)
+  @@unique([type, projectId], name: "uniq_project_definition")
+  @@unique([type, description, appliesTo], name: "uniq_special_definition")
+  @@map("timesheetdefinition")
+}
+
+enum NotificationType {
+  LEAVE_APPLIED
+  LEAVE_REQUESTED
+  LEAVE_APPROVED
+  LEAVE_REJECTED
+  LEAVE_DELETED
+  LEAVE_CANCELLED
+  TIMESHEET_SUBMITTED
+  TIMESHEET_APPROVED
+  TIMESHEET_REJECTED
+  REMINDER
+  SLA_BREACH
+}
+
+model Notification {
+  id        Int              @id @default(autoincrement())
+  userId    Int
+  type      NotificationType
+  title     String
+  message   String
+  entityId  Int?
+  isRead    Boolean          @default(false)
+  deletedAt DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead])
+  @@index([userId, deletedAt])
+  @@map("notification")
 }

@@ -4,8 +4,19 @@ import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 import { useEffect, useState } from "react";
 import { getDashboardData } from "../services/dashboardServices";
+import Tooltip from "../components/Tooltip";
+import { getUser } from "../services/userServices";
+
+type UserDetails = {
+  id: string;
+  name: string;
+  email?: string;
+  role?: string;
+};
 
 export default function Dashboard() {
+  const [userDetails, setUserDetails] = useState<UserDetails | undefined>();
+
   const user = useSelector((state: RootState) => state?.auth?.user);
   const role = user?.role || "";
 
@@ -34,6 +45,19 @@ export default function Dashboard() {
       setLoading(false);
     }
   }
+
+  const fetchUser = async () => {
+    if (!user) return;
+    try {
+      const res = await getUser(user.id);
+      setUserDetails(res);
+    } finally {
+    }
+  };
+
+  useEffect(() => {
+    fetchUser();
+  }, []);
 
   useEffect(() => {
     loadDashboardData();
@@ -70,12 +94,12 @@ export default function Dashboard() {
       link: "/calendar",
       icon: Calendar,
       allowedRoles: ["ADMIN", "HR_MANAGER", "HR", "MANAGER", "EMPLOYEE"],
-      style: "text-2xl text-[#2f4f82]",
+      style: "text-2xl text-[#3a63a4]",
     },
   ];
 
   return (
-    <div className="max-h-auto">
+    <div className="max-h-auto w-full">
       {loading ? (
         <div v-if="isProcessing" className="loader-overlay">
           <div className="loader-all"></div>
@@ -84,12 +108,12 @@ export default function Dashboard() {
         <>
           <div className="space-y-1">
             <h1 className="text-2xl md:text-3xl font-bold">
-              👋 Welcome back, {user?.name}
+              👋 Welcome back, {userDetails?.name}
             </h1>
 
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
+            <p className="flex items-center justify-start w-full text-gray-600 dark:text-gray-400">
               {role === "ADMIN" &&
-                "Admin panel — full control over users, clients, and projects."}
+                "Administrative interface, offering full control over users, clients, and projects."}
 
               {role === "HR_MANAGER" &&
                 "Coordinate HR activities and ensure smooth workforce management."}
@@ -124,8 +148,10 @@ export default function Dashboard() {
                     <div className={`font-bold mb-4 ${c.style}`}>{c.count}</div>
 
                     <Link to={c.link}>
-                      <button className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-[#2f4f82] font-medium">
-                        View details →
+                      <button className="text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-[#2f4f82] font-medium">
+                        <Tooltip text={`Go to ${c.label}`} position="right">
+                          <span className="cursor-pointer">View details →</span>
+                        </Tooltip>
                       </button>
                     </Link>
                   </div>

@@ -21,6 +21,29 @@ router.get(
   listUsers
 );
 
+// GET ALL MANAGERS
+router.get(
+  "/managers",
+  authRequired,
+  requireRole("ADMIN", "HR_MANAGER", "HR", "MANAGER"),
+  listManagers
+);
+
+// GET EMPLOYEES NOT ASSIGNED TO ACTIVE PROJECTS
+router.get(
+  "/employees",
+  authRequired,
+  requireRole("ADMIN", "HR_MANAGER", "HR", "MANAGER"),
+  listAvailableEmployees
+);
+
+router.get(
+  "/:id",
+  authRequired,
+  requireRole("ADMIN", "HR_MANAGER", "HR", "MANAGER", "EMPLOYEE"),
+  getUserById
+);
+
 // CREATE USER
 router.post(
   "/",
@@ -43,22 +66,6 @@ router.delete(
   authRequired,
   requireRole("ADMIN", "HR_MANAGER", "HR"),
   deleteUser
-);
-
-// GET ALL MANAGERS
-router.get(
-  "/managers",
-  authRequired,
-  requireRole("ADMIN", "HR_MANAGER", "HR", "MANAGER"),
-  listManagers
-);
-
-// GET EMPLOYEES NOT ASSIGNED TO ACTIVE PROJECTS
-router.get(
-  "/employees",
-  authRequired,
-  requireRole("ADMIN", "HR_MANAGER", "HR", "MANAGER"),
-  listAvailableEmployees
 );
 
 export default router;

@@ -20,6 +20,13 @@
   --icon-bg: #374151;
 }
 
+html,
+body,
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
@@ -37,6 +44,27 @@ input[type="radio"],
 select,
 summary {
   cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Hide native calendar icons but keep input clickable */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  position: absolute;
+  right: 0;
+}
+
+input[type="date"]::-moz-calendar-picker-indicator {
+  display: none;
+}
+
+
+.Toastify__close-button svg {
+  pointer-events: none;
 }
 
 input,
@@ -81,10 +109,22 @@ textarea {
 }
 
 /* CALENDAR CSS */
+/* Header */
+.fc .fc-toolbar.fc-header-toolbar {
+  margin-bottom: 10px;
+}
+
+/* Month Title */
+.fc .fc-toolbar-title {
+  font-weight: 500;
+  margin: 0;
+}
+
 @media (max-width: 480px) {
   /* Month Title */
   .fc .fc-toolbar-title {
-    font-size: 1rem !important;
+    font-size: 18px !important;
+    font-weight: 500;
     margin: 0;
   }
 
@@ -129,5 +169,48 @@ textarea {
   .fc .fc-daygrid-day-number {
     font-size: 0.75rem !important;
     padding: 2px !important;
+  }
+}
+
+/* TABLE COMMON CSS */
+.table {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.table_th,
+.table_td {
+  overflow: hidden;
+}
+
+@media screen and (max-width: 425px) {
+  .table .t_head {
+    display: none;
+  }
+
+  .table tr {
+    display: block;
+  }
+
+  .table .table_td {
+    display: block;
+    font-size: 12px !important;
+    text-align: right;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .table .table_td::before {
+    content: attr(data-label);
+    float: left;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+
+  .table tr:first-child {
+    border-top: 0;
   }
 }

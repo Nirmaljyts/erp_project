@@ -14,14 +14,12 @@ export default function VerifyOtp() {
   const [msg, setMsg] = useState("");
   const [error, setError] = useState("");
 
-  // Handle OTP box input
   const handleOtpChange = (value: string, index: number) => {
     if (/^\d?$/.test(value)) {
       const newOtp = [...otp];
       newOtp[index] = value;
       setOtp(newOtp);
 
-      // Auto move focus
       if (value && index < 5) {
         const next = document.getElementById(`otp-${index + 1}`);
         next?.focus();
@@ -65,12 +63,10 @@ export default function VerifyOtp() {
 
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2 bg-white">
-      {/* LEFT IMAGE */}
       <div className="hidden lg:flex items-center justify-center bg-[#2f4f82]">
         <img src={otpImage} alt="OTP Verification" className="w-3/4 max-w-lg" />
       </div>
 
-      {/* RIGHT FORM */}
       <div className="flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <h1 className="text-3xl font-bold text-gray-900 mb-4 text-center">
@@ -83,7 +79,6 @@ export default function VerifyOtp() {
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* OTP Inputs */}
             <div className="flex items-center justify-center gap-2">
               {otp.map((digit, idx) => (
                 <input
@@ -118,7 +113,7 @@ export default function VerifyOtp() {
               disabled={loading}
               className="
                 w-full rounded-lg bg-[#2f4f82] text-white font-medium
-                py-2 text-sm hover:bg-[#1b335a] disabled:opacity-60
+                py-2 hover:bg-[#1b335a] disabled:opacity-60
               "
             >
               {loading ? "Verifying..." : "Verify OTP"}
