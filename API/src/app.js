@@ -17,12 +17,10 @@ const allowedOrigins = [
   "https://erp-project-1yart.vercel.app",
 ];
 
-app.use(
-  cors({
-    origin: true,
-    credentials: true,
-  }),
-);
+app.use(cors({
+  origin: ["http://localhost:5173", "https://erp-project-lyart.vercel.app"],
+  credentials: true,
+}));
 
 app.use(express.json());
 app.use(cookieParser());
