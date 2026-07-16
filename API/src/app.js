@@ -14,7 +14,7 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
-  "erp-project-7kjq.onrender.com",
+  "https://erp-project-1yart.vercel.app",
 ];
 
 app.use(
