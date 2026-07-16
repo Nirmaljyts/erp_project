@@ -1,0 +1,154 @@
+🎨 ERP Project (React + TypeScript + Vite)
+
+This is the frontend UI for the ERP (Enterprise Resource Planning) System.
+It communicates with the ERP API and provides a fast, modern, role-based interface.
+
+Built with:
+
+⚛  React 18 + TypeScript
+
+⚡ Vite
+
+🎛 Redux Toolkit
+
+🌐 React Router v6
+
+🎨 TailwindCSS
+
+📅 FullCalendar
+
+🔐 Axios + JWT Interceptor
+
+🔔 React Hot Toast
+
+----------------------------------------------------------------------------------------------------
+
+📸 Features
+
+✔ JWT Authentication (Login + Role-based Access)
+✔ Holiday Calendar (Create / Update / Delete for Admin + HR)
+✔ CSV Upload for Holidays
+✔ Dashboard & Routing System
+✔ Global State using Redux Toolkit
+✔ Form validation with inline error messages
+✔ Toast notifications
+✔ Dark/Light theme with CSS variables
+✔ FullCalendar event tooltips + event modals
+
+----------------------------------------------------------------------------------------------------
+
+📁 Project Structure
+erp-client/
+│── public/
+│── src/
+│   ├── assets/
+│   ├── components/
+│   ├── pages/
+│   │   ├── CalendarPage.tsx
+│   │   ├── LoginPage.tsx
+│   │   ├── DashboardPage.tsx
+│   ├── router/
+│   │   ├── AppRouter.tsx
+│   │   └── PrivateRoute.tsx
+│   ├── services/
+│   │   ├── authServices.ts
+│   │   ├── holidayServices.ts
+│   │   └── interceptor.ts
+│   ├── store/
+│   │   ├── store.ts
+│   │   └── authSlice.ts
+│   ├── App.tsx
+│   └── main.tsx
+│
+│── tailwind.config.js
+│── tsconfig.json
+│── vite.config.ts
+│── package.json
+│── .env
+└── README.md
+
+----------------------------------------------------------------------------------------------------
+
+🛠 Installation & Setup
+1️⃣ Clone Repository
+git clone https://github.com/Nirmaljyts/erp_project.git
+cd UI
+
+2️⃣ Install dependencies
+npm install
+
+3️⃣ Create .env file
+VITE_API_URL="http://localhost:5000/api"
+
+4️⃣ Run development server
+npm run dev
+
+Local URL: http://localhost:5173
+
+5️⃣ Build for production
+npm run build
+npm run preview
+
+----------------------------------------------------------------------------------------------------
+
+🔐 Authentication Flow (JWT)
+
+User logs in using /auth/login
+
+Access + Refresh tokens stored in httpOnly cookies
+
+Axios interceptor refreshes token automatically
+
+Redux Toolkit stores user info
+
+Protected routes check user role
+
+👮 Role-Based in UI
+
+ADMIN | HR | MANAGER | EMPLOYEE
+
+----------------------------------------------------------------------------------------------------
+
+🎨 Theme System
+
+Uses CSS variables defined for both themes:
+
+Both dark and light theme supported
+
+--background
+--text
+--card
+--border
+
+Automatically applied to:
+
+Modals | Calendar | Forms | Layout
+
+----------------------------------------------------------------------------------------------------
+
+🔔 Notifications (react-toast)
+
+Used for:
+
+Login success / failure
+
+Holiday created / updated / deleted
+
+CSV upload results
+
+Validation errors
+
+
+API CORS blocked
+
+Backend must allow:
+
+origin: "http://localhost:5173"
+credentials: true
+
+----------------------------------------------------------------------------------------------------
+
+📄 License
+
+This is private internal ERP software.
+Not open for redistribution.
