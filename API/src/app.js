@@ -14,6 +14,7 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
+  "https://your-erp-app.vercel.app",
 ];
 
 app.use(
