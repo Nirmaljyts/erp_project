@@ -66,6 +66,7 @@ model User {
 
   notifications Notification[]
 
+  @@index([managerId, deletedAt, isActive])
   @@map("user")
 }
 
@@ -82,6 +83,7 @@ model Client {
   projects         Project[]
   timesheetEntries TimesheetEntry[]
 
+  @@index([deletedAt])
   @@map("client")
 }
 
@@ -106,6 +108,7 @@ model Project {
   timesheetEntries     TimesheetEntry[]
   timesheetDefinitions TimesheetDefinition[]
 
+  @@index([deletedAt, status])
   @@map("project")
 }
 
@@ -150,6 +153,7 @@ model OtpCode {
   user   User? @relation(fields: [userId], references: [id])
   userId Int?
 
+  @@index([email, code])
   @@map("otpcode")
 }
 
@@ -176,6 +180,9 @@ model Leave {
   approvedBy User? @relation("LeaveApprovedBy", fields: [approvedById], references: [id])
   rejectedBy User? @relation("LeaveRejectedBy", fields: [rejectedById], references: [id])
 
+  @@index([userId, deletedAt, createdAt])  // covers your main query + sort
+  @@index([approvedById])                  // speeds up the approvedBy join
+  @@index([rejectedById])                  // speeds up the rejectedBy join
   @@map("leave")
 }
 
